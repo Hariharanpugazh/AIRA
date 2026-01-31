@@ -4,102 +4,114 @@ import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { DashboardLayout } from "../../../components/layouts/DashboardLayout";
 import Header from "../../components/Header";
-import { Button } from "../../../components/ui/Button";
 import { Card } from "../../../components/ui/Card";
-import { InfoIcon, FilterIcon, SearchSmIcon } from "../../components/icons";
+import { Video, Users, RefreshCw } from "lucide-react";
+import { Button } from "../../../components/ui/Button";
+import { getAccessToken, getMe, getRooms, User, Room } from "../../../lib/api";
 
 export default function SessionsPage() {
   const router = useRouter();
-  const [user, setUser] = useState<{ name: string; email: string } | null>(null);
-  const [projectName, setProjectName] = useState<string>("");
+  const [user, setUser] = useState<User | null>(null);
+  const [rooms, setRooms] = useState<Room[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
-  useEffect(() => {
-    const storedUser = localStorage.getItem("user");
-    const storedProject = localStorage.getItem("projectName");
-    if (!storedUser) {
+  const loadData = async () => {
+    const token = getAccessToken();
+    if (!token) {
       router.push("/login");
       return;
     }
-    setUser(JSON.parse(storedUser));
-    setProjectName(storedProject || "My Project");
+
+    try {
+      const [userData, roomsData] = await Promise.all([
+        getMe(),
+        getRooms(),
+      ]);
+
+      setUser(userData);
+      setRooms(roomsData);
+    } catch (error) {
+      console.error("Failed to load sessions:", error);
+      router.push("/login");
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
+
+  useEffect(() => {
+    loadData();
   }, [router]);
 
-  if (!user) return null;
+  const handleRefresh = () => {
+    setRefreshing(true);
+    loadData();
+  };
+
+  if (loading || !user) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-primary"></div>
+      </div>
+    );
+  }
+
+  const projectName = localStorage.getItem("projectName") || "RELATIM";
 
   return (
     <DashboardLayout user={user}>
-      <Header projectName={projectName} pageName="Sessions" />
+      <Header
+        projectName={projectName}
+        pageName="Sessions"
+        showTimeRange={false}
+        actionButton={
+          <Button
+            size="sm"
+            variant="ghost"
+            leftIcon={<RefreshCw className={`w-4 h-4 ${refreshing ? "animate-spin" : ""}`} />}
+            onClick={handleRefresh}
+          >
+            Refresh
+          </Button>
+        }
+      />
 
-      <div className="p-8">
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-          <Card className="p-5 flex items-center justify-between">
-            <div>
-              <div className="flex items-center gap-1.5 mb-2">
-                <span className="text-secondary text-[11px] font-semibold uppercase tracking-wider">Unique participants</span>
-                <InfoIcon className="w-3.5 h-3.5 text-secondary" />
+      <div className="p-4 md:p-8 animate-fade-in">
+        {rooms.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-20">
+            <div className="relative">
+              <div className="absolute inset-0 bg-primary/20 blur-[40px] rounded-full animate-pulse-slow" />
+              <div className="w-20 h-20 rounded-2xl bg-surface border border-white/10 flex items-center justify-center mb-8 relative">
+                <Video className="w-10 h-10 text-primary" />
               </div>
-              <div className="text-primary text-3xl font-semibold">0</div>
             </div>
-            {/* Can add a mini chart or icon here later */}
-          </Card>
-
-          <Card className="p-5 flex items-center justify-between">
-            <div>
-              <div className="flex items-center gap-1.5 mb-2">
-                <span className="text-secondary text-[11px] font-semibold uppercase tracking-wider">Total rooms</span>
-                <InfoIcon className="w-3.5 h-3.5 text-secondary" />
-              </div>
-              <div className="text-primary text-3xl font-semibold">0</div>
-            </div>
-          </Card>
-        </div>
-
-        {/* Sessions Table */}
-        <div className="rounded-xl bg-surface border border-border overflow-hidden">
-          <div className="flex items-center justify-between px-6 py-4 border-b border-border bg-surface-hover/50">
-            <h3 className="text-foreground font-medium">Sessions</h3>
-            <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm" icon={<FilterIcon className="w-3.5 h-3.5" />}>
-                Filters
-              </Button>
-              <Button variant="outline" size="sm" className="px-2">
-                <SearchSmIcon className="w-4 h-4" />
-              </Button>
+            <h2 className="text-foreground font-display text-2xl font-bold mb-3">No active sessions</h2>
+            <p className="text-muted-foreground text-sm text-center max-w-md">
+              LiveKit rooms will appear here when participants connect.
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {rooms.map((room) => (
+                <Card key={room.sid} variant="glass" className="p-4">
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="p-2 rounded-lg bg-primary/10">
+                      <Video className="w-5 h-5 text-primary" />
+                    </div>
+                    <div className="flex items-center gap-2 text-xs">
+                      <Users className="w-4 h-4 text-muted-foreground" />
+                      <span className="text-foreground">{room.num_participants}</span>
+                    </div>
+                  </div>
+                  <h3 className="text-foreground font-medium mb-1">{room.name}</h3>
+                  <p className="text-muted-foreground text-xs truncate">{room.sid}</p>
+                </Card>
+              ))}
             </div>
           </div>
-
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-border bg-surface-hover/30">
-                  <th className="text-left px-6 py-3 text-secondary text-[11px] font-semibold uppercase tracking-wider">Session ID</th>
-                  <th className="text-left px-6 py-3 text-secondary text-[11px] font-semibold uppercase tracking-wider">Room name</th>
-                  <th className="text-left px-6 py-3 text-secondary text-[11px] font-semibold uppercase tracking-wider">
-                    <span className="flex items-center gap-1 cursor-pointer hover:text-foreground transition-colors">
-                      Started at
-                      <svg viewBox="0 0 24 24" className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="1.5">
-                        <path d="m6 9 6 6 6-6" />
-                      </svg>
-                    </span>
-                  </th>
-                  <th className="text-left px-6 py-3 text-secondary text-[11px] font-semibold uppercase tracking-wider">Ended at</th>
-                  <th className="text-left px-6 py-3 text-secondary text-[11px] font-semibold uppercase tracking-wider">Duration</th>
-                  <th className="text-left px-6 py-3 text-secondary text-[11px] font-semibold uppercase tracking-wider">Participants</th>
-                  <th className="text-left px-6 py-3 text-secondary text-[11px] font-semibold uppercase tracking-wider">Features</th>
-                  <th className="text-left px-6 py-3 text-secondary text-[11px] font-semibold uppercase tracking-wider">Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td colSpan={8} className="px-6 py-16 text-center text-secondary text-sm">
-                    No sessions found.
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
+        )}
       </div>
     </DashboardLayout>
   );

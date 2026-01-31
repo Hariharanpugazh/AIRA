@@ -6,38 +6,116 @@ import { DashboardLayout } from "../../../components/layouts/DashboardLayout";
 import Header from "../../components/Header";
 import { Button } from "../../../components/ui/Button";
 import { Card } from "../../../components/ui/Card";
-import { Plus, Info, Mic, Code2, Bot } from "lucide-react";
+import { Plus, Bot, Trash2, Play, Pause } from "lucide-react";
+import { getAccessToken, getMe, getProjects, getAgents, createAgent, deleteAgent, updateAgent, User, Agent, Project } from "../../../lib/api";
 
 export default function AgentsPage() {
   const router = useRouter();
-  const [user, setUser] = useState<{ name: string; email: string } | null>(null);
-  const [projectName, setProjectName] = useState<string>("");
+  const [user, setUser] = useState<User | null>(null);
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [currentProject, setCurrentProject] = useState<Project | null>(null);
+  const [agents, setAgents] = useState<Agent[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [showCreate, setShowCreate] = useState(false);
+  const [newAgentName, setNewAgentName] = useState("");
+  const [newAgentDesc, setNewAgentDesc] = useState("");
+  const [creating, setCreating] = useState(false);
 
   useEffect(() => {
-    const storedUser = localStorage.getItem("user");
-    const storedProject = localStorage.getItem("projectName");
-    if (!storedUser) {
-      router.push("/login");
-      return;
-    }
-    setUser(JSON.parse(storedUser));
-    setProjectName(storedProject || "My Project");
+    const loadData = async () => {
+      const token = getAccessToken();
+      if (!token) {
+        router.push("/login");
+        return;
+      }
+
+      try {
+        const [userData, projectsData] = await Promise.all([
+          getMe(),
+          getProjects(),
+        ]);
+
+        setUser(userData);
+        setProjects(projectsData);
+
+        const savedProjectId = localStorage.getItem("projectId");
+        const project = projectsData.find((p: Project) => p.id === savedProjectId) || projectsData[0];
+
+        if (project) {
+          setCurrentProject(project);
+          const agentsData = await getAgents(project.id);
+          setAgents(agentsData);
+        }
+      } catch (error) {
+        console.error("Failed to load agents:", error);
+        router.push("/login");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadData();
   }, [router]);
 
-  if (!user) return null;
+  const handleCreateAgent = async () => {
+    if (!currentProject || !newAgentName.trim()) return;
+    setCreating(true);
+    try {
+      const agent = await createAgent(currentProject.id, {
+        name: newAgentName,
+        description: newAgentDesc,
+      });
+      setAgents([agent, ...agents]);
+      setNewAgentName("");
+      setNewAgentDesc("");
+      setShowCreate(false);
+    } catch (error) {
+      console.error("Failed to create agent:", error);
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  const handleDeleteAgent = async (agentId: string) => {
+    if (!currentProject) return;
+    try {
+      await deleteAgent(currentProject.id, agentId);
+      setAgents(agents.filter(a => a.id !== agentId));
+    } catch (error) {
+      console.error("Failed to delete agent:", error);
+    }
+  };
+
+  const handleToggleStatus = async (agent: Agent) => {
+    if (!currentProject) return;
+    const newStatus = agent.status === "active" ? "paused" : "active";
+    try {
+      const updated = await updateAgent(currentProject.id, agent.id, { status: newStatus });
+      setAgents(agents.map(a => a.id === agent.id ? updated : a));
+    } catch (error) {
+      console.error("Failed to update agent:", error);
+    }
+  };
+
+  if (loading || !user) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-primary"></div>
+      </div>
+    );
+  }
 
   return (
     <DashboardLayout user={user}>
       <Header
-        projectName={projectName}
+        projectName={currentProject?.name || "RELATIM"}
         pageName="Agents"
         showTimeRange={false}
         actionButton={
           <Button
             size="sm"
             leftIcon={<Plus className="w-4 h-4" />}
-            onClick={() => router.push('/agents/ab_6chkk1s1ffy/instructions')}
-            className="hidden sm:flex"
+            onClick={() => setShowCreate(true)}
           >
             Create agent
           </Button>
@@ -45,77 +123,103 @@ export default function AgentsPage() {
       />
 
       <div className="p-4 md:p-8 animate-fade-in">
-        {/* Empty State */}
-        <div className="flex flex-col items-center justify-center py-10 md:py-20">
-          <div className="relative">
-            <div className="absolute inset-0 bg-primary/20 blur-[40px] rounded-full animate-pulse-slow" />
-            <div className="w-20 h-20 rounded-2xl bg-surface border border-white/10 flex items-center justify-center mb-8 relative glass-card shadow-xl">
-              <Bot className="w-10 h-10 text-primary" />
+        {/* Create Modal */}
+        {showCreate && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <Card variant="glass" className="w-full max-w-md p-6">
+              <h2 className="text-xl font-semibold text-foreground mb-4">Create New Agent</h2>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-foreground mb-2">Name</label>
+                  <input
+                    type="text"
+                    value={newAgentName}
+                    onChange={(e) => setNewAgentName(e.target.value)}
+                    className="w-full px-4 py-2 rounded-lg bg-white/5 border border-white/10 text-foreground"
+                    placeholder="My Voice Agent"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-foreground mb-2">Description</label>
+                  <textarea
+                    value={newAgentDesc}
+                    onChange={(e) => setNewAgentDesc(e.target.value)}
+                    className="w-full px-4 py-2 rounded-lg bg-white/5 border border-white/10 text-foreground"
+                    placeholder="Agent description..."
+                    rows={3}
+                  />
+                </div>
+                <div className="flex gap-3 pt-2">
+                  <Button variant="ghost" className="flex-1" onClick={() => setShowCreate(false)}>
+                    Cancel
+                  </Button>
+                  <Button className="flex-1" onClick={handleCreateAgent} isLoading={creating}>
+                    Create
+                  </Button>
+                </div>
+              </div>
+            </Card>
+          </div>
+        )}
+
+        {/* Agents List */}
+        {agents.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-20">
+            <div className="relative">
+              <div className="absolute inset-0 bg-primary/20 blur-[40px] rounded-full animate-pulse-slow" />
+              <div className="w-20 h-20 rounded-2xl bg-surface border border-white/10 flex items-center justify-center mb-8 relative">
+                <Bot className="w-10 h-10 text-primary" />
+              </div>
             </div>
+            <h2 className="text-foreground font-display text-2xl font-bold mb-3">No agents yet</h2>
+            <p className="text-muted-foreground text-sm text-center max-w-md mb-8">
+              Create your first agent to start building voice AI experiences.
+            </p>
+            <Button onClick={() => setShowCreate(true)} leftIcon={<Plus className="w-4 h-4" />}>
+              Create agent
+            </Button>
           </div>
-
-          <h2 className="text-foreground font-display text-2xl font-bold mb-3 tracking-tight">Agents</h2>
-          <p className="text-muted-foreground text-sm text-center max-w-md mb-10 leading-relaxed">
-            Deploy and host agents on Relatim Cloud infrastructure. <br className="hidden sm:block" />
-            Your self-hosted agents will appear here too.
-          </p>
-
-          <div className="w-full max-w-3xl flex items-center gap-4 mb-10">
-            <div className="flex-1 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
-            <span className="text-muted-foreground text-[10px] uppercase tracking-widest font-semibold px-2">Get started</span>
-            <div className="flex-1 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-3xl w-full">
-            {/* Start in browser */}
-            <button className="group text-left p-0 transition-all outline-none" onClick={() => router.push('/agents/ab_6chkk1s1ffy/instructions')}>
-              <Card variant="glass" className="p-6 h-full group-hover:border-primary/50 group-hover:bg-surface-hover/50 transition-all relative overflow-hidden">
-                <div className="absolute top-0 right-0 p-4 opacity-0 group-hover:opacity-10 transition-opacity">
-                  <Mic className="w-24 h-24 text-primary -rotate-12 translate-x-4 -translate-y-4" />
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {agents.map((agent) => (
+              <Card key={agent.id} variant="glass" className="p-4">
+                <div className="flex items-start justify-between mb-3">
+                  <div className="p-2 rounded-lg bg-primary/10">
+                    <Bot className="w-5 h-5 text-primary" />
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={() => handleToggleStatus(agent)}
+                      className={`p-1.5 rounded-lg transition-colors ${agent.status === "active"
+                        ? "bg-green-500/10 text-green-500 hover:bg-green-500/20"
+                        : "bg-yellow-500/10 text-yellow-500 hover:bg-yellow-500/20"
+                        }`}
+                    >
+                      {agent.status === "active" ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+                    </button>
+                    <button
+                      onClick={() => handleDeleteAgent(agent.id)}
+                      className="p-1.5 rounded-lg bg-red-500/10 text-red-500 hover:bg-red-500/20 transition-colors"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
                 </div>
-
-                <div className="mb-6 relative z-10">
-                  <div className="w-full h-40 rounded-lg bg-black/40 border border-white/5 mb-6 relative overflow-hidden flex items-center justify-center group-hover:border-primary/20 transition-colors">
-                    <div className="absolute inset-0 bg-gradient-to-tr from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                    <Mic className="w-12 h-12 text-muted-foreground group-hover:text-primary transition-colors duration-300 transform group-hover:scale-110" strokeWidth={1.5} />
-                  </div>
-
-                  <div className="flex items-center gap-2 mb-3">
-                    <span className="text-foreground font-display font-semibold text-lg group-hover:text-primary transition-colors">Start in the browser</span>
-                    <Info className="text-muted-foreground/50 w-4 h-4 group-hover:text-primary/50 transition-colors" />
-                  </div>
-                  <p className="text-muted-foreground text-sm leading-relaxed">
-                    The fastest way to build agents: prompt first, convert to code later. Best for prototyping and testing simple ideas.
-                  </p>
+                <h3 className="text-foreground font-medium mb-1">{agent.name}</h3>
+                <p className="text-muted-foreground text-sm mb-3">{agent.description || "No description"}</p>
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <span className={`px-2 py-1 rounded-full ${agent.status === "active" ? "bg-green-500/10 text-green-500" :
+                    agent.status === "paused" ? "bg-yellow-500/10 text-yellow-500" :
+                      "bg-white/5"
+                    }`}>
+                    {agent.status}
+                  </span>
+                  <span>{agent.model}</span>
                 </div>
               </Card>
-            </button>
-
-            {/* Start in code */}
-            <button className="group text-left p-0 transition-all outline-none">
-              <Card variant="glass" className="p-6 h-full group-hover:border-purple-500/50 group-hover:bg-surface-hover/50 transition-all relative overflow-hidden">
-                <div className="absolute top-0 right-0 p-4 opacity-0 group-hover:opacity-10 transition-opacity">
-                  <Code2 className="w-24 h-24 text-purple-500 -rotate-12 translate-x-4 -translate-y-4" />
-                </div>
-
-                <div className="mb-6 relative z-10">
-                  <div className="w-full h-40 rounded-lg bg-black/40 border border-white/5 mb-6 relative overflow-hidden flex items-center justify-center group-hover:border-purple-500/20 transition-colors">
-                    <div className="absolute inset-0 bg-gradient-to-tr from-purple-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                    <Code2 className="w-12 h-12 text-muted-foreground group-hover:text-purple-500 transition-colors duration-300 transform group-hover:scale-110" strokeWidth={1.5} />
-                  </div>
-
-                  <div className="flex items-center gap-2 mb-3">
-                    <span className="text-foreground font-display font-semibold text-lg group-hover:text-purple-400 transition-colors">Start in code</span>
-                    <Info className="text-muted-foreground/50 w-4 h-4 group-hover:text-purple-500/50 transition-colors" />
-                  </div>
-                  <p className="text-muted-foreground text-sm leading-relaxed">
-                    Develop complex voice agent workflows in code using the Agents SDK and deploy straight from your terminal.
-                  </p>
-                </div>
-              </Card>
-            </button>
+            ))}
           </div>
-        </div>
+        )}
       </div>
     </DashboardLayout>
   );

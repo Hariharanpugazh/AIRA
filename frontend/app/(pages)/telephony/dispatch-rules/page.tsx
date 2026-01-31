@@ -5,149 +5,121 @@ import { useRouter } from "next/navigation";
 import { DashboardLayout } from "../../../../components/layouts/DashboardLayout";
 import Header from "../../../components/Header";
 import { Button } from "../../../../components/ui/Button";
-import { InfoIcon, SearchSmIcon } from "../../../components/icons";
+import { SearchSmIcon } from "../../../components/icons";
 import { Modal } from "../../../../components/ui/Modal";
 import { Select } from "../../../../components/ui/Select";
+import { getAccessToken, getMe, getDispatchRules, createDispatchRule, deleteDispatchRule, getSipTrunks, getAgents, DispatchRule } from "../../../../lib/api";
 
 export default function DispatchRulesPage() {
   const router = useRouter();
   const [user, setUser] = useState<{ name: string; email: string } | null>(null);
   const [projectName, setProjectName] = useState<string>("");
+  const [rules, setRules] = useState<DispatchRule[]>([]);
+  const [agents, setAgents] = useState<any[]>([]);
+  const [trunks, setTrunks] = useState<any[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [formData, setFormData] = useState({ name: "", rule_type: "individual", trunk_id: "", agent_id: "" });
 
   useEffect(() => {
-    const storedUser = localStorage.getItem("user");
-    const storedProject = localStorage.getItem("projectName");
-    if (!storedUser) {
-      router.push("/login");
-      return;
-    }
-    setUser(JSON.parse(storedUser));
-    setProjectName(storedProject || "My Project");
+    const loadData = async () => {
+      if (!getAccessToken()) { router.push("/login"); return; }
+      try {
+        const u = await getMe();
+        setUser(u);
+
+        try {
+          const [r, a, t] = await Promise.all([getDispatchRules(), getAgents("default"), getSipTrunks()]);
+          setRules(r);
+          setAgents(a);
+          setTrunks(t);
+        } catch (err) {
+          console.error("Failed to load resources", err);
+        }
+
+        setProjectName(localStorage.getItem("projectName") || "My Project");
+      } catch (e) {
+        console.error(e);
+      }
+    };
+    loadData();
   }, [router]);
+
+  const handleCreate = async () => {
+    if (!formData.name) return;
+    try {
+      const newRule = await createDispatchRule({
+        name: formData.name,
+        rule_type: formData.rule_type,
+        agent_id: formData.agent_id || undefined,
+        trunk_id: formData.trunk_id || undefined
+      });
+      setRules([newRule, ...rules]);
+      setIsModalOpen(false);
+      setFormData({ name: "", rule_type: "individual", trunk_id: "", agent_id: "" });
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm("Delete rule?")) return;
+    try {
+      await deleteDispatchRule(id);
+      setRules(rules.filter(r => r.id !== id));
+    } catch (e) {
+      console.error(e);
+    }
+  };
 
   if (!user) return null;
 
-  const actionButton = (
-    <Button
-      size="sm"
-      className="bg-[#00d4aa] text-black hover:bg-[#00e5c0]"
-      onClick={() => setIsModalOpen(true)}
-    >
-      Create new dispatch rule
-    </Button>
-  );
-
   return (
     <DashboardLayout user={user}>
-      <Header
-        projectName={projectName}
-        pageName="Dispatch rules"
-        showTimeRange={false}
-        actionButton={actionButton}
+      <Header projectName={projectName} pageName="Dispatch rules" showTimeRange={false}
+        actionButton={
+          <Button size="sm" className="bg-[#00d4aa] text-black hover:bg-[#00e5c0]" onClick={() => setIsModalOpen(true)}>
+            Create new dispatch rule
+          </Button>
+        }
       />
-
       <div className="p-8 max-w-6xl mx-auto">
-        <div className="mb-8">
-          <h1 className="text-xl font-semibold text-foreground mb-2">Dispatch rules</h1>
-          <p className="text-secondary text-sm">
-            Router specific inbound calls to Agents or Rooms. {' '}
-            <a href="#" className="text-[#00d4aa] hover:underline">Learn more in the docs</a>
-          </p>
-        </div>
+        <h1 className="text-xl font-semibold mb-6">Dispatch Rules</h1>
 
-        {/* Search */}
-        <div className="mb-6 relative max-w-md">
-          <div className="absolute left-3 top-1/2 -translate-y-1/2 text-secondary pointer-events-none">
-            <SearchSmIcon className="w-4 h-4" />
+        {rules.length === 0 ? (
+          <div className="text-center p-12 bg-surface/50 rounded-lg border border-white/5">
+            <p className="text-muted-foreground">No dispatch rules configured.</p>
           </div>
-          <input
-            type="text"
-            placeholder="Search dispatch rules"
-            className="w-full pl-10 pr-4 py-2 bg-surface border border-white/10 rounded-lg text-sm text-foreground focus:outline-none focus:border-primary/50"
-          />
-        </div>
+        ) : (
+          <div className="space-y-4">
+            {rules.map(r => (
+              <div key={r.id} className="bg-surface border border-white/10 p-4 rounded-lg flex justify-between items-center">
+                <div>
+                  <h3 className="font-medium text-foreground">{r.name}</h3>
+                  <p className="text-sm text-secondary">{r.rule_type} · Agent: {r.agent_name || "None"} · Trunk: {r.trunk_name || "None"}</p>
+                </div>
+                <button onClick={() => handleDelete(r.id)} className="text-red-500 hover:bg-red-500/10 p-2 rounded">Delete</button>
+              </div>
+            ))}
+          </div>
+        )}
 
-        {/* Table */}
-        <div className="rounded-lg bg-surface border border-white/10 overflow-hidden">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-white/10 bg-white/5">
-                <th className="text-left px-4 py-3 text-secondary text-[11px] font-medium uppercase tracking-wider">Rule Name</th>
-                <th className="text-left px-4 py-3 text-secondary text-[11px] font-medium uppercase tracking-wider">Rule Type</th>
-                <th className="text-left px-4 py-3 text-secondary text-[11px] font-medium uppercase tracking-wider">Inbound Numbers</th>
-                <th className="w-10"></th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr className="border-b border-white/10 last:border-0 hover:bg-white/[0.02] transition-colors">
-                <td className="px-4 py-3 text-[13px] text-foreground font-medium">Default Rule</td>
-                <td className="px-4 py-3 text-[13px] text-secondary">Individual</td>
-                <td className="px-4 py-3 text-[13px] text-secondary">--</td>
-                <td className="px-4 py-3">
-                  <button className="text-secondary hover:text-foreground transition-colors p-1 rounded hover:bg-white/10">
-                    <svg viewBox="0 0 24 24" className="w-4 h-4" fill="currentColor"><circle cx="12" cy="12" r="2" /><circle cx="12" cy="6" r="2" /><circle cx="12" cy="18" r="2" /></svg>
-                  </button>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-
-        {/* Create Modal */}
-        <Modal
-          isOpen={isModalOpen}
-          onClose={() => setIsModalOpen(false)}
-          title="Create a new dispatch rule"
-          footer={
-            <>
-              <Button variant="ghost" onClick={() => setIsModalOpen(false)}>Cancel</Button>
-              <Button className="bg-[#00d4aa] text-black hover:bg-[#00e5c0]" onClick={() => setIsModalOpen(false)}>Create</Button>
-            </>
-          }
+        <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Create Dispatch Rule"
+          footer={<><Button variant="ghost" onClick={() => setIsModalOpen(false)}>Cancel</Button><Button onClick={handleCreate} className="bg-[#00d4aa] text-black">Create</Button></>}
         >
-          <div className="space-y-6">
-            <div className="flex items-center gap-4 text-sm font-medium border-b border-white/10 mb-4">
-              <button className="pb-2 border-b-2 border-[#00d4aa] text-foreground">DISPATCH RULE DETAILS</button>
-              <button className="pb-2 text-secondary hover:text-foreground transition-colors">JSON EDITOR</button>
-            </div>
+          <div className="space-y-4">
+            <input placeholder="Rule Name" value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} className="w-full bg-surface border border-white/10 rounded p-2" />
 
-            <div className="space-y-4">
-              <div>
-                <label className="block text-[13px] font-medium text-foreground mb-2">Rule name</label>
-                <input type="text" className="w-full px-3 py-2 bg-surface border border-white/10 rounded-lg text-sm text-foreground focus:outline-none focus:border-[#00d4aa]/50" placeholder="My rule" />
-              </div>
+            <select value={formData.agent_id} onChange={e => setFormData({ ...formData, agent_id: e.target.value })} className="w-full bg-surface border border-white/10 rounded p-2">
+              <option value="">Select Agent</option>
+              {agents.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
+            </select>
 
-              <Select
-                label="Rule type"
-                options={[
-                  { label: "Individual", value: "individual" },
-                  { label: "Round Robin", value: "round-robin" },
-                  { label: "Broadcast", value: "broadcast" }
-                ]}
-              />
-
-              <div>
-                <label className="block text-[13px] font-medium text-foreground mb-2">Room prefix</label>
-                <input type="text" className="w-full px-3 py-2 bg-surface border border-white/10 rounded-lg text-sm text-foreground focus:outline-none focus:border-[#00d4aa]/50" defaultValue="prm-" />
-              </div>
-            </div>
-
-            <div className="bg-white/5 rounded-lg p-4 border border-white/10">
-              <h3 className="text-sm font-medium text-foreground mb-2">Inbound routing</h3>
-              <p className="text-xs text-secondary mb-4">Configure origination by setting up how inbound calls will be dispatched to LiveKit rooms.</p>
-
-              <div className="flex border-b border-white/10 mb-4">
-                <button className="flex-1 pb-2 text-xs font-medium text-[#00d4aa] border-b border-[#00d4aa]">Phone numbers</button>
-                <button className="flex-1 pb-2 text-xs font-medium text-secondary hover:text-foreground">Trunks</button>
-              </div>
-              <div className="text-center py-8 text-secondary text-sm">
-                No phone numbers owned
-              </div>
-            </div>
+            <select value={formData.trunk_id} onChange={e => setFormData({ ...formData, trunk_id: e.target.value })} className="w-full bg-surface border border-white/10 rounded p-2">
+              <option value="">Select Trunk</option>
+              {trunks.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+            </select>
           </div>
         </Modal>
-
       </div>
     </DashboardLayout>
   );

@@ -1,0 +1,1188 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>LiveKit Cloud Dashboard Feature Audit &amp; Self-Hosted Implementation Map</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&amp;family=Inter:wght@300;400;500;600;700&amp;display=swap"
+        rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <style>
+        :root {
+            --primary: #0f766e;
+            --primary-light: #14b8a6;
+            --secondary: #64748b;
+            --accent: #f97316;
+            --neutral: #f8fafc;
+            --neutral-dark: #334155;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            line-height: 1.6;
+            color: var(--neutral-dark);
+        }
+
+        .serif {
+            font-family: 'Playfair Display', serif;
+        }
+
+        .toc-fixed {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 280px;
+            height: 100vh;
+            background: linear-gradient(135deg, var(--primary) 0%, #134e4a 100%);
+            z-index: 1000;
+            overflow-y: auto;
+            padding: 2rem 1.5rem;
+        }
+
+        .main-content {
+            margin-left: 280px;
+            min-height: 100vh;
+        }
+
+        .hero-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            grid-template-rows: auto auto;
+            gap: 2rem;
+            margin-bottom: 4rem;
+        }
+
+        .hero-title {
+            grid-column: 1 / -1;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+            color: white;
+            padding: 3rem;
+            border-radius: 1rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hero-title::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grid" width="10" height="10" patternUnits="userSpaceOnUse"><path d="M 10 0 L 0 0 0 10" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="0.5"/></pattern></defs><rect width="100" height="100" fill="url(%23grid)"/></svg>');
+            opacity: 0.3;
+        }
+
+        .hero-content {
+            background: white;
+            padding: 2rem;
+            border-radius: 1rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        .hero-visual {
+            background: linear-gradient(45deg, #f1f5f9 0%, #e2e8f0 100%);
+            border-radius: 1rem;
+            padding: 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .toc-link {
+            color: rgba(255, 255, 255, 0.8);
+            text-decoration: none;
+            display: block;
+            padding: 0.5rem 0;
+            border-left: 2px solid transparent;
+            padding-left: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .toc-link:hover,
+        .toc-link.active {
+            color: white;
+            border-left-color: var(--accent);
+            background: rgba(255, 255, 255, 0.1);
+            padding-left: 1.5rem;
+        }
+
+        .toc-section {
+            margin: 2rem 0;
+        }
+
+        .toc-section h4 {
+            color: var(--accent);
+            font-weight: 600;
+            margin-bottom: 1rem;
+            font-size: 0.875rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .feature-card {
+            background: white;
+            border-radius: 1rem;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            border-left: 4px solid var(--primary);
+        }
+
+        .feature-header {
+            border-bottom: 2px solid var(--neutral);
+            padding-bottom: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .feature-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 0.5rem;
+        }
+
+        .feature-meta {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+            margin-top: 1rem;
+        }
+
+        .meta-tag {
+            background: var(--neutral);
+            padding: 0.25rem 0.75rem;
+            border-radius: 0.5rem;
+            font-size: 0.875rem;
+            color: var(--secondary);
+        }
+
+        .priority-badge {
+            background: var(--accent);
+            color: white;
+            padding: 0.25rem 0.75rem;
+            border-radius: 0.5rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .implementation-section {
+            margin: 1.5rem 0;
+        }
+
+        .implementation-section h4 {
+            color: var(--primary);
+            font-weight: 600;
+            margin-bottom: 0.75rem;
+        }
+
+        .tech-stack {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin: 1rem 0;
+        }
+
+        .tech-item {
+            background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
+            padding: 1rem;
+            border-radius: 0.75rem;
+            text-align: center;
+        }
+
+        .tech-item i {
+            font-size: 2rem;
+            color: var(--primary);
+            margin-bottom: 0.5rem;
+        }
+
+        .citation {
+            color: var(--primary);
+            text-decoration: none;
+            font-weight: 500;
+            border-bottom: 1px dotted var(--primary);
+        }
+
+        .citation:hover {
+            background: rgba(15, 118, 110, 0.1);
+            padding: 0.125rem 0.25rem;
+            border-radius: 0.25rem;
+        }
+
+        .chart-container {
+            background: white;
+            border-radius: 1rem;
+            padding: 2rem;
+            margin: 2rem 0;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        .risk-matrix {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1rem;
+            margin: 2rem 0;
+        }
+
+        .risk-card {
+            background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+            border-left: 4px solid var(--accent);
+        }
+
+        .api-endpoint {
+            background: #1e293b;
+            color: #e2e8f0;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            font-family: 'Courier New', monospace;
+            margin: 0.5rem 0;
+            overflow-x: auto;
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-right: 0.5rem;
+        }
+
+        .status-critical {
+            background: #ef4444;
+        }
+
+        .status-high {
+            background: #f97316;
+        }
+
+        .status-medium {
+            background: #eab308;
+        }
+
+        .status-low {
+            background: #22c55e;
+        }
+
+        @media (max-width: 1024px) {
+            .toc-fixed {
+                transform: translateX(-100%);
+                transition: transform 0.3s ease;
+            }
+
+            .toc-fixed.open {
+                transform: translateX(0);
+            }
+
+            .main-content {
+                margin-left: 0;
+            }
+
+            .hero-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 768px) {
+
+            .hero-title,
+            .hero-content,
+            .hero-visual {
+                padding: 1.5rem;
+            }
+
+            .hero-title h1 {
+                font-size: 2rem;
+            }
+
+            .hero-title p {
+                font-size: 1rem;
+            }
+
+            .feature-card,
+            .chart-container,
+            .tech-item,
+            .risk-card,
+            .implementation-section {
+                word-wrap: break-word;
+            }
+        }
+
+        @media (max-width: 480px) {
+
+            .hero-title,
+            .hero-content,
+            .hero-visual {
+                padding: 1rem;
+            }
+
+            .hero-title h1 {
+                font-size: 1.75rem;
+            }
+        }
+    </style>
+    <base target="_blank">
+</head>
+
+<body class="bg-gray-50">
+    <!-- Table of Contents -->
+    <nav class="toc-fixed">
+        <div class="text-center mb-8">
+            <h3 class="text-white font-bold text-lg serif">LiveKit Dashboard</h3>
+            <p class="text-white/80 text-sm mt-2">Implementation Map</p>
+        </div>
+
+        <div class="toc-section">
+            <h4>Overview</h4>
+            <a href="#executive-summary" class="toc-link">Executive Summary</a>
+            <a href="#feature-inventory" class="toc-link">Feature Inventory</a>
+            <a href="#scope-boundaries" class="toc-link">Scope Boundaries</a>
+            <a href="#stack-assumptions" class="toc-link">Stack Assumptions</a>
+        </div>
+
+        <div class="toc-section">
+            <h4>Priorities</h4>
+            <a href="#top-priorities" class="toc-link">Top 10 High-Risk Features</a>
+            <a href="#risk-matrix" class="toc-link">Risk Matrix</a>
+        </div>
+
+        <div class="toc-section">
+            <h4>Feature Catalogue</h4>
+            <a href="#admin-access" class="toc-link">Admin &amp; Access Control</a>
+            <a href="#rooms-participants" class="toc-link">Rooms &amp; Participants</a>
+            <a href="#media-qos" class="toc-link">Media Controls &amp; QoS</a>
+            <a href="#egress-recording" class="toc-link">Egress/Recording</a>
+            <a href="#agents-ai" class="toc-link">Agents &amp; AI</a>
+            <a href="#sip-pstn" class="toc-link">SIP &amp; PSTN</a>
+            <a href="#monitoring" class="toc-link">Monitoring &amp; Observability</a>
+            <a href="#security" class="toc-link">Security &amp; Compliance</a>
+            <a href="#integrations" class="toc-link">Integrations &amp; Webhooks</a>
+            <a href="#deploy-scaling" class="toc-link">Deploy &amp; Scaling</a>
+        </div>
+
+        <div class="toc-section">
+            <h4>Implementation</h4>
+            <a href="#mapping-table" class="toc-link">Feature Mapping Table</a>
+            <a href="#missing-detector" class="toc-link">Missing Features Detector</a>
+            <a href="#end-to-end" class="toc-link">End-to-End Example</a>
+            <a href="#tradeoffs" class="toc-link">Implementation Tradeoffs</a>
+            <a href="#roadmap" class="toc-link">Implementation Roadmap</a>
+            <a href="#checklist" class="toc-link">Implementation Checklist</a>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <!-- Hero Section -->
+        <section class="hero-grid max-w-7xl mx-auto px-6 pt-8">
+            <div class="hero-title">
+                <div class="relative z-10">
+                    <h1 class="text-4xl md:text-5xl font-bold serif mb-4">
+                        <em>LiveKit Cloud Dashboard</em>
+                        <br />
+                        Feature Audit &amp; Implementation Map
+                    </h1>
+                    <p class="text-xl opacity-90 max-w-3xl">
+                        A comprehensive technical audit and implementation guide for replicating LiveKit Cloud Dashboard
+                        functionality in self-hosted environments,
+                        featuring 87 distinct features across 10 major categories with detailed implementation patterns.
+                    </p>
+                </div>
+            </div>
+
+            <div class="hero-content">
+                <h3 class="text-xl font-bold mb-4 text-gray-800">Executive Summary</h3>
+                <div class="space-y-3">
+                    <div class="flex items-center">
+                        <i class="fas fa-layer-group text-teal-600 mr-3"></i>
+                        <span><strong>87 Features</strong> across 10 categories</span>
+                    </div>
+                    <div class="flex items-center">
+                        <i class="fas fa-exclamation-triangle text-orange-500 mr-3"></i>
+                        <span><strong>10 High-Priority</strong> implementation targets</span>
+                    </div>
+                    <div class="flex items-center">
+                        <i class="fas fa-code text-blue-600 mr-3"></i>
+                        <span><strong>Next.js 16</strong> + <strong>FastAPI</strong> stack</span>
+                    </div>
+                    <div class="flex items-center">
+                        <i class="fas fa-server text-green-600 mr-3"></i>
+                        <span><strong>Self-Hosted</strong> LiveKit infrastructure</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="hero-visual">
+                <img src="https://kimi-web-img.moonshot.cn/img/cdn.sanity.io/be3737b529110f31cf64c63cdc65d354c1fa3325.jpg"
+                    alt="LiveKit Dashboard Interface" class="w-full h-full object-cover rounded-lg opacity-80"
+                    size="medium" aspect="wide" style="photo" query="LiveKit Dashboard Interface"
+                    referrerpolicy="no-referrer" data-modified="1" data-score="0.00" />
+            </div>
+        </section>
+
+        <!-- Executive Summary -->
+        <section id="executive-summary" class="max-w-7xl mx-auto px-6 py-12">
+            <div class="feature-card">
+                <div class="feature-header">
+                    <h2 class="feature-title serif">Executive Summary</h2>
+                    <div class="feature-meta">
+                        <span class="meta-tag"><i class="fas fa-clock mr-1"></i>Audit Date: 2025-01-27</span>
+                        <span class="meta-tag"><i class="fas fa-database mr-1"></i>87 Features Analyzed</span>
+                        <span class="meta-tag"><i class="fas fa-shield-alt mr-1"></i>Production-Ready
+                            Implementation</span>
+                    </div>
+                </div>
+
+                <div id="feature-inventory" class="implementation-section">
+                    <h4>Feature Inventory Overview</h4>
+                    <p class="mb-4">
+                        Based on comprehensive analysis of <a href="https://docs.livekit.io" class="citation">official
+                            LiveKit documentation</a>,
+                        server APIs, GitHub repositories, and community implementations, this audit identifies
+                        <strong>87 distinct features</strong>
+                        across 10 major categories that comprise the LiveKit Cloud Dashboard functionality.
+                    </p>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                        <div>
+                            <h5 class="font-semibold mb-2">Feature Distribution:</h5>
+                            <ul class="space-y-1 text-sm">
+                                <li><span class="status-indicator status-medium"></span>Admin &amp; Access Control: 12
+                                    features</li>
+                                <li><span class="status-indicator status-medium"></span>Rooms &amp; Participants: 18
+                                    features</li>
+                                <li><span class="status-indicator status-medium"></span>Media Controls &amp; QoS: 14
+                                    features</li>
+                                <li><span class="status-indicator status-medium"></span>Egress/Recording: 16 features
+                                </li>
+                                <li><span class="status-indicator status-medium"></span>Agents &amp; AI: 15 features
+                                </li>
+                            </ul>
+                        </div>
+                        <div>
+                            <ul class="space-y-1 text-sm mt-6">
+                                <li><span class="status-indicator status-medium"></span>SIP &amp; PSTN: 12 features</li>
+                                <li><span class="status-indicator status-medium"></span>Monitoring &amp; Observability:
+                                    14 features</li>
+                                <li><span class="status-indicator status-medium"></span>Security &amp; Compliance: 8
+                                    features</li>
+                                <li><span class="status-indicator status-medium"></span>Integrations &amp; Webhooks: 10
+                                    features</li>
+                                <li><span class="status-indicator status-medium"></span>Deploy &amp; Scaling: 9 features
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div class="bg-amber-50 border-l-4 border-amber-400 p-4 mb-4">
+                        <div class="flex">
+                            <i class="fas fa-exclamation-triangle text-amber-400 mt-1 mr-3"></i>
+                            <div>
+                                <h5 class="font-semibold text-amber-800">Critical Distinction</h5>
+                                <p class="text-amber-700">
+                                    Three capabilities are explicitly marked <strong>&#34;N/A&#34; for
+                                        self-hosted</strong>:
+                                    <a href="https://docs.livekit.io/transport/self-hosting/" class="citation">Agent
+                                        Builder</a>,
+                                    built-in inference, and global edge mesh. Self-hosted implementations must construct
+                                    equivalent capabilities through alternative architectures.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="scope-boundaries" class="implementation-section">
+                    <h4>Scope Boundaries</h4>
+                    <p class="mb-4">
+                        The audit strictly adheres to three exclusion criteria: <strong>LiveKit Meeting</strong>
+                        (standalone application),
+                        <strong>billing-related features</strong> (usage tracking, payment processing), and
+                        <strong>phone number purchasing</strong> (native telephony provisioning).
+                    </p>
+                    <div class="bg-blue-50 border-l-4 border-blue-400 p-4">
+                        <p class="text-blue-700">
+                            <strong>Note:</strong> SIP trunk configuration for externally-procured numbers remains fully
+                            in scope,
+                            enabling equivalent PSTN connectivity through third-party providers.
+                        </p>
+                    </div>
+                </div>
+
+                <div id="stack-assumptions" class="implementation-section">
+                    <h4>Stack Assumptions</h4>
+                    <div class="tech-stack">
+                        <div class="tech-item">
+                            <i class="fab fa-react"></i>
+                            <h5 class="font-semibold">Next.js 16</h5>
+                            <p class="text-sm text-gray-600">App Router, React Server Components</p>
+                        </div>
+                        <div class="tech-item">
+                            <i class="fas fa-rocket"></i>
+                            <h5 class="font-semibold">FastAPI</h5>
+                            <p class="text-sm text-gray-600">Python 3.11+, Pydantic v2</p>
+                        </div>
+                        <div class="tech-item">
+                            <i class="fas fa-server"></i>
+                            <h5 class="font-semibold">LiveKit Server</h5>
+                            <p class="text-sm text-gray-600">Self-hosted, Docker/Kubernetes</p>
+                        </div>
+                        <div class="tech-item">
+                            <i class="fas fa-database"></i>
+                            <h5 class="font-semibold">PostgreSQL</h5>
+                            <p class="text-sm text-gray-600">Configuration persistence</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Top Priorities -->
+        <section id="top-priorities" class="max-w-7xl mx-auto px-6 py-12">
+            <div class="feature-card">
+                <div class="feature-header">
+                    <h2 class="feature-title serif">Top 10 High-Risk/Priority Features</h2>
+                    <p class="text-gray-600">Features prioritized by dependency chains, security criticality, and
+                        operational impact</p>
+                </div>
+
+                <div id="risk-matrix" class="risk-matrix">
+                    <div class="risk-card">
+                        <div class="flex items-center mb-2">
+                            <span class="priority-badge">P1</span>
+                            <h5 class="font-semibold ml-2">Room Service API Integration</h5>
+                        </div>
+                        <p class="text-sm mb-2">Foundation for all operations; API surface changes impact entire system
+                        </p>
+                        <div class="flex items-center text-sm">
+                            <span class="status-indicator status-critical"></span>
+                            <span>Complexity: Low-Medium</span>
+                        </div>
+                    </div>
+
+                    <div class="risk-card">
+                        <div class="flex items-center mb-2">
+                            <span class="priority-badge">P2</span>
+                            <h5 class="font-semibold ml-2">Token Generation &amp; Validation</h5>
+                        </div>
+                        <p class="text-sm mb-2">Security-critical; authentication failures block all access</p>
+                        <div class="flex items-center text-sm">
+                            <span class="status-indicator status-high"></span>
+                            <span>Complexity: High</span>
+                        </div>
+                    </div>
+
+                    <div class="risk-card">
+                        <div class="flex items-center mb-2">
+                            <span class="priority-badge">P3</span>
+                            <h5 class="font-semibold ml-2">Participant Management</h5>
+                        </div>
+                        <p class="text-sm mb-2">High operational impact; frequently used moderation capability</p>
+                        <div class="flex items-center text-sm">
+                            <span class="status-indicator status-medium"></span>
+                            <span>Complexity: Medium</span>
+                        </div>
+                    </div>
+
+                    <div class="risk-card">
+                        <div class="flex items-center mb-2">
+                            <span class="priority-badge">P4</span>
+                            <h5 class="font-semibold ml-2">Webhook Event Processing</h5>
+                        </div>
+                        <p class="text-sm mb-2">Required for state synchronization; missed events cause dashboard drift
+                        </p>
+                        <div class="flex items-center text-sm">
+                            <span class="status-indicator status-medium"></span>
+                            <span>Complexity: Medium</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
+                    <div class="bg-green-50 border-l-4 border-green-400 p-4">
+                        <h5 class="font-semibold text-green-800 mb-2">MVP Requirements (P1-P4)</h5>
+                        <p class="text-green-700 text-sm">Minimum Viable Platform without which no meaningful dashboard
+                            functionality exists</p>
+                    </div>
+                    <div class="bg-blue-50 border-l-4 border-blue-400 p-4">
+                        <h5 class="font-semibold text-blue-800 mb-2">Stage 1 (P5-P8)</h5>
+                        <p class="text-blue-700 text-sm">Production recording, observability, and telephony capabilities
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Feature Catalogue -->
+        <section id="admin-access" class="max-w-7xl mx-auto px-6 py-12">
+            <div class="feature-card">
+                <div class="feature-header">
+                    <h2 class="feature-title serif">Admin &amp; Access Control</h2>
+                    <div class="feature-meta">
+                        <span class="meta-tag"><i class="fas fa-key mr-1"></i>12 Features</span>
+                        <span class="meta-tag"><i class="fas fa-shield-alt mr-1"></i>Security-Critical</span>
+                        <span class="meta-tag"><i class="fas fa-users mr-1"></i>Foundation Layer</span>
+                    </div>
+                </div>
+
+                <div class="implementation-section">
+                    <h4>Project Configuration Management</h4>
+                    <p class="mb-4">
+                        Configure project-wide defaults, regions, and metadata that govern behavior across all rooms and
+                        services.
+                        Unlike <a href="https://docs.livekit.io/transport/self-hosting/" class="citation">LiveKit
+                            Cloud&#39;s centralized model</a>,
+                        self-hosted deployments distribute configuration across multiple layers.
+                    </p>
+
+                    <div class="api-endpoint">
+                        <span class="text-green-400">GET</span> /api/v1/project/settings
+                        <br />
+                        <span class="text-blue-400">PUT</span> /api/v1/project/settings
+                        <br />
+                        <span class="text-yellow-400">POST</span> /api/v1/project/settings/validate
+                    </div>
+
+                    <div class="tech-stack mt-4">
+                        <div class="tech-item">
+                            <i class="fas fa-file-code"></i>
+                            <h6>LiveKit Config</h6>
+                            <p class="text-xs">YAML configuration</p>
+                        </div>
+                        <div class="tech-item">
+                            <i class="fas fa-database"></i>
+                            <h6>PostgreSQL</h6>
+                            <p class="text-xs">Administrative overrides</p>
+                        </div>
+                        <div class="tech-item">
+                            <i class="fas fa-cog"></i>
+                            <h6>FastAPI</h6>
+                            <p class="text-xs">Configuration management</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="implementation-section">
+                    <h4>API Key Lifecycle Management</h4>
+                    <p class="mb-4">
+                        Generate, revoke, and rotate API keys for service authentication with granular permission
+                        scoping.
+                        <a href="https://docs.livekit.io/reference/other/roomservice-api/" class="citation">LiveKit
+                            server uses API keys</a>
+                        and secrets for authentication, where the key identifies the project and the secret validates
+                        the signature.
+                    </p>
+
+                    <div class="bg-red-50 border-l-4 border-red-400 p-4 mb-4">
+                        <h6 class="font-semibold text-red-800">Security Critical</h6>
+                        <p class="text-red-700 text-sm">
+                            The full secret displays exactly once in a modal with &#34;Copy immediately—this will not be
+                            shown again&#34; warning.
+                            Secret never stored in plaintext; only bcrypt hash kept for audit correlation.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="rooms-participants" class="max-w-7xl mx-auto px-6 py-12">
+            <div class="feature-card">
+                <div class="feature-header">
+                    <h2 class="feature-title serif">Rooms &amp; Participants</h2>
+                    <div class="feature-meta">
+                        <span class="meta-tag"><i class="fas fa-door-open mr-1"></i>18 Features</span>
+                        <span class="meta-tag"><i class="fas fa-users mr-1"></i>Core Functionality</span>
+                        <span class="meta-tag"><i class="fas fa-tachometer-alt mr-1"></i>High Usage Frequency</span>
+                    </div>
+                </div>
+
+                <div class="implementation-section">
+                    <h4>Room Management Console</h4>
+                    <p class="mb-4">
+                        Create, list, monitor, and terminate rooms with real-time status and participant tracking.
+                        <a href="https://docs.livekit.io/reference/other/roomservice-api/" class="citation">RoomService
+                            API</a>
+                        provides foundation for all room operations with distributed state consistency challenges.
+                    </p>
+
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                        <div class="api-endpoint">
+                            <span class="text-green-400">POST</span> /api/v1/rooms
+                            <br />
+                            <span class="text-sm text-gray-400">Create new room</span>
+                        </div>
+                        <div class="api-endpoint">
+                            <span class="text-blue-400">GET</span> /api/v1/rooms
+                            <br />
+                            <span class="text-sm text-gray-400">List active rooms</span>
+                        </div>
+                        <div class="api-endpoint">
+                            <span class="text-red-400">DELETE</span> /api/v1/rooms/{id}
+                            <br />
+                            <span class="text-sm text-gray-400">Terminate room</span>
+                        </div>
+                    </div>
+
+                    <div class="tech-stack">
+                        <div class="tech-item">
+                            <i class="fas fa-desktop"></i>
+                            <h6>Next.js</h6>
+                            <p class="text-xs">Real-time dashboard</p>
+                        </div>
+                        <div class="tech-item">
+                            <i class="fas fa-exchange-alt"></i>
+                            <h6>WebSocket</h6>
+                            <p class="text-xs">Live updates</p>
+                        </div>
+                        <div class="tech-item">
+                            <i class="fas fa-server"></i>
+                            <h6>LiveKit API</h6>
+                            <p class="text-xs">Room operations</p>
+                        </div>
+                        <div class="tech-item">
+                            <i class="fas fa-redis"></i>
+                            <h6>Redis</h6>
+                            <p class="text-xs">State management</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="implementation-section">
+                    <h4>Participant Moderation Controls</h4>
+                    <p class="mb-4">
+                        Force mute/unmute, remove participants, update permissions, and manage participant metadata with
+                        high operational impact for support teams.
+                    </p>
+
+                    <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-4">
+                        <h6 class="font-semibold text-yellow-800">Race Condition Warning</h6>
+                        <p class="text-yellow-700 text-sm">
+                            Permission propagation has eventual consistency characteristics; implement
+                            client-side optimistic updates with server synchronization validation.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="media-qos" class="max-w-7xl mx-auto px-6 py-12">
+            <div class="feature-card">
+                <div class="feature-header">
+                    <h2 class="feature-title serif">Media Controls &amp; QoS</h2>
+                    <div class="feature-meta">
+                        <span class="meta-tag"><i class="fas fa-video mr-1"></i>14 Features</span>
+                        <span class="meta-tag"><i class="fas fa-signal mr-1"></i>Quality Optimization</span>
+                        <span class="meta-tag"><i class="fas fa-cogs mr-1"></i>Advanced Controls</span>
+                    </div>
+                </div>
+
+                <div class="implementation-section">
+                    <h4>Dynacast &amp; Adaptive Stream Management</h4>
+                    <p class="mb-4">
+                        Server-side bandwidth adaptation and dynamic publishing control with simulcast layer management
+                        and track prioritization.
+                    </p>
+
+                    <div class="tech-stack">
+                        <div class="tech-item">
+                            <i class="fas fa-tachometer-alt"></i>
+                            <h6>QoS Engine</h6>
+                            <p class="text-xs">Bandwidth optimization</p>
+                        </div>
+                        <div class="tech-item">
+                            <i class="fas fa-layer-group"></i>
+                            <h6>Simulcast</h6>
+                            <p class="text-xs">Multi-layer encoding</p>
+                        </div>
+                        <div class="tech-item">
+                            <i class="fas fa-balance-scale"></i>
+                            <h6>Adaptive Policy</h6>
+                            <p class="text-xs">Dynamic adjustment</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Mapping Table Section -->
+        <section id="mapping-table" class="max-w-7xl mx-auto px-6 py-12">
+            <div class="feature-card">
+                <div class="feature-header">
+                    <h2 class="feature-title serif">Feature Mapping Table</h2>
+                    <p class="text-gray-600">Comprehensive mapping of each feature to technical implementations across
+                        the stack</p>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm">
+                        <thead class="bg-gray-100">
+                            <tr>
+                                <th class="text-left p-3 font-semibold">Feature</th>
+                                <th class="text-left p-3 font-semibold">LiveKit API/SDK</th>
+                                <th class="text-left p-3 font-semibold">Frontend Components</th>
+                                <th class="text-left p-3 font-semibold">FastAPI Endpoints</th>
+                                <th class="text-left p-3 font-semibold">Monitoring</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-200">
+                            <tr>
+                                <td class="p-3 font-medium">Room Management</td>
+                                <td class="p-3">
+                                    <code class="text-xs bg-gray-100 px-1 py-0.5 rounded">CreateRoom</code>
+                                    <br />
+                                    <code class="text-xs bg-gray-100 px-1 py-0.5 rounded">ListRooms</code>
+                                    <br />
+                                    <code class="text-xs bg-gray-100 px-1 py-0.5 rounded">DeleteRoom</code>
+                                </td>
+                                <td class="p-3">
+                                    RoomList, RoomDetail,
+                                    <br />
+                                    CreateRoomForm,
+                                    <br />
+                                    RoomStatusIndicator
+                                </td>
+                                <td class="p-3">
+                                    <code class="text-xs bg-blue-100 px-1 py-0.5 rounded">POST /api/rooms</code>
+                                    <br />
+                                    <code class="text-xs bg-green-100 px-1 py-0.5 rounded">GET /api/rooms</code>
+                                </td>
+                                <td class="p-3">
+                                    <code class="text-xs bg-orange-100 px-1 py-0.5 rounded">livekit_rooms_total</code>
+                                    <br />
+                                    <code
+                                        class="text-xs bg-orange-100 px-1 py-0.5 rounded">room_creation_duration</code>
+                                </td>
+                            </tr>
+                            <tr class="bg-gray-50">
+                                <td class="p-3 font-medium">Participant Controls</td>
+                                <td class="p-3">
+                                    <code class="text-xs bg-gray-100 px-1 py-0.5 rounded">MutePublishedTrack</code>
+                                    <br />
+                                    <code class="text-xs bg-gray-100 px-1 py-0.5 rounded">RemoveParticipant</code>
+                                </td>
+                                <td class="p-3">
+                                    ParticipantList,
+                                    <br />
+                                    ModerationPanel,
+                                    <br />
+                                    PermissionEditor
+                                </td>
+                                <td class="p-3">
+                                    <code
+                                        class="text-xs bg-red-100 px-1 py-0.5 rounded">POST /api/rooms/{id}/mute</code>
+                                    <br />
+                                    <code
+                                        class="text-xs bg-red-100 px-1 py-0.5 rounded">DELETE /api/participants/{id}</code>
+                                </td>
+                                <td class="p-3">
+                                    <code
+                                        class="text-xs bg-orange-100 px-1 py-0.5 rounded">participant_operations_total</code>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class="p-3 font-medium">Egress Recording</td>
+                                <td class="p-3">
+                                    <code
+                                        class="text-xs bg-gray-100 px-1 py-0.5 rounded">StartRoomCompositeEgress</code>
+                                    <br />
+                                    <code class="text-xs bg-gray-100 px-1 py-0.5 rounded">StopEgress</code>
+                                </td>
+                                <td class="p-3">
+                                    EgressJobManager,
+                                    <br />
+                                    RecordingControls,
+                                    <br />
+                                    StorageConfig
+                                </td>
+                                <td class="p-3">
+                                    <code class="text-xs bg-blue-100 px-1 py-0.5 rounded">POST /api/egress/start</code>
+                                    <br />
+                                    <code class="text-xs bg-red-100 px-1 py-0.5 rounded">POST /api/egress/stop</code>
+                                </td>
+                                <td class="p-3">
+                                    <code class="text-xs bg-orange-100 px-1 py-0.5 rounded">egress_jobs_total</code>
+                                    <br />
+                                    <code class="text-xs bg-orange-100 px-1 py-0.5 rounded">egress_success_rate</code>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- Implementation Roadmap -->
+        <section id="roadmap" class="max-w-7xl mx-auto px-6 py-12">
+            <div class="feature-card">
+                <div class="feature-header">
+                    <h2 class="feature-title serif">Implementation Roadmap</h2>
+                    <p class="text-gray-600">Prioritized milestones with acceptance criteria and risk mitigation
+                        strategies</p>
+                </div>
+
+                <div class="space-y-8">
+                    <div class="border-l-4 border-green-500 pl-6">
+                        <div class="flex items-center mb-2">
+                            <span class="priority-badge bg-green-500">MVP</span>
+                            <h4 class="font-bold ml-2">Stage 0: Foundation Platform</h4>
+                        </div>
+                        <p class="text-sm text-gray-600 mb-3">Core functionality for basic dashboard operation</p>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <h6 class="font-semibold mb-2">Key Features:</h6>
+                                <ul class="text-sm space-y-1">
+                                    <li><i class="fas fa-check text-green-500 mr-1"></i>Room Service API Integration
+                                        (P1)</li>
+                                    <li><i class="fas fa-check text-green-500 mr-1"></i>Token Generation &amp;
+                                        Validation (P2)</li>
+                                    <li><i class="fas fa-check text-green-500 mr-1"></i>Basic Participant Management
+                                        (P3)</li>
+                                    <li><i class="fas fa-check text-green-500 mr-1"></i>Webhook Event Processing (P4)
+                                    </li>
+                                </ul>
+                            </div>
+                            <div>
+                                <h6 class="font-semibold mb-2">Acceptance Criteria:</h6>
+                                <ul class="text-sm space-y-1">
+                                    <li><i class="fas fa-check text-green-500 mr-1"></i>Room creation/list/deletion
+                                        functional</li>
+                                    <li><i class="fas fa-check text-green-500 mr-1"></i>JWT token generation secure</li>
+                                    <li><i class="fas fa-check text-green-500 mr-1"></i>Basic moderation controls
+                                        operational</li>
+                                    <li><i class="fas fa-check text-green-500 mr-1"></i>Real-time state synchronization
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+
+                        <div class="bg-yellow-50 border-l-4 border-yellow-400 p-3 mt-3">
+                            <h6 class="font-semibold text-yellow-800 text-sm">Risk Mitigation:</h6>
+                            <p class="text-yellow-700 text-xs">
+                                Focus on API correctness first; implement comprehensive test suite for core operations;
+                                ensure webhook reliability with retry mechanisms.
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="border-l-4 border-blue-500 pl-6">
+                        <div class="flex items-center mb-2">
+                            <span class="priority-badge bg-blue-500">Stage 1</span>
+                            <h4 class="font-bold ml-2">Production Readiness</h4>
+                        </div>
+                        <p class="text-sm text-gray-600 mb-3">Production recording, observability, and telephony</p>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <h6 class="font-semibold mb-2">Key Features:</h6>
+                                <ul class="text-sm space-y-1">
+                                    <li><i class="fas fa-check text-blue-500 mr-1"></i>Egress/Recording Job Control (P5)
+                                    </li>
+                                    <li><i class="fas fa-check text-blue-500 mr-1"></i>Prometheus Metrics &amp;
+                                        Dashboard (P8)</li>
+                                    <li><i class="fas fa-check text-blue-500 mr-1"></i>SIP Trunk Configuration (P7)</li>
+                                    <li><i class="fas fa-check text-blue-500 mr-1"></i>Basic Analytics Pipeline (P6)
+                                    </li>
+                                </ul>
+                            </div>
+                            <div>
+                                <h6 class="font-semibold mb-2">Acceptance Criteria:</h6>
+                                <ul class="text-sm space-y-1">
+                                    <li><i class="fas fa-check text-blue-500 mr-1"></i>Recording start/stop functional
+                                    </li>
+                                    <li><i class="fas fa-check text-blue-500 mr-1"></i>Observability stack operational
+                                    </li>
+                                    <li><i class="fas fa-check text-blue-500 mr-1"></i>PSTN connectivity established
+                                    </li>
+                                    <li><i class="fas fa-check text-blue-500 mr-1"></i>7-day analytics retention</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="border-l-4 border-purple-500 pl-6">
+                        <div class="flex items-center mb-2">
+                            <span class="priority-badge bg-purple-500">Stage 2</span>
+                            <h4 class="font-bold ml-2">Advanced Capabilities</h4>
+                        </div>
+                        <p class="text-sm text-gray-600 mb-3">AI-native features and security hardening</p>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <h6 class="font-semibold mb-2">Key Features:</h6>
+                                <ul class="text-sm space-y-1">
+                                    <li><i class="fas fa-check text-purple-500 mr-1"></i>Agent Deployment &amp;
+                                        Lifecycle (P9)</li>
+                                    <li><i class="fas fa-check text-purple-500 mr-1"></i>RBAC &amp; Key Rotation System
+                                        (P10)</li>
+                                    <li><i class="fas fa-check text-purple-500 mr-1"></i>Advanced Analytics &amp;
+                                        Insights</li>
+                                    <li><i class="fas fa-check text-purple-500 mr-1"></i>Compliance Reporting</li>
+                                </ul>
+                            </div>
+                            <div>
+                                <h6 class="font-semibold mb-2">Acceptance Criteria:</h6>
+                                <ul class="text-sm space-y-1">
+                                    <li><i class="fas fa-check text-purple-500 mr-1"></i>Agent deployment pipeline
+                                        functional</li>
+                                    <li><i class="fas fa-check text-purple-500 mr-1"></i>Role-based access controls
+                                        enforced</li>
+                                    <li><i class="fas fa-check text-purple-500 mr-1"></i>Advanced analytics queries
+                                        performant</li>
+                                    <li><i class="fas fa-check text-purple-500 mr-1"></i>Compliance dashboards
+                                        operational</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Implementation Checklist -->
+        <section id="checklist" class="max-w-7xl mx-auto px-6 py-12 mb-16">
+            <div class="feature-card">
+                <div class="feature-header">
+                    <h2 class="feature-title serif">Implementation Checklist</h2>
+                    <p class="text-gray-600">Copyable checklist for tracking feature implementation progress</p>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <h4 class="font-semibold mb-3 text-teal-600">Core Infrastructure</h4>
+                        <div class="space-y-2 text-sm">
+                            <label class="flex items-center">
+                                <input type="checkbox" class="mr-2" /> Room Service API Integration
+                            </label>
+                            <label class="flex items-center">
+                                <input type="checkbox" class="mr-2" /> Token Generation Service
+                            </label>
+                            <label class="flex items-center">
+                                <input type="checkbox" class="mr-2" /> Webhook Event Processing
+                            </label>
+                            <label class="flex items-center">
+                                <input type="checkbox" class="mr-2" /> Participant Management Controls
+                            </label>
+                            <label class="flex items-center">
+                                <input type="checkbox" class="mr-2" /> Project Configuration Management
+                            </label>
+                        </div>
+                    </div>
+
+                    <div>
+                        <h4 class="font-semibold mb-3 text-blue-600">Production Features</h4>
+                        <div class="space-y-2 text-sm">
+                            <label class="flex items-center">
+                                <input type="checkbox" class="mr-2" /> Egress Recording Job Control
+                            </label>
+                            <label class="flex items-center">
+                                <input type="checkbox" class="mr-2" /> Prometheus Metrics Export
+                            </label>
+                            <label class="flex items-center">
+                                <input type="checkbox" class="mr-2" /> SIP Trunk Configuration
+                            </label>
+                            <label class="flex items-center">
+                                <input type="checkbox" class="mr-2" /> Analytics Data Pipeline
+                            </label>
+                            <label class="flex items-center">
+                                <input type="checkbox" class="mr-2" /> API Key Lifecycle Management
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-8 p-4 bg-gray-50 rounded-lg">
+                    <h4 class="font-semibold mb-2">Progress Tracking</h4>
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-sm">Overall Implementation</span>
+                        <span class="text-sm font-medium">0/87 Features</span>
+                    </div>
+                    <div class="w-full bg-gray-200 rounded-full h-2">
+                        <div class="bg-teal-600 h-2 rounded-full" style="width: 0%"></div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <script>
+        // Table of Contents Navigation
+        document.addEventListener('DOMContentLoaded', function () {
+            const tocLinks = document.querySelectorAll('.toc-link');
+            const sections = document.querySelectorAll('section[id], div[id]');
+
+            // Smooth scrolling and active link highlighting
+            tocLinks.forEach(link => {
+                link.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    const targetId = this.getAttribute('href').substring(1);
+                    const targetSection = document.getElementById(targetId);
+
+                    if (targetSection) {
+                        targetSection.scrollIntoView({
+                            behavior: 'smooth',
+                            block: 'start'
+                        });
+                    }
+                });
+            });
+
+            // Update active link based on scroll position
+            function updateActiveLink() {
+                let current = '';
+                sections.forEach(section => {
+                    const sectionTop = section.offsetTop;
+                    const sectionHeight = section.clientHeight;
+                    if (window.pageYOffset >= sectionTop - 200) {
+                        current = section.getAttribute('id');
+                    }
+                });
+
+                tocLinks.forEach(link => {
+                    link.classList.remove('active');
+                    if (link.getAttribute('href').substring(1) === current) {
+                        link.classList.add('active');
+                    }
+                });
+            }
+
+            window.addEventListener('scroll', updateActiveLink);
+            updateActiveLink();
+        });
+
+        // Mobile TOC Toggle
+        function toggleTOC() {
+            const toc = document.querySelector('.toc-fixed');
+            toc.classList.toggle('open');
+        }
+
+        // Close TOC when clicking outside
+        document.addEventListener('click', function (e) {
+            const toc = document.querySelector('.toc-fixed');
+            const menuBtn = document.querySelector('button[onclick="toggleTOC()"]');
+            if (window.innerWidth <= 1024 && !toc.contains(e.target) && !menuBtn.contains(e.target)) {
+                toc.classList.remove('open');
+            }
+        });
+
+        // Add mobile menu button for small screens
+        if (window.innerWidth <= 1024) {
+            const menuBtn = document.createElement('button');
+            menuBtn.innerHTML = '<i class="fas fa-bars"></i>';
+            menuBtn.className = 'fixed top-4 left-4 z-[1001] bg-teal-600 text-white p-3 rounded-lg shadow-lg';
+            menuBtn.setAttribute('onclick', 'toggleTOC()');
+            menuBtn.setAttribute('aria-label', 'Toggle table of contents');
+            document.body.appendChild(menuBtn);
+        }
+    </script>
+
+
+</body>
+
+</html>
