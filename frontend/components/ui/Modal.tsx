@@ -11,9 +11,10 @@ interface ModalProps {
     children: React.ReactNode;
     footer?: React.ReactNode;
     width?: string;
+    className?: string;
 }
 
-export function Modal({ isOpen, onClose, title, children, footer, width = "max-w-2xl" }: ModalProps) {
+export function Modal({ isOpen, onClose, title, children, footer, width = "max-w-2xl", className = "" }: ModalProps) {
     const modalRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
@@ -45,10 +46,10 @@ export function Modal({ isOpen, onClose, title, children, footer, width = "max-w
             />
             <div
                 ref={modalRef}
-                className={`relative w-full ${width} glass-card rounded-xl shadow-2xl flex flex-col max-h-[90vh] animate-slide-up bg-[#0a0a0a]/90`}
+                className={`relative w-full ${width} ${className} glass-card rounded-xl shadow-2xl flex flex-col max-h-[90vh] animate-slide-up bg-[#0a0a0a]/90`}
                 onClick={(e) => e.stopPropagation()}
             >
-                {/* Header */}
+                
                 <div className="flex items-center justify-between px-6 py-4 border-b border-white/5">
                     <h2 className="text-lg font-display font-medium text-foreground">{title}</h2>
                     <button
@@ -59,12 +60,12 @@ export function Modal({ isOpen, onClose, title, children, footer, width = "max-w
                     </button>
                 </div>
 
-                {/* Content */}
+                
                 <div className="flex-1 overflow-y-auto px-6 py-6 scrollbar-thin">
                     {children}
                 </div>
 
-                {/* Footer */}
+                
                 {footer && (
                     <div className="px-6 py-4 border-t border-white/5 bg-white/[0.02] flex justify-end gap-3 rounded-b-xl">
                         {footer}

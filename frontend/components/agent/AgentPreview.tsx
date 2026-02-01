@@ -10,7 +10,7 @@ export default function AgentPreview() {
 
     return (
         <div className="flex flex-col h-full bg-black/40 backdrop-blur-sm relative">
-            {/* Header */}
+            
             <div className="flex items-center justify-between px-4 py-0 border-b border-white/5 bg-white/5">
                 <div className="flex items-center gap-6">
                     <button
@@ -28,9 +28,9 @@ export default function AgentPreview() {
                 </div>
             </div>
 
-            {/* Main Content */}
+            
             <div className="flex-1 flex flex-col items-center justify-center p-6 text-center relative overflow-hidden">
-                {/* Background ambient light */}
+                
                 <div className="absolute inset-0 bg-gradient-to-b from-transparent via-primary/5 to-transparent pointer-events-none" />
 
                 {!isConnected ? (
@@ -99,7 +99,7 @@ export default function AgentPreview() {
                 )}
             </div>
 
-            {/* Footer / Console */}
+            
             <div className="border-t border-white/5 bg-black/40 backdrop-blur-md">
                 <div className="flex items-center justify-between px-4 py-2 border-b border-white/5 bg-white/5">
                     <div className="flex items-center gap-2">

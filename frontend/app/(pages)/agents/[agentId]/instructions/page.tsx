@@ -29,7 +29,7 @@ You are interacting with the user via voice, and must apply the following rules 
                 <p className="text-secondary text-sm">Define your agent's personality, tone, and behavior guidelines. <span className="text-primary cursor-pointer hover:underline">Learn more</span></p>
             </div>
 
-            {/* Name Field */}
+
             <div className="mb-8">
                 <label className="block text-sm font-medium text-foreground mb-2">
                     Name
@@ -38,13 +38,13 @@ You are interacting with the user via voice, and must apply the following rules 
                 <input
                     type="text"
                     defaultValue="Finley 2013"
-                    className="w-full bg-surface border border-white/10 rounded-lg px-4 py-2.5 text-foreground focus:outline-none focus:border-primary/50 transition-colors"
+                    className="w-full bg-surface border border-border rounded-lg px-4 py-2.5 text-foreground focus:outline-none focus:border-primary/50 transition-colors"
                 />
             </div>
 
-            {/* Instructions Editor */}
-            <div className="flex flex-col h-[500px] bg-surface border border-white/10 rounded-lg overflow-hidden">
-                <div className="flex items-center justify-between px-4 py-2 border-b border-white/10 bg-white/5">
+
+            <div className="flex flex-col h-[500px] bg-surface border border-border rounded-lg overflow-hidden">
+                <div className="flex items-center justify-between px-4 py-2 border-b border-border bg-surface-hover">
                     <span className="text-xs font-medium text-secondary">SYSTEM INSTRUCTIONS</span>
                     <Button size="sm" variant="ghost" className="h-7 text-xs text-primary hover:bg-primary/10">
                         + Insert variable
@@ -58,8 +58,8 @@ You are interacting with the user via voice, and must apply the following rules 
                 />
             </div>
 
-            {/* Welcome Message */}
-            <div className="mt-8 p-6 bg-surface border border-white/10 rounded-lg">
+
+            <div className="mt-8 p-6 bg-surface border border-border rounded-lg">
                 <div className="flex items-center justify-between mb-4">
                     <div>
                         <h3 className="text-sm font-medium text-foreground">Welcome message</h3>
@@ -74,11 +74,11 @@ You are interacting with the user via voice, and must apply the following rules 
                 </div>
 
                 <div className="flex items-center gap-2 mb-3">
-                    <input type="checkbox" defaultChecked className="rounded border-white/20 bg-white/5 text-primary focus:ring-primary/20" />
+                    <input type="checkbox" defaultChecked className="rounded border-border bg-surface text-primary focus:ring-primary/20" />
                     <span className="text-xs text-foreground">Allow users to interrupt the greeting.</span>
                 </div>
 
-                <div className="bg-black/30 border border-white/10 rounded-md p-3">
+                <div className="bg-background/50 border border-border rounded-md p-3">
                     <p className="text-sm text-secondary">Greet the user and offer your assistance.</p>
                 </div>
                 <div className="flex justify-end mt-2">

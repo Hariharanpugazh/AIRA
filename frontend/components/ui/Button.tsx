@@ -24,7 +24,7 @@ const buttonVariants = cva(
                 danger:
                     "bg-error/10 text-error hover:bg-error/20 border border-error/20",
                 glass:
-                    "glass text-foreground hover:bg-white/10 hover:border-white/20 hover:shadow-lg shadow-black/5"
+                    "glass text-foreground hover:bg-surface-hover hover:border-border hover:shadow-lg shadow-background/5"
             },
             size: {
                 sm: "h-8 px-3 text-xs",

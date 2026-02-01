@@ -53,7 +53,7 @@ export default function LoginPage() {
       <div className="absolute top-[-10%] right-[-5%] w-[400px] h-[400px] bg-primary/20 rounded-full blur-[100px]" />
       <div className="absolute bottom-[-10%] left-[-5%] w-[400px] h-[400px] bg-purple-500/20 rounded-full blur-[100px]" />
 
-      <Card variant="glass" className="w-full max-w-sm p-6 relative z-10 border-white/5 bg-black/40">
+      <Card variant="glass" className="w-full max-w-sm p-6 relative z-10 border-border bg-card/50">
         <div className="flex flex-col items-center text-center mb-6">
           <Logo />
           <h1 className="text-2xl font-bold mt-4 text-foreground">Sign in</h1>
@@ -77,8 +77,8 @@ export default function LoginPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              className="w-full px-3 py-2.5 rounded-lg bg-white/5 border border-white/10 text-foreground placeholder-muted-foreground focus:outline-none focus:border-primary/50 transition-all text-sm"
-              placeholder="admin@admin.com"
+              className="w-full px-3 py-2.5 rounded-lg bg-surface border border-border text-foreground placeholder-muted-foreground focus:outline-none focus:border-primary/50 transition-all text-sm"
+              placeholder="admin@admin.con"
             />
           </div>
 
@@ -92,7 +92,7 @@ export default function LoginPage() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
-              className="w-full px-3 py-2.5 rounded-lg bg-white/5 border border-white/10 text-foreground placeholder-muted-foreground focus:outline-none focus:border-primary/50 transition-all text-sm"
+              className="w-full px-3 py-2.5 rounded-lg bg-surface border border-border text-foreground placeholder-muted-foreground focus:outline-none focus:border-primary/50 transition-all text-sm"
               placeholder="••••••••"
             />
           </div>

@@ -6,15 +6,27 @@ import { Menu, X } from "lucide-react";
 
 interface DashboardLayoutProps {
     children: React.ReactNode;
-    user: { name: string; email: string } | null;
 }
 
-export function DashboardLayout({ children, user }: DashboardLayoutProps) {
+import { useAuth } from "@/contexts/AuthContext";
+import { ThemeToggle } from "../ui/ThemeToggle";
+
+export function DashboardLayout({ children }: DashboardLayoutProps) {
+    const { user, isLoading } = useAuth();
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
+    if (isLoading) {
+        return (
+            <div className="min-h-screen bg-background flex items-center justify-center">
+                <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-primary"></div>
+            </div>
+        );
+    }
+
 
     return (
         <div className="min-h-screen bg-background text-foreground flex relative">
-            {/* Mobile Header */}
+
             <div className="md:hidden fixed top-0 left-0 right-0 h-16 bg-surface/80 backdrop-blur-lg border-b border-white/5 flex items-center px-4 z-40 justify-between">
                 <div className="flex items-center gap-3">
                     <button
@@ -25,17 +37,20 @@ export function DashboardLayout({ children, user }: DashboardLayoutProps) {
                     </button>
                     <span className="font-display font-semibold text-lg">Relatim</span>
                 </div>
-                <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-primary to-purple-500 flex items-center justify-center text-xs font-bold text-white">
-                    {user?.name?.[0]?.toUpperCase() || "U"}
+                <div className="flex items-center gap-4">
+                    <ThemeToggle />
+                    <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-primary to-purple-500 flex items-center justify-center text-xs font-bold text-white">
+                        {user?.name?.[0]?.toUpperCase() || "U"}
+                    </div>
                 </div>
             </div>
 
-            {/* Sidebar Desktop */}
+
             <div className="hidden md:block w-[260px] fixed inset-y-0 left-0 z-30">
                 <Sidebar user={user} className="w-full h-full" />
             </div>
 
-            {/* Sidebar Mobile */}
+
             {isSidebarOpen && (
                 <div className="fixed inset-0 z-50 md:hidden">
                     <div
@@ -58,7 +73,7 @@ export function DashboardLayout({ children, user }: DashboardLayoutProps) {
                 </div>
             )}
 
-            {/* Main Content */}
+
             <main className="flex-1 w-full md:ml-[260px] min-h-screen transition-all duration-300 pt-16 md:pt-0">
                 <div className="max-w-[1600px] mx-auto p-4 md:p-8">
                     {children}

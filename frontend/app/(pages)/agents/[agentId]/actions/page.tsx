@@ -13,46 +13,46 @@ export default function ActionsPage() {
             </div>
 
             <div className="space-y-6">
-                {/* HTTP Tools */}
+                
                 <div>
                     <div className="flex items-center justify-between mb-2">
                         <h3 className="text-sm font-medium text-foreground">HTTP tools</h3>
                     </div>
                     <p className="text-xs text-secondary mb-4">Define web requests to enable your agent to interact with web-based APIs and services.</p>
-                    <Button variant="outline" size="sm" icon={<PlusIcon className="w-3.5 h-3.5" />}>
+                    <Button variant="outline" size="sm" leftIcon={<PlusIcon className="w-3.5 h-3.5" />}>
                         Add HTTP tool
                     </Button>
                 </div>
 
                 <div className="w-full h-px bg-white/5 my-6"></div>
 
-                {/* Client Tools */}
+                
                 <div>
                     <div className="flex items-center justify-between mb-2">
                         <h3 className="text-sm font-medium text-foreground">Client tools</h3>
                     </div>
                     <p className="text-xs text-secondary mb-4">Connect your agent to client-side RPC methods to retrieve data or perform actions.</p>
-                    <Button variant="outline" size="sm" icon={<PlusIcon className="w-3.5 h-3.5" />}>
+                    <Button variant="outline" size="sm" leftIcon={<PlusIcon className="w-3.5 h-3.5" />}>
                         Add client tool
                     </Button>
                 </div>
 
                 <div className="w-full h-px bg-white/5 my-6"></div>
 
-                {/* MCP Servers */}
+                
                 <div>
                     <div className="flex items-center justify-between mb-2">
                         <h3 className="text-sm font-medium text-foreground">MCP servers</h3>
                     </div>
                     <p className="text-xs text-secondary mb-4">Configure external MCP servers for your agent to connect and interact with.</p>
-                    <Button variant="outline" size="sm" icon={<PlusIcon className="w-3.5 h-3.5" />}>
+                    <Button variant="outline" size="sm" leftIcon={<PlusIcon className="w-3.5 h-3.5" />}>
                         Add MCP server
                     </Button>
                 </div>
 
                 <div className="w-full h-px bg-white/5 my-6"></div>
 
-                {/* End of call summary */}
+                
                 <div>
                     <div className="flex items-center justify-between mb-2">
                         <h3 className="text-sm font-medium text-foreground">End-of-call summary</h3>

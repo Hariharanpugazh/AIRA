@@ -24,6 +24,8 @@ import {
   ChevronRightIcon,
   ChevronDownIcon,
 } from "./icons";
+import { ThemeToggle } from "../../components/ui/ThemeToggle";
+import { DollarSign } from "lucide-react";
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 
@@ -53,27 +55,27 @@ export default function Sidebar({ user, className, onClose }: SidebarProps) {
 
   const navItemClass = (active: boolean) =>
     cn(
-      "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all duration-200 group relative overflow-hidden",
+      "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all duration-200 group relative overflow-hidden font-display",
       active
         ? "bg-primary/10 text-primary font-medium shadow-sm shadow-primary/5"
-        : "text-muted-foreground hover:text-foreground hover:bg-white/5"
+        : "text-muted-foreground hover:text-foreground hover:bg-surface-hover"
     );
 
   const subNavItemClass = (active: boolean) =>
     cn(
-      "flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all duration-200 pl-9 border-l border-transparent",
+      "flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all duration-200 pl-9 border-l border-transparent font-display",
       active
         ? "text-primary font-medium border-primary/20 bg-primary/5"
-        : "text-muted-foreground hover:text-foreground hover:bg-white/5 border-white/5"
+        : "text-muted-foreground hover:text-foreground hover:bg-surface-hover border-transparent"
     );
 
   return (
-    <aside className={cn("bg-[#0a0a0a]/95 backdrop-blur-xl border-r border-white/5 flex flex-col h-full", className)}>
-      {/* Logo */}
-      <div className="px-6 py-6 border-b border-white/5">
+    <aside className={cn("bg-background border-r border-border flex flex-col h-full font-sans", className)}>
+
+      <div className="px-6 py-6 border-b border-border">
         <Link href="/dashboard" className="flex items-center gap-3 group" onClick={onClose}>
           <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary to-purple-500 flex items-center justify-center shadow-lg shadow-primary/20 group-hover:scale-105 transition-all duration-300">
-            <span className="text-white text-lg font-bold font-display">R</span>
+            <span className="text-primary-foreground text-lg font-bold font-display">R</span>
           </div>
           <span className="text-foreground font-display font-semibold text-xl tracking-tight group-hover:text-primary transition-colors">
             Relatim
@@ -81,8 +83,8 @@ export default function Sidebar({ user, className, onClose }: SidebarProps) {
         </Link>
       </div>
 
-      {/* Navigation */}
-      <nav className="flex-1 overflow-y-auto px-4 py-6 space-y-1.5 scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
+
+      <nav className="flex-1 overflow-y-auto px-4 py-6 space-y-1.5 scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent">
         <Link href="/dashboard" className={navItemClass(isActive("/dashboard"))} onClick={onClose}>
           <OverviewIcon />
           Overview
@@ -96,13 +98,12 @@ export default function Sidebar({ user, className, onClose }: SidebarProps) {
           Agents
         </Link>
 
-        {/* Telephony with submenu */}
         <div className="pt-2">
           <button
             onClick={() => setTelephonyOpen(!telephonyOpen)}
             className={cn(
               "w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm transition-colors group",
-              isTelephonyActive ? "text-foreground font-medium" : "text-muted-foreground hover:text-foreground hover:bg-white/5"
+              isTelephonyActive ? "text-foreground font-medium" : "text-muted-foreground hover:text-foreground hover:bg-surface-hover"
             )}
           >
             <span className="flex items-center gap-3">
@@ -120,6 +121,10 @@ export default function Sidebar({ user, className, onClose }: SidebarProps) {
               <Link href="/telephony/dispatch-rules" className={subNavItemClass(isActive("/telephony/dispatch-rules"))} onClick={onClose}>
                 <DispatchIcon />
                 Dispatch rules
+              </Link>
+              <Link href="/telephony/phone-numbers" className={subNavItemClass(isActive("/telephony/phone-numbers"))} onClick={onClose}>
+                <SipTrunksIcon />
+                Phone numbers
               </Link>
               <Link href="/telephony/sip-trunks" className={subNavItemClass(isActive("/telephony/sip-trunks"))} onClick={onClose}>
                 <SipTrunksIcon />
@@ -142,13 +147,12 @@ export default function Sidebar({ user, className, onClose }: SidebarProps) {
           Sandbox
         </Link>
 
-        {/* Settings with submenu */}
         <div className="pt-2">
           <button
             onClick={() => setSettingsOpen(!settingsOpen)}
             className={cn(
               "w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm transition-colors group",
-              isSettingsActive ? "text-foreground font-medium" : "text-muted-foreground hover:text-foreground hover:bg-white/5"
+              isSettingsActive ? "text-foreground font-medium" : "text-muted-foreground hover:text-foreground hover:bg-surface-hover"
             )}
           >
             <span className="flex items-center gap-3">
@@ -175,21 +179,25 @@ export default function Sidebar({ user, className, onClose }: SidebarProps) {
                 <WebhooksIcon />
                 Webhooks
               </Link>
+              <Link href="/admin/billing" className={subNavItemClass(isActive("/admin/billing"))} onClick={onClose}>
+                <DollarSign className="w-4 h-4" />
+                Billing
+              </Link>
             </div>
           </div>
         </div>
 
-        <div className="mt-8 pt-6 border-t border-white/5 space-y-1">
-          <button className="w-full flex items-center justify-between px-3 py-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-white/5 text-sm transition-colors group">
+        <div className="mt-8 pt-6 border-t border-border space-y-1">
+          <button className="w-full flex items-center justify-between px-3 py-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-surface-hover text-sm transition-colors group">
             <span className="flex items-center gap-3">
               <SearchIcon />
               Search
             </span>
-            <kbd className="text-[10px] items-center gap-1 px-1.5 py-0.5 rounded border border-white/10 bg-white/5 text-muted-foreground group-hover:border-white/20 hidden sm:flex">
+            <kbd className="text-[10px] items-center gap-1 px-1.5 py-0.5 rounded border border-border bg-surface text-muted-foreground group-hover:border-foreground/20 hidden sm:flex">
               <span className="text-xs">⌘</span>K
             </kbd>
           </button>
-          <Link href="#" className="flex items-center justify-between px-3 py-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-white/5 text-sm transition-colors group">
+          <Link href="#" className="flex items-center justify-between px-3 py-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-surface-hover text-sm transition-colors group">
             <span className="flex items-center gap-3">
               <SupportIcon />
               Support
@@ -199,10 +207,13 @@ export default function Sidebar({ user, className, onClose }: SidebarProps) {
         </div>
       </nav>
 
-      {/* User at bottom */}
-      <div className="p-4 border-t border-white/5 bg-black/20">
-        <button className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-white/5 transition-all border border-transparent hover:border-white/5 group">
-          <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-primary to-purple-500 flex items-center justify-center text-sm font-bold text-white shadow-sm ring-2 ring-transparent group-hover:ring-primary/20 transition-all">
+
+      <div className="p-4 border-t border-border bg-background space-y-2">
+        <div className="flex justify-start px-2">
+          <ThemeToggle />
+        </div>
+        <button className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-surface-hover transition-all border border-transparent hover:border-border group">
+          <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-primary to-purple-500 flex items-center justify-center text-sm font-bold text-primary-foreground shadow-sm ring-2 ring-transparent group-hover:ring-primary/20 transition-all">
             {user?.name?.charAt(0).toUpperCase() || "U"}
           </div>
           <div className="flex-1 text-left overflow-hidden">

@@ -7,51 +7,66 @@ import Header from "../../components/Header";
 import { StatsCard } from "../../../components/StatsCard";
 import { Card } from "../../../components/ui/Card";
 import { ChevronRightIcon } from "../../components/icons";
-import { getAccessToken, getMe, getLiveKitStats, getProjects, User, LiveKitStats, Project } from "../../../lib/api";
+import { getAccessToken, getProjects, getAnalyticsDashboard, getAnalyticsTimeseries, Project, DashboardData, AnalyticsDataPoint } from "../../../lib/api";
+import { AnalyticsCard } from "../../../components/AnalyticsCard";
+import { StatsLineChart, PlatformDonutChart } from "../../../components/Charts";
 
 export default function DashboardPage() {
   const router = useRouter();
-  const [user, setUser] = useState<User | null>(null);
-  const [stats, setStats] = useState<LiveKitStats | null>(null);
+  // Analytics State
   const [projects, setProjects] = useState<Project[]>([]);
   const [currentProject, setCurrentProject] = useState<Project | null>(null);
   const [loading, setLoading] = useState(true);
+  const [timeRange, setTimeRange] = useState("24h");
 
-  useEffect(() => {
-    const loadData = async () => {
-      const token = getAccessToken();
-      if (!token) {
-        router.push("/login");
-        return;
-      }
+  const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
+  const [timeseries, setTimeseries] = useState<AnalyticsDataPoint[]>([]);
 
+  const loadData = React.useCallback(async () => {
+    const token = getAccessToken();
+    if (!token) {
+      router.push("/login");
+      return;
+    }
+
+    try {
+      // 1. Verify Auth First (Handled by global AuthContext now)
+
+      // 2. Load Content
       try {
-        const [userData, statsData, projectsData] = await Promise.all([
-          getMe(),
-          getLiveKitStats(),
-          getProjects(),
+        const [dashData, timeseriesData, projectsData] = await Promise.all([
+          getAnalyticsDashboard(timeRange).catch(() => null),
+          getAnalyticsTimeseries(timeRange).catch(() => []),
+          getProjects().catch(() => []),
         ]);
 
-        setUser(userData);
-        setStats(statsData);
-        setProjects(projectsData);
-
-        if (projectsData.length > 0) {
-          setCurrentProject(projectsData[0]);
-          localStorage.setItem("projectId", projectsData[0].id);
-          localStorage.setItem("projectName", projectsData[0].name);
+        if (dashData) setDashboardData(dashData);
+        if (timeseriesData) setTimeseries(timeseriesData);
+        if (projectsData) {
+          setProjects(projectsData);
+          if (projectsData.length > 0 && !currentProject) {
+            setCurrentProject(projectsData[0]);
+            localStorage.setItem("projectId", projectsData[0].id);
+            localStorage.setItem("projectName", projectsData[0].name);
+          }
         }
-      } catch {
-        router.push("/login");
-      } finally {
-        setLoading(false);
+      } catch (e) {
+        console.warn("Failed to load non-critical data", e);
       }
-    };
 
+    } catch (e) {
+
+      router.push("/login");
+    } finally {
+      setLoading(false);
+    }
+  }, [router, currentProject, timeRange]);
+
+  useEffect(() => {
     loadData();
-  }, [router]);
+  }, [loadData]);
 
-  if (loading || !user) {
+  if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-primary"></div>
@@ -69,69 +84,184 @@ export default function DashboardPage() {
   ];
 
   return (
-    <DashboardLayout user={user}>
-      <Header projectName={currentProject?.name || "Project"} pageName="Overview" />
+    <DashboardLayout>
+      <Header
+        projectName={currentProject?.name || "Project"}
+        pageName="Overview"
+        onRefresh={loadData}
+        onTimeRangeChange={setTimeRange}
+      />
 
       <div className="space-y-6 animate-fade-in pb-8">
-        {/* Stats */}
+
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
           <StatsCard
-            label="Status"
-            value={stats?.status === "online" ? "Online" : "Offline"}
-            subValue={stats?.status === "online" ? "All systems operational" : "Check connection"}
-            chart={
-              <div className="relative mt-2">
-                <div className={`w-2 h-2 rounded-full ${stats?.status === "online" ? "bg-green-500" : "bg-red-500"}`} />
-              </div>
-            }
+            label="Connection Success"
+            value={`${dashboardData?.overview.connection_success || 100}%`}
+            subValue="Last 24h"
+            chart={<div className="h-2 w-full bg-surface mt-2 rounded-full overflow-hidden"><div className="h-full bg-cyan-500" style={{ width: `${dashboardData?.overview.connection_success || 100}%` }} /></div>}
           />
-          <StatsCard label="Active Rooms" value={String(stats?.active_rooms || 0)} subValue="Real-time" />
-          <StatsCard label="Participants" value={String(stats?.total_participants || 0)} subValue="Connected" />
-          <StatsCard label="Projects" value={String(projects.length)} subValue="Total" />
+          <StatsCard label="Active Rooms" value={String(timeseries[timeseries.length - 1]?.active_rooms || 0)} subValue="Real-time" />
+          <StatsCard label="Participants" value={String(timeseries[timeseries.length - 1]?.total_participants || 0)} subValue="Connected" />
+          <StatsCard label="Total Projects" value={String(projects.length)} subValue="Active" />
         </div>
 
-        {/* Quick Links */}
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <AnalyticsCard title="Platforms">
+            <div className="h-[200px]">
+              <PlatformDonutChart data={[
+                { name: "Linux", value: dashboardData?.platforms.linux || 0 },
+                { name: "Windows", value: dashboardData?.platforms.windows || 0 },
+                { name: "Android", value: dashboardData?.platforms.android || 0 },
+                { name: "iOS", value: dashboardData?.platforms.ios || 0 },
+              ].some(d => d.value > 0) ? [
+                { name: "Linux", value: dashboardData?.platforms.linux || 0 },
+                { name: "Windows", value: dashboardData?.platforms.windows || 0 },
+                { name: "Android", value: dashboardData?.platforms.android || 0 },
+                { name: "iOS", value: dashboardData?.platforms.ios || 0 },
+              ] : [{ name: "No Data", value: 100 }]} />
+            </div>
+            <div className="mt-4 grid grid-cols-3 gap-2 text-xs text-muted-foreground text-center">
+              <div>Linux <span className="text-foreground block">{dashboardData?.platforms.linux || 0}%</span></div>
+              <div>Win <span className="text-foreground block">{dashboardData?.platforms.windows || 0}%</span></div>
+              <div>Mob <span className="text-foreground block">{(dashboardData?.platforms.android || 0) + (dashboardData?.platforms.ios || 0)}%</span></div>
+            </div>
+          </AnalyticsCard>
+
+          <AnalyticsCard title="Connection Type">
+            <div className="h-[200px] flex items-center justify-center">
+              <div className="relative w-32 h-32 rounded-full border-8 border-cyan-500/20 flex items-center justify-center">
+                <div className="text-center">
+                  <div className="text-cyan-500 font-bold text-xl">{dashboardData?.overview.connection_type.udp || 0}%</div>
+                  <div className="text-[10px] text-muted-foreground">UDP</div>
+                </div>
+              </div>
+            </div>
+            <div className="mt-2 text-center text-xs text-muted-foreground">
+              TCP: <span className="text-foreground">{dashboardData?.overview.connection_type.tcp || 0}%</span>
+            </div>
+          </AnalyticsCard>
+
+          <AnalyticsCard title="Top Countries">
+            <div className="space-y-3 mt-2">
+              {(dashboardData?.overview.top_countries || []).map((c, i) => (
+                <div key={c.name} className="flex items-center justify-between text-sm">
+                  <div className="flex items-center gap-2">
+                    <span className="text-muted-foreground">#{i + 1}</span>
+                    <span className="text-foreground">{c.name}</span>
+                  </div>
+                  <span className="font-mono text-cyan-500">{c.count}</span>
+                </div>
+              ))}
+              {(!dashboardData?.overview.top_countries || dashboardData?.overview.top_countries.length === 0) && (
+                <div className="text-muted-foreground text-xs text-center py-8">No geolocation data available</div>
+              )}
+            </div>
+          </AnalyticsCard>
+        </div>
+
+
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+          <AnalyticsCard title="Total Minutes" className="col-span-1">
+            <div className="flex flex-col h-full justify-center">
+              <div className="text-4xl font-bold text-foreground mb-1">
+                {Math.round((dashboardData?.participants.total_minutes || 0) / 60)} <span className="text-lg text-muted-foreground font-normal">mins</span>
+              </div>
+              <div className="space-y-2 mt-4">
+                <div className="flex justify-between text-xs">
+                  <span className="text-muted-foreground">WebRTC</span>
+                  <span className="text-foreground">{Math.round((dashboardData?.participants.webrtc_minutes || 0) / 60)}m</span>
+                </div>
+                <div className="w-full bg-surface h-1 rounded-full overflow-hidden">
+                  <div className="bg-cyan-500 h-full" style={{ width: `${((dashboardData?.participants.webrtc_minutes || 0) / (dashboardData?.participants.total_minutes || 1)) * 100}%` }} />
+                </div>
+
+                <div className="flex justify-between text-xs">
+                  <span className="text-muted-foreground">Agents</span>
+                  <span className="text-foreground">{Math.round((dashboardData?.participants.agent_minutes || 0) / 60)}m</span>
+                </div>
+                <div className="w-full bg-surface h-1 rounded-full overflow-hidden">
+                  <div className="bg-purple-500 h-full" style={{ width: `${((dashboardData?.participants.agent_minutes || 0) / (dashboardData?.participants.total_minutes || 1)) * 100}%` }} />
+                </div>
+
+                <div className="flex justify-between text-xs">
+                  <span className="text-muted-foreground">SIP</span>
+                  <span className="text-foreground">{Math.round((dashboardData?.participants.sip_minutes || 0) / 60)}m</span>
+                </div>
+                <div className="w-full bg-surface h-1 rounded-full overflow-hidden">
+                  <div className="bg-yellow-500 h-full" style={{ width: `${((dashboardData?.participants.sip_minutes || 0) / (dashboardData?.participants.total_minutes || 1)) * 100}%` }} />
+                </div>
+              </div>
+            </div>
+          </AnalyticsCard>
+
+          <AnalyticsCard title="Connection Trends" className="col-span-3">
+            <div className="h-[240px]">
+              <StatsLineChart data={timeseries} dataKey="total_participants" color="#00F0FF" />
+            </div>
+          </AnalyticsCard>
+        </div>
+
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <AnalyticsCard title="Agents">
+            <div className="grid grid-cols-2 gap-4 mt-2">
+              <div className="bg-surface p-3 rounded-lg border border-border">
+                <div className="text-xs text-muted-foreground mb-1">Session Minutes</div>
+                <div className="text-2xl font-bold text-foreground">{Math.round((dashboardData?.agents.session_minutes || 0) / 60)}m</div>
+              </div>
+              <div className="bg-surface p-3 rounded-lg border border-border">
+                <div className="text-xs text-muted-foreground mb-1">Concurrent</div>
+                <div className="text-2xl font-bold text-foreground">{dashboardData?.agents.concurrent || 0}</div>
+              </div>
+            </div>
+          </AnalyticsCard>
+
+          <AnalyticsCard title="Telephony">
+            <div className="grid grid-cols-2 gap-4 mt-2">
+              <div className="bg-surface p-3 rounded-lg border border-border">
+                <div className="text-xs text-muted-foreground mb-1">Inbound</div>
+                <div className="text-2xl font-bold text-foreground">{Math.round((dashboardData?.telephony.inbound || 0) / 60)}m</div>
+              </div>
+              <div className="bg-surface p-3 rounded-lg border border-border">
+                <div className="text-xs text-muted-foreground mb-1">Outbound</div>
+                <div className="text-2xl font-bold text-foreground">{Math.round((dashboardData?.telephony.outbound || 0) / 60)}m</div>
+              </div>
+            </div>
+          </AnalyticsCard>
+
+          <AnalyticsCard title="Rooms">
+            <div className="grid grid-cols-3 gap-2 mt-2">
+              <div className="text-center">
+                <div className="text-xl font-bold text-foreground">{dashboardData?.rooms.total_sessions || 0}</div>
+                <div className="text-[10px] text-muted-foreground">Sessions</div>
+              </div>
+              <div className="text-center">
+                <div className="text-xl font-bold text-foreground">{dashboardData?.rooms.avg_size || 0}</div>
+                <div className="text-[10px] text-muted-foreground">Avg Size</div>
+              </div>
+              <div className="text-center">
+                <div className="text-xl font-bold text-foreground">{Math.round((dashboardData?.rooms.avg_duration || 0) / 60)}m</div>
+                <div className="text-[10px] text-muted-foreground">Avg Dur</div>
+              </div>
+            </div>
+          </AnalyticsCard>
+        </div>
+
+
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
           {links.map((link) => (
             <button
               key={link.name}
               onClick={() => router.push(link.path)}
-              className="flex items-center justify-between p-3 rounded-lg bg-surface/50 border border-white/5 hover:bg-white/10 transition-all text-left group"
+              className="flex items-center justify-between p-3 rounded-lg bg-surface border border-border hover:bg-surface-hover transition-all text-left group"
             >
               <span className="text-foreground text-sm group-hover:text-primary transition-colors">{link.name}</span>
               <ChevronRightIcon className="text-muted-foreground w-4 h-4 group-hover:text-primary transition-all" />
             </button>
           ))}
         </div>
-
-        {/* Projects */}
-        {projects.length > 0 && (
-          <div className="space-y-3">
-            <h3 className="text-foreground font-medium text-sm">Projects</h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-              {projects.map((project) => (
-                <Card
-                  key={project.id}
-                  variant="glass"
-                  className="p-3 cursor-pointer hover:border-primary/30 transition-all"
-                  onClick={() => {
-                    setCurrentProject(project);
-                    localStorage.setItem("projectId", project.id);
-                    localStorage.setItem("projectName", project.name);
-                  }}
-                >
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h4 className="text-foreground font-medium text-sm">{project.name}</h4>
-                      <p className="text-muted-foreground text-xs">{project.description || "No description"}</p>
-                    </div>
-                    <div className={`w-2 h-2 rounded-full ${project.id === currentProject?.id ? "bg-primary" : "bg-white/20"}`} />
-                  </div>
-                </Card>
-              ))}
-            </div>
-          </div>
-        )}
       </div>
     </DashboardLayout>
   );

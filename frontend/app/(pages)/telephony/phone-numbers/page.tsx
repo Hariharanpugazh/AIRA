@@ -1,5 +1,7 @@
 "use client";
 
+import { getAccessToken } from "../../../../lib/api";
+
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { DashboardLayout } from "../../../../components/layouts/DashboardLayout";
@@ -13,22 +15,19 @@ import { Info, Search, Phone, Plus, MapPin, Globe } from "lucide-react";
 
 export default function PhoneNumbersPage() {
     const router = useRouter();
-    const [user, setUser] = useState<{ name: string; email: string } | null>(null);
     const [projectName, setProjectName] = useState<string>("");
     const [isModalOpen, setIsModalOpen] = useState(false);
 
     useEffect(() => {
-        const storedUser = localStorage.getItem("user");
         const storedProject = localStorage.getItem("projectName");
-        if (!storedUser) {
+        if (!getAccessToken()) {
             router.push("/login");
             return;
         }
-        setUser(JSON.parse(storedUser));
         setProjectName(storedProject || "My Project");
     }, [router]);
 
-    if (!user) return null;
+
 
     const actionButton = (
         <Button
@@ -42,7 +41,7 @@ export default function PhoneNumbersPage() {
     );
 
     return (
-        <DashboardLayout user={user}>
+        <DashboardLayout>
             <Header
                 projectName={projectName}
                 pageName="Phone numbers"
@@ -61,13 +60,13 @@ export default function PhoneNumbersPage() {
                     </div>
                 </div>
 
-                {/* Empty State / Table Placeholders */}
-                <Card variant="glass" className="min-h-[400px] flex flex-col items-center justify-center border-white/5 relative overflow-hidden group">
-                    {/* Background ambient glow */}
+
+                <Card variant="glass" className="min-h-[400px] flex flex-col items-center justify-center border-border relative overflow-hidden group">
+
                     <div className="absolute inset-0 bg-gradient-to-tr from-primary/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-1000" />
 
                     <div className="text-center p-8 relative z-10">
-                        <div className="w-20 h-20 mx-auto mb-6 rounded-2xl bg-surface border border-white/5 flex items-center justify-center shadow-xl">
+                        <div className="w-20 h-20 mx-auto mb-6 rounded-2xl bg-surface border border-border flex items-center justify-center shadow-xl">
                             <Phone className="w-10 h-10 text-muted-foreground" />
                         </div>
                         <h3 className="text-lg font-display font-medium text-foreground mb-2">No phone numbers yet</h3>
@@ -86,7 +85,7 @@ export default function PhoneNumbersPage() {
                     </div>
                 </Card>
 
-                {/* Buy Number Modal */}
+
                 <Modal
                     isOpen={isModalOpen}
                     onClose={() => setIsModalOpen(false)}
@@ -125,16 +124,16 @@ export default function PhoneNumbersPage() {
                             </div>
                         </div>
 
-                        <div className="rounded-xl border border-white/10 bg-black/20 max-h-[240px] overflow-y-auto scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
+                        <div className="rounded-xl border border-border bg-background/50 max-h-[240px] overflow-y-auto scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent">
                             {[1, 2, 3, 4, 5].map((i) => (
-                                <div key={i} className="flex items-center justify-between px-4 py-3 border-b border-white/5 last:border-0 hover:bg-white/5 cursor-pointer group transition-colors">
+                                <div key={i} className="flex items-center justify-between px-4 py-3 border-b border-border last:border-0 hover:bg-surface-hover cursor-pointer group transition-colors">
                                     <div className="flex items-center gap-3">
-                                        <div className="w-4 h-4 rounded-full border border-white/20 flex items-center justify-center group-hover:border-primary transition-colors">
+                                        <div className="w-4 h-4 rounded-full border border-border flex items-center justify-center group-hover:border-primary transition-colors">
                                             <div className="w-2 h-2 rounded-full bg-primary opacity-0 group-hover:opacity-100 transition-opacity" />
                                         </div>
                                         <span className="text-foreground text-sm font-mono group-hover:text-primary transition-colors">+1 (415) 555-010{i}</span>
                                     </div>
-                                    <span className="text-xs text-muted-foreground group-hover:text-foreground transition-colors font-medium bg-surface px-2 py-1 rounded border border-white/5">$1.00/mo</span>
+                                    <span className="text-xs text-muted-foreground group-hover:text-foreground transition-colors font-medium bg-surface px-2 py-1 rounded border border-border">$1.00/mo</span>
                                 </div>
                             ))}
                         </div>

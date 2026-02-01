@@ -87,7 +87,7 @@ export default function Step2Page() {
       <div className="flex flex-col items-center mb-8">
         <RelatimLogo />
 
-        {/* Progress Dots */}
+        
         <div className="flex items-center gap-3 mt-8">
           <div className="w-2.5 h-2.5 rounded-full bg-primary" />
           <div className="w-2.5 h-2.5 rounded-full bg-primary shadow-[0_0_10px_theme(colors.primary.DEFAULT)]" />

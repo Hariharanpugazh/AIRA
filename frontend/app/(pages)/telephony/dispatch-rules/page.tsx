@@ -5,59 +5,51 @@ import { useRouter } from "next/navigation";
 import { DashboardLayout } from "../../../../components/layouts/DashboardLayout";
 import Header from "../../../components/Header";
 import { Button } from "../../../../components/ui/Button";
-import { SearchSmIcon } from "../../../components/icons";
-import { Modal } from "../../../../components/ui/Modal";
-import { Select } from "../../../../components/ui/Select";
-import { getAccessToken, getMe, getDispatchRules, createDispatchRule, deleteDispatchRule, getSipTrunks, getAgents, DispatchRule } from "../../../../lib/api";
+import { Card } from "../../../../components/ui/Card";
+import { Search, MoreVertical, Plus, Copy, Info, Trash2 } from "lucide-react";
+import { CreateDispatchRuleModal } from "../../../../components/modals/CreateDispatchRuleModal";
+import { getAccessToken, getDispatchRules, createDispatchRule, deleteDispatchRule, getSipTrunks, getAgents, DispatchRule, Agent, SipTrunk } from "../../../../lib/api";
 
 export default function DispatchRulesPage() {
   const router = useRouter();
-  const [user, setUser] = useState<{ name: string; email: string } | null>(null);
   const [projectName, setProjectName] = useState<string>("");
   const [rules, setRules] = useState<DispatchRule[]>([]);
-  const [agents, setAgents] = useState<any[]>([]);
-  const [trunks, setTrunks] = useState<any[]>([]);
+  const [agents, setAgents] = useState<Agent[]>([]);
+  const [trunks, setTrunks] = useState<SipTrunk[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [formData, setFormData] = useState({ name: "", rule_type: "individual", trunk_id: "", agent_id: "" });
+  const [loading, setLoading] = useState(true);
+
+  const sipUri = trunks.length > 0 && trunks[0].sip_uri ? trunks[0].sip_uri : null;
 
   useEffect(() => {
     const loadData = async () => {
       if (!getAccessToken()) { router.push("/login"); return; }
       try {
-        const u = await getMe();
-        setUser(u);
+        setProjectName(localStorage.getItem("projectName") || "RELATIM");
 
-        try {
-          const [r, a, t] = await Promise.all([getDispatchRules(), getAgents("default"), getSipTrunks()]);
-          setRules(r);
-          setAgents(a);
-          setTrunks(t);
-        } catch (err) {
-          console.error("Failed to load resources", err);
-        }
-
-        setProjectName(localStorage.getItem("projectName") || "My Project");
-      } catch (e) {
-        console.error(e);
+        const [r, a, t] = await Promise.all([getDispatchRules(), getAgents("default"), getSipTrunks()]);
+        setRules(r);
+        setAgents(a);
+        setTrunks(t);
+      } catch (err) {
+      } finally {
+        setLoading(false);
       }
     };
     loadData();
   }, [router]);
 
-  const handleCreate = async () => {
-    if (!formData.name) return;
+  const handleCreate = async (data: any) => {
     try {
       const newRule = await createDispatchRule({
-        name: formData.name,
-        rule_type: formData.rule_type,
-        agent_id: formData.agent_id || undefined,
-        trunk_id: formData.trunk_id || undefined
+        name: data.name,
+        rule_type: data.rule_type,
+        trunk_id: data.trunk_id,
+        agent_id: data.agent_id
       });
       setRules([newRule, ...rules]);
-      setIsModalOpen(false);
-      setFormData({ name: "", rule_type: "individual", trunk_id: "", agent_id: "" });
     } catch (e) {
-      console.error(e);
+      throw e;
     }
   };
 
@@ -67,60 +59,138 @@ export default function DispatchRulesPage() {
       await deleteDispatchRule(id);
       setRules(rules.filter(r => r.id !== id));
     } catch (e) {
-      console.error(e);
     }
   };
 
-  if (!user) return null;
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-primary"></div>
+      </div>
+    );
+  }
 
   return (
-    <DashboardLayout user={user}>
-      <Header projectName={projectName} pageName="Dispatch rules" showTimeRange={false}
+    <DashboardLayout>
+      <Header
+        projectName={projectName}
+        pageName="Dispatch rules"
+        showTimeRange={false}
         actionButton={
-          <Button size="sm" className="bg-[#00d4aa] text-black hover:bg-[#00e5c0]" onClick={() => setIsModalOpen(true)}>
+          <Button size="sm" onClick={() => setIsModalOpen(true)} leftIcon={<Plus className="w-4 h-4" />}>
             Create new dispatch rule
           </Button>
         }
       />
-      <div className="p-8 max-w-6xl mx-auto">
-        <h1 className="text-xl font-semibold mb-6">Dispatch Rules</h1>
+      <div className="p-4 md:p-8 animate-fade-in space-y-6">
 
-        {rules.length === 0 ? (
-          <div className="text-center p-12 bg-surface/50 rounded-lg border border-white/5">
-            <p className="text-muted-foreground">No dispatch rules configured.</p>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {rules.map(r => (
-              <div key={r.id} className="bg-surface border border-white/10 p-4 rounded-lg flex justify-between items-center">
-                <div>
-                  <h3 className="font-medium text-foreground">{r.name}</h3>
-                  <p className="text-sm text-secondary">{r.rule_type} · Agent: {r.agent_name || "None"} · Trunk: {r.trunk_name || "None"}</p>
-                </div>
-                <button onClick={() => handleDelete(r.id)} className="text-red-500 hover:bg-red-500/10 p-2 rounded">Delete</button>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <Card variant="glass" className="p-6">
+            <div className="flex items-center gap-2 mb-2">
+              <h3 className="text-xs font-semibold text-muted-foreground tracking-wider uppercase">Total Dispatch Rules</h3>
+              <Info className="w-3 h-3 text-muted-foreground" />
+            </div>
+            <div className="text-3xl font-bold font-display">{rules.length}</div>
+          </Card>
+          <Card variant="glass" className="p-6">
+            <div className="flex items-center gap-2 mb-2">
+              <h3 className="text-xs font-semibold text-muted-foreground tracking-wider uppercase">SIP URI</h3>
+              <Info className="w-3 h-3 text-muted-foreground" />
+            </div>
+            {sipUri ? (
+              <div className="flex items-center gap-3">
+                <div className="font-mono text-lg text-foreground truncate">{sipUri}</div>
+                <button className="text-muted-foreground hover:text-foreground transition-colors" onClick={() => navigator.clipboard.writeText(sipUri)}>
+                  <Copy className="w-4 h-4" />
+                </button>
               </div>
-            ))}
+            ) : (
+              <div className="text-sm text-muted-foreground italic">
+                No SIP trunk configured. Create a trunk to get your SIP URI.
+              </div>
+            )}
+          </Card>
+        </div>
+
+
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-semibold text-foreground">Dispatch rules</h2>
+            <div className="relative">
+              <Search className="w-4 h-4 absolute left-3 top-2.5 text-muted-foreground" />
+              <input
+                placeholder="Search"
+                className="pl-9 pr-4 py-2 bg-surface border border-border rounded-lg text-sm text-foreground focus:outline-none focus:border-primary/50 w-64"
+              />
+            </div>
           </div>
-        )}
 
-        <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Create Dispatch Rule"
-          footer={<><Button variant="ghost" onClick={() => setIsModalOpen(false)}>Cancel</Button><Button onClick={handleCreate} className="bg-[#00d4aa] text-black">Create</Button></>}
-        >
-          <div className="space-y-4">
-            <input placeholder="Rule Name" value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} className="w-full bg-surface border border-white/10 rounded p-2" />
+          <div className="bg-surface border border-border rounded-lg overflow-hidden">
+            <div className="grid grid-cols-12 gap-4 px-6 py-3 border-b border-border bg-background/50 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+              <div className="col-span-2">Dispatch Rule ID</div>
+              <div className="col-span-2">Rule Name</div>
+              <div className="col-span-2">Inbound Routing</div>
+              <div className="col-span-2">Destination Room</div>
+              <div className="col-span-2">Agents</div>
+              <div className="col-span-2 flex justify-between">
+                <span>Rule Type</span>
+                <span className="sr-only">Actions</span>
+              </div>
+            </div>
 
-            <select value={formData.agent_id} onChange={e => setFormData({ ...formData, agent_id: e.target.value })} className="w-full bg-surface border border-white/10 rounded p-2">
-              <option value="">Select Agent</option>
-              {agents.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
-            </select>
-
-            <select value={formData.trunk_id} onChange={e => setFormData({ ...formData, trunk_id: e.target.value })} className="w-full bg-surface border border-white/10 rounded p-2">
-              <option value="">Select Trunk</option>
-              {trunks.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
-            </select>
+            {rules.length === 0 ? (
+              <div className="p-12 text-center text-muted-foreground">
+                No dispatch rules found.
+              </div>
+            ) : (
+              <div className="divide-y divide-border">
+                {rules.map(rule => (
+                  <div key={rule.id} className="grid grid-cols-12 gap-4 px-6 py-4 items-center hover:bg-surface-hover transition-colors group">
+                    <div className="col-span-2 font-mono text-xs text-muted-foreground truncate" title={rule.id}>{rule.id.substring(0, 12)}...</div>
+                    <div className="col-span-2 font-medium text-foreground truncate">{rule.name}</div>
+                    <div className="col-span-2 flex items-center gap-2">
+                      {rule.trunk_name ? (
+                        <span className="bg-cyan-500/10 text-cyan-400 px-2 py-0.5 rounded text-xs border border-cyan-500/20 truncate max-w-full">
+                          {rule.trunk_name}
+                        </span>
+                      ) : (
+                        <span className="text-muted-foreground text-xs italic">Any</span>
+                      )}
+                    </div>
+                    <div className="col-span-2 text-xs font-mono text-muted-foreground truncate">
+                      Inbound-&lt;caller-number&gt;
+                    </div>
+                    <div className="col-span-2 text-sm text-foreground truncate">
+                      {rule.agent_name || "None"}
+                    </div>
+                    <div className="col-span-2 flex justify-between items-center">
+                      <span className="text-sm text-muted-foreground">{rule.rule_type}</span>
+                      <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button className="p-1.5 hover:bg-surface-hover rounded text-muted-foreground hover:text-foreground transition-colors">
+                          <MoreVertical className="w-4 h-4" />
+                        </button>
+                        <button onClick={() => handleDelete(rule.id)} className="p-1.5 hover:bg-red-500/10 rounded text-red-500/50 hover:text-red-500 transition-colors">
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
-        </Modal>
+        </div>
+
+        <CreateDispatchRuleModal
+          isOpen={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
+          onSubmit={handleCreate}
+          agents={agents}
+          trunks={trunks}
+        />
       </div>
     </DashboardLayout>
   );
 }
+

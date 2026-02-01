@@ -6,11 +6,10 @@ import { DashboardLayout } from "../../../../components/layouts/DashboardLayout"
 import Header from "../../../components/Header";
 import { SearchSmIcon } from "../../../components/icons";
 import { Button } from "../../../../components/ui/Button";
-import { getAccessToken, getMe, getApiKeys, createApiKey, deleteApiKey } from "../../../../lib/api";
+import { getAccessToken, getApiKeys, createApiKey, deleteApiKey } from "../../../../lib/api";
 
 export default function ApiKeysPage() {
   const router = useRouter();
-  const [user, setUser] = useState<{ name: string; email: string } | null>(null);
   const [projectName, setProjectName] = useState<string>("");
   const [keys, setKeys] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -26,15 +25,13 @@ export default function ApiKeysPage() {
         return;
       }
       try {
-        const [userData, keysData] = await Promise.all([
-          getMe(),
+        const [keysData] = await Promise.all([
           getApiKeys()
         ]);
-        setUser(userData);
         setKeys(keysData);
         setProjectName(localStorage.getItem("projectName") || "My Project");
       } catch (error) {
-        console.error(error);
+
       } finally {
         setLoading(false);
       }
@@ -50,7 +47,7 @@ export default function ApiKeysPage() {
       setNewKeySecret(newKey.secret_key || "");
       setNewKeyName("");
     } catch (error) {
-      console.error(error);
+
     }
   };
 
@@ -60,17 +57,17 @@ export default function ApiKeysPage() {
       await deleteApiKey(id);
       setKeys(keys.filter(k => k.id !== id));
     } catch (error) {
-      console.error(error);
+
     }
   };
 
-  if (!user && loading) return null;
+  if (loading) return null;
 
   return (
-    <DashboardLayout user={user || { name: "", email: "", id: "temp-id" }}>
+    <DashboardLayout>
       <Header projectName={projectName} pageName="Keys" showTimeRange={false}
         actionButton={
-          <Button size="sm" onClick={() => setShowCreate(true)} className="bg-[#00d4aa] text-black hover:bg-[#00e5c0]">
+          <Button size="sm" onClick={() => setShowCreate(true)} variant="primary">
             Create key
           </Button>
         }
@@ -82,10 +79,10 @@ export default function ApiKeysPage() {
           <p className="text-secondary text-sm">Manage project access keys.</p>
         </div>
 
-        {/* Create Modal */}
+
         {showCreate && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-            <div className="bg-surface border border-white/10 rounded-xl p-6 w-full max-w-md">
+            <div className="bg-surface border border-border rounded-xl p-6 w-full max-w-md">
               <h3 className="text-lg font-medium text-foreground mb-4">Create API Key</h3>
 
               {!newKeySecret ? (
@@ -96,7 +93,7 @@ export default function ApiKeysPage() {
                     placeholder="Key name (e.g. Production)"
                     value={newKeyName}
                     onChange={(e) => setNewKeyName(e.target.value)}
-                    className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2 text-foreground mb-4 focus:outline-none focus:border-primary"
+                    className="w-full bg-surface border border-border rounded-lg px-4 py-2 text-foreground mb-4 focus:outline-none focus:border-primary"
                   />
                   <div className="flex justify-end gap-3">
                     <Button variant="ghost" onClick={() => setShowCreate(false)}>Cancel</Button>
@@ -105,7 +102,7 @@ export default function ApiKeysPage() {
                 </>
               ) : (
                 <>
-                  <div className="bg-green-500/10 border border-green-500/20 text-green-500 p-3 rounded-lg mb-4 text-sm break-all font-mono">
+                  <div className="bg-primary/10 border border-primary/20 text-primary p-3 rounded-lg mb-4 text-sm break-all font-mono">
                     {newKeySecret}
                   </div>
                   <p className="text-xs text-secondary mb-4">Copy this key now. You won't see it again.</p>
@@ -116,11 +113,11 @@ export default function ApiKeysPage() {
           </div>
         )}
 
-        {/* API Keys Table */}
-        <div className="rounded-lg bg-surface border border-white/10 overflow-hidden">
+
+        <div className="rounded-lg bg-surface border border-border overflow-hidden">
           <table className="w-full">
             <thead>
-              <tr className="border-b border-white/10">
+              <tr className="border-b border-border">
                 <th className="text-left px-4 py-3 text-secondary text-[11px] font-medium uppercase tracking-wider">Name</th>
                 <th className="text-left px-4 py-3 text-secondary text-[11px] font-medium uppercase tracking-wider">Prefix</th>
                 <th className="text-left px-4 py-3 text-secondary text-[11px] font-medium uppercase tracking-wider">Created</th>
@@ -132,7 +129,7 @@ export default function ApiKeysPage() {
                 <tr><td colSpan={4} className="p-8 text-center text-secondary">No API keys found</td></tr>
               ) : (
                 keys.map(key => (
-                  <tr key={key.id} className="border-b border-white/10 last:border-0 hover:bg-white/[0.02] transition-colors">
+                  <tr key={key.id} className="border-b border-border last:border-0 hover:bg-surface-hover transition-colors">
                     <td className="px-4 py-3 text-[13px] text-foreground font-medium">{key.name}</td>
                     <td className="px-4 py-3 text-[13px] font-mono text-secondary">{key.key_prefix}...</td>
                     <td className="px-4 py-3 text-secondary text-[13px]">{new Date(key.created_at).toLocaleDateString()}</td>

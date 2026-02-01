@@ -7,11 +7,10 @@ import Header from "../../../components/Header";
 import { Button } from "../../../../components/ui/Button";
 import { Card } from "../../../../components/ui/Card";
 import { Save, Trash2 } from "lucide-react";
-import { getAccessToken, getMe, getProject, updateProject, deleteProject, User, Project } from "../../../../lib/api";
+import { getAccessToken, getProject, updateProject, deleteProject, User, Project } from "../../../../lib/api";
 
 export default function ProjectSettingsPage() {
   const router = useRouter();
-  const [user, setUser] = useState<User | null>(null);
   const [project, setProject] = useState<Project | null>(null);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
@@ -28,8 +27,7 @@ export default function ProjectSettingsPage() {
       }
 
       try {
-        const userData = await getMe();
-        setUser(userData);
+
 
         const projectId = localStorage.getItem("projectId");
         if (projectId) {
@@ -39,7 +37,7 @@ export default function ProjectSettingsPage() {
           setDescription(projectData.description || "");
         }
       } catch (error) {
-        console.error("Failed to load project:", error);
+
         router.push("/login");
       } finally {
         setLoading(false);
@@ -55,7 +53,7 @@ export default function ProjectSettingsPage() {
     setMessage(null);
 
     try {
-      await updateProject(project.id, { name, description });
+      await updateProject(project.id, name, description);
       localStorage.setItem("projectName", name);
       setMessage({ type: "success", text: "Project updated successfully!" });
     } catch (error) {
@@ -78,7 +76,7 @@ export default function ProjectSettingsPage() {
     }
   };
 
-  if (loading || !user) {
+  if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-primary"></div>
@@ -87,7 +85,7 @@ export default function ProjectSettingsPage() {
   }
 
   return (
-    <DashboardLayout user={user}>
+    <DashboardLayout>
       <Header
         projectName={project?.name || "RELATIM"}
         pageName="Project Settings"
@@ -107,7 +105,7 @@ export default function ProjectSettingsPage() {
         )}
 
         <div className="space-y-6">
-          {/* General Settings */}
+
           <Card variant="glass" className="p-6">
             <h3 className="text-foreground font-semibold mb-4">General</h3>
             <div className="space-y-4">
@@ -117,7 +115,7 @@ export default function ProjectSettingsPage() {
                   type="text"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  className="w-full px-4 py-2 rounded-lg bg-white/5 border border-white/10 text-foreground"
+                  className="w-full px-4 py-2 rounded-lg bg-surface border border-border text-foreground"
                 />
               </div>
               <div>
@@ -125,20 +123,20 @@ export default function ProjectSettingsPage() {
                 <textarea
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
-                  className="w-full px-4 py-2 rounded-lg bg-white/5 border border-white/10 text-foreground"
+                  className="w-full px-4 py-2 rounded-lg bg-surface border border-border text-foreground"
                   rows={3}
                 />
               </div>
             </div>
           </Card>
 
-          {/* Project Info */}
+
           <Card variant="glass" className="p-6">
             <h3 className="text-foreground font-semibold mb-4">Project Information</h3>
             <div className="space-y-3">
               <div className="flex justify-between">
                 <span className="text-muted-foreground text-sm">Project ID</span>
-                <code className="text-xs text-foreground bg-white/5 px-2 py-1 rounded">{project?.id}</code>
+                <code className="text-xs text-foreground bg-surface px-2 py-1 rounded">{project?.id}</code>
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground text-sm">Status</span>
@@ -151,7 +149,7 @@ export default function ProjectSettingsPage() {
             </div>
           </Card>
 
-          {/* Danger Zone */}
+
           <Card variant="glass" className="p-6 border-red-500/20">
             <h3 className="text-red-500 font-semibold mb-2">Danger Zone</h3>
             <p className="text-muted-foreground text-sm mb-4">

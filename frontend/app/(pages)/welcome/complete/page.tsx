@@ -66,7 +66,7 @@ export default function CompletePage() {
           <RelatimLogo />
         </div>
 
-        {/* Progress Dots */}
+        
         <div className="flex items-center gap-3 mt-8">
           <div className="w-2.5 h-2.5 rounded-full bg-primary" />
           <div className="w-2.5 h-2.5 rounded-full bg-primary" />

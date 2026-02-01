@@ -10,12 +10,10 @@ import { ChevronRight, Save, Rocket, Activity } from "lucide-react";
 
 interface AgentLayoutProps {
     children: React.ReactNode;
-    user: { name: string; email: string } | null;
 }
 
 export default function AgentLayout({
     children,
-    user,
 }: AgentLayoutProps) {
     const pathname = usePathname();
     const params = useParams();
@@ -28,15 +26,18 @@ export default function AgentLayout({
         { name: "Instructions", path: `/agents/${agentId}/instructions` },
         { name: "Models & Voice", path: `/agents/${agentId}/models` },
         { name: "Actions", path: `/agents/${agentId}/actions` },
+        { name: "Logs", path: `/agents/${agentId}/logs` },
+        { name: "Transcripts", path: `/agents/${agentId}/transcripts` },
         { name: "Advanced", path: `/agents/${agentId}/advanced` },
+        { name: "Deploy", path: `/agents/${agentId}/deploy` },
     ];
 
     const isActive = (path: string) => pathname === path;
 
     return (
-        <DashboardLayout user={user}>
+        <DashboardLayout>
             <div className="flex flex-col h-screen md:h-[calc(100vh_-_20px)] overflow-hidden">
-                {/* Top Header */}
+
                 <header className="flex items-center justify-between px-6 py-4 border-b border-white/5 bg-background/80 backdrop-blur-xl z-20">
                     <div>
                         <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1.5 font-medium">
@@ -60,14 +61,16 @@ export default function AgentLayout({
                             <Save className="w-3.5 h-3.5" />
                             <span>Changes saved</span>
                         </Button>
-                        <Button size="sm" variant="primary" className="gap-2 px-5 shadow-lg shadow-primary/20">
-                            <Rocket className="w-3.5 h-3.5" />
-                            <span>Deploy</span>
-                        </Button>
+                        <Link href={`/agents/${agentId}/deploy`}>
+                            <Button size="sm" variant="primary" className="gap-2 px-5 shadow-lg shadow-primary/20">
+                                <Rocket className="w-3.5 h-3.5" />
+                                <span>Deploy</span>
+                            </Button>
+                        </Link>
                     </div>
                 </header>
 
-                {/* Navigation Tabs */}
+
                 <div className="px-6 border-b border-white/5 bg-surface/30 backdrop-blur-sm">
                     <div className="flex items-center gap-8 overflow-x-auto no-scrollbar">
                         {tabs.map((tab) => (
@@ -88,14 +91,14 @@ export default function AgentLayout({
                     </div>
                 </div>
 
-                {/* Content Area */}
+
                 <div className="flex-1 overflow-hidden flex">
-                    {/* Main Tab Content */}
+
                     <div className={`flex-1 overflow-y-auto bg-black/20 ${isOverview ? 'w-full' : ''}`}>
                         {children}
                     </div>
 
-                    {/* Right Preview Panel (Conditional) */}
+
                     {!isOverview && (
                         <div className="hidden lg:block w-[400px] border-l border-white/5 bg-surface/30 backdrop-blur-md flex-shrink-0 relative z-10 shadow-2xl">
                             <AgentPreview />

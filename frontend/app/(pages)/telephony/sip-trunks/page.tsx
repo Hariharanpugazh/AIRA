@@ -7,11 +7,10 @@ import Header from "../../../components/Header";
 import { Button } from "../../../../components/ui/Button";
 import { SearchSmIcon } from "../../../components/icons";
 import { Modal } from "../../../../components/ui/Modal";
-import { getAccessToken, getMe, getSipTrunks, createSipTrunk, deleteSipTrunk } from "../../../../lib/api";
+import { getAccessToken, getSipTrunks, createSipTrunk, deleteSipTrunk } from "../../../../lib/api";
 
 export default function SipTrunksPage() {
   const router = useRouter();
-  const [user, setUser] = useState<{ name: string; email: string } | null>(null);
   const [projectName, setProjectName] = useState<string>("");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [trunks, setTrunks] = useState<any[]>([]);
@@ -22,12 +21,11 @@ export default function SipTrunksPage() {
       const token = getAccessToken();
       if (!token) { router.push("/login"); return; }
       try {
-        const [userData, trunksData] = await Promise.all([getMe(), getSipTrunks()]);
-        setUser(userData);
+        const [trunksData] = await Promise.all([getSipTrunks()]);
         setTrunks(trunksData);
         setProjectName(localStorage.getItem("projectName") || "My Project");
       } catch (e) {
-        console.error(e);
+
       }
     };
     loadData();
@@ -47,7 +45,7 @@ export default function SipTrunksPage() {
       setIsModalOpen(false);
       setFormData({ name: "", numbers: "", sip_server: "", username: "", password: "" });
     } catch (e) {
-      console.error(e);
+
     }
   };
 
@@ -57,16 +55,16 @@ export default function SipTrunksPage() {
       await deleteSipTrunk(id);
       setTrunks(trunks.filter(t => t.id !== id));
     } catch (e) {
-      console.error(e);
+
     }
   };
 
-  if (!user) return null;
+
 
   const actionButton = (
     <Button
       size="sm"
-      className="bg-[#00d4aa] text-black hover:bg-[#00e5c0]"
+      variant="primary"
       onClick={() => setIsModalOpen(true)}
     >
       Create new trunk
@@ -74,7 +72,7 @@ export default function SipTrunksPage() {
   );
 
   return (
-    <DashboardLayout user={user}>
+    <DashboardLayout>
       <Header
         projectName={projectName}
         pageName="SIP Trunks"
@@ -91,18 +89,18 @@ export default function SipTrunksPage() {
         </div>
 
         {trunks.length === 0 ? (
-          <div className="rounded-lg bg-surface border border-white/10 overflow-hidden min-h-[400px] flex flex-col items-center justify-center">
+          <div className="rounded-lg bg-surface border border-border overflow-hidden min-h-[400px] flex flex-col items-center justify-center">
             <div className="text-center p-8">
-              {/* Same empty state icon */}
+
               <h3 className="text-lg font-medium text-foreground mb-2">No SIP trunks configured</h3>
               <p className="text-secondary text-sm mb-6 max-w-sm mx-auto">Configure inbound and outbound SIP trunks.</p>
-              <Button className="bg-[#00d4aa] text-black hover:bg-[#00e5c0]" onClick={() => setIsModalOpen(true)}>Create new trunk</Button>
+              <Button variant="primary" onClick={() => setIsModalOpen(true)}>Create new trunk</Button>
             </div>
           </div>
         ) : (
           <div className="space-y-4">
             {trunks.map(t => (
-              <div key={t.id} className="bg-surface border border-white/10 p-4 rounded-lg flex justify-between items-center">
+              <div key={t.id} className="bg-surface border border-border p-4 rounded-lg flex justify-between items-center">
                 <div>
                   <h3 className="font-medium text-foreground">{t.name}</h3>
                   <p className="text-sm text-secondary">{t.sip_server || "No server configured"} · {t.numbers?.length || 0} numbers</p>
@@ -120,14 +118,14 @@ export default function SipTrunksPage() {
           footer={
             <>
               <Button variant="ghost" onClick={() => setIsModalOpen(false)}>Cancel</Button>
-              <Button className="bg-[#00d4aa] text-black hover:bg-[#00e5c0]" onClick={handleCreate}>Create trunk</Button>
+              <Button variant="primary" onClick={handleCreate}>Create trunk</Button>
             </>
           }
         >
           <div className="space-y-6">
             <div>
               <label className="block text-[13px] font-medium text-foreground mb-2">Trunk name</label>
-              <input value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} type="text" className="w-full px-3 py-2 bg-surface border border-white/10 rounded-lg text-sm text-foreground focus:outline-none focus:border-[#00d4aa]/50" />
+              <input value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} type="text" className="w-full px-3 py-2 bg-surface border border-border rounded-lg text-sm text-foreground focus:outline-none focus:border-primary/50" />
             </div>
 
             <div className="grid grid-cols-2 gap-6">
@@ -136,7 +134,7 @@ export default function SipTrunksPage() {
                 <div className="space-y-4">
                   <div>
                     <label className="block text-[13px] font-medium text-foreground mb-2">Inbound numbers (comma sep)</label>
-                    <input value={formData.numbers} onChange={e => setFormData({ ...formData, numbers: e.target.value })} type="text" className="w-full px-3 py-2 bg-surface border border-white/10 rounded-lg text-sm text-foreground focus:outline-none focus:border-[#00d4aa]/50" />
+                    <input value={formData.numbers} onChange={e => setFormData({ ...formData, numbers: e.target.value })} type="text" className="w-full px-3 py-2 bg-surface border border-border rounded-lg text-sm text-foreground focus:outline-none focus:border-primary/50" />
                   </div>
                 </div>
               </div>
@@ -146,15 +144,15 @@ export default function SipTrunksPage() {
                 <div className="space-y-4">
                   <div>
                     <label className="block text-[13px] font-medium text-foreground mb-2">Address</label>
-                    <input value={formData.sip_server} onChange={e => setFormData({ ...formData, sip_server: e.target.value })} type="text" className="w-full px-3 py-2 bg-surface border border-white/10 rounded-lg text-sm text-foreground focus:outline-none focus:border-[#00d4aa]/50" />
+                    <input value={formData.sip_server} onChange={e => setFormData({ ...formData, sip_server: e.target.value })} type="text" className="w-full px-3 py-2 bg-surface border border-border rounded-lg text-sm text-foreground focus:outline-none focus:border-primary/50" />
                   </div>
                   <div>
                     <label className="block text-[13px] font-medium text-foreground mb-2">Username</label>
-                    <input value={formData.username} onChange={e => setFormData({ ...formData, username: e.target.value })} type="text" className="w-full px-3 py-2 bg-surface border border-white/10 rounded-lg text-sm text-foreground focus:outline-none focus:border-[#00d4aa]/50" />
+                    <input value={formData.username} onChange={e => setFormData({ ...formData, username: e.target.value })} type="text" className="w-full px-3 py-2 bg-surface border border-border rounded-lg text-sm text-foreground focus:outline-none focus:border-primary/50" />
                   </div>
                   <div>
                     <label className="block text-[13px] font-medium text-foreground mb-2">Password</label>
-                    <input value={formData.password} onChange={e => setFormData({ ...formData, password: e.target.value })} type="password" className="w-full px-3 py-2 bg-surface border border-white/10 rounded-lg text-sm text-foreground focus:outline-none focus:border-[#00d4aa]/50" />
+                    <input value={formData.password} onChange={e => setFormData({ ...formData, password: e.target.value })} type="password" className="w-full px-3 py-2 bg-surface border border-border rounded-lg text-sm text-foreground focus:outline-none focus:border-primary/50" />
                   </div>
                 </div>
               </div>

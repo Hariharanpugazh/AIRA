@@ -16,11 +16,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { RoomServiceClient, AccessToken, VideoGrant } from 'livekit-server-sdk';
 
-// LiveKit Configuration
-const LIVEKIT_URL = process.env.LIVEKIT_URL || 'http://localhost:7880';
-const LIVEKIT_WS_URL = process.env.LIVEKIT_WS_URL || 'ws://localhost:7880';
-const LIVEKIT_API_KEY = process.env.LIVEKIT_API_KEY || 'devkey';
-const LIVEKIT_API_SECRET = process.env.LIVEKIT_API_SECRET || 'secret';
+// LiveKit Configuration - Production safe (no hardcoded secrets)
+const LIVEKIT_URL = process.env.LIVEKIT_URL || 'http://livekit:7880';  // Docker internal URL
+const LIVEKIT_WS_URL = process.env.LIVEKIT_WS_URL || 'ws://livekit:7880';
+const LIVEKIT_API_KEY = process.env.LIVEKIT_API_KEY;
+const LIVEKIT_API_SECRET = process.env.LIVEKIT_API_SECRET;
+
+// Validate required secrets at startup
+if (!LIVEKIT_API_KEY || !LIVEKIT_API_SECRET) {
+    console.error('FATAL: LIVEKIT_API_KEY and LIVEKIT_API_SECRET must be set');
+}
 
 // Initialize Room Service Client
 function getRoomService() {
