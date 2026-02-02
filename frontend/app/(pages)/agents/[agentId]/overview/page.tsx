@@ -4,149 +4,190 @@ import React from "react";
 import { useParams } from "next/navigation";
 import { Card } from "../../../../../components/ui/Card";
 import { StatsCard } from "../../../../../components/StatsCard";
-import { Info, Server, Activity, Clock, Shield } from "lucide-react";
+import { Info, Server, Activity, Clock, Shield, Database, Cpu, Globe, Zap, ArrowUpRight } from "lucide-react";
 import { Button } from "../../../../../components/ui/Button";
+import { cn } from "../../../../../lib/utils";
 
 export default function AgentOverviewPage() {
-    const params = useParams();
-    const agentId = Array.isArray(params.agentId) ? params.agentId[0] : params.agentId;
+  const params = useParams();
+  const agentId = Array.isArray(params.agentId) ? params.agentId[0] : params.agentId;
 
-    return (
-        <div className="p-6 md:p-8 animate-fade-in max-w-7xl mx-auto">
-
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-                <Card variant="glass" className="p-5 flex flex-col justify-between group hover:border-primary/30">
-                    <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest flex items-center gap-1.5 mb-2">
-                        Agent Name <Info className="w-3 h-3 cursor-help text-muted-foreground/60 hover:text-foreground" />
-                    </span>
-                    <span className="text-base font-display font-medium text-foreground group-hover:text-primary transition-colors truncate">Medical Assistant</span>
-                </Card>
-                <Card variant="glass" className="p-5 flex flex-col justify-between group hover:border-primary/30">
-                    <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest flex items-center gap-1.5 mb-2">
-                        Agent ID <Info className="w-3 h-3 cursor-help text-muted-foreground/60 hover:text-foreground" />
-                    </span>
-                    <span className="text-base font-mono font-medium text-foreground truncate group-hover:text-primary transition-colors">{agentId}</span>
-                </Card>
-                <Card variant="glass" className="p-5 flex flex-col justify-between group hover:border-primary/30">
-                    <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest flex items-center gap-1.5 mb-2">
-                        Active Sessions <Activity className="w-3 h-3 cursor-help text-muted-foreground/60 hover:text-foreground" />
-                    </span>
-                    <div className="flex items-center gap-2">
-                        <span className="text-2xl font-display font-bold text-foreground">0</span>
-                        <span className="flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                    </div>
-                </Card>
-                <Card variant="glass" className="p-5 flex flex-col justify-between group hover:border-primary/30">
-                    <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest flex items-center gap-1.5 mb-2">
-                        Region <Server className="w-3 h-3 cursor-help text-muted-foreground/60 hover:text-foreground" />
-                    </span>
-                    <span className="text-base font-medium text-foreground flex items-center gap-2">
-                        <span className="w-2 h-2 rounded-full bg-blue-500" />
-                        US East (N. Virginia)
-                    </span>
-                </Card>
+  return (
+    <div className="p-6 md:p-8 space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-500">
+      {/* Quick Stats Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        {[
+          { label: "Total Sessions", value: "3,254", icon: Activity, trend: "+12.4%", trendUp: true },
+          { label: "Avg. Latency", value: "118ms", icon: Zap, trend: "-5.2ms", trendUp: true },
+          { label: "Uptime (30d)", value: "99.99%", icon: Clock, trend: "Stable", trendUp: null },
+          { label: "Success Rate", value: "98.2%", icon: Globe, trend: "+0.4%", trendUp: true }
+        ].map((stat, i) => (
+          <div key={i} className="bg-white border border-border/60 rounded-xl p-5 shadow-sm hover:shadow-md transition-all duration-200 group">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest">{stat.label}</span>
+              <div className="p-2 bg-muted/30 rounded-lg group-hover:text-primary transition-colors">
+                <stat.icon className="w-4 h-4" />
+              </div>
             </div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-
-                <div className="lg:col-span-2">
-                    <div className="flex items-center justify-between mb-4">
-                        <h2 className="text-lg font-display font-medium text-foreground">Analytics</h2>
-                        <div className="flex gap-2">
-                            {['24h', '7d', '30d'].map((period) => (
-                                <button key={period} className={`text-xs px-3 py-1 rounded-md border transition-all ${period === '7d' ? 'bg-primary/10 border-primary/20 text-primary' : 'bg-surface border-border text-muted-foreground hover:text-foreground'}`}>
-                                    {period}
-                                </button>
-                            ))}
-                        </div>
-                    </div>
-
-                    <Card variant="glass" className="p-6 h-[300px] flex flex-col">
-                        <div className="flex items-center gap-2 mb-6">
-                            <span className="text-[11px] text-muted-foreground uppercase font-bold tracking-wider">Sessions Served</span>
-                            <Info className="w-3.5 h-3.5 text-muted-foreground" />
-                        </div>
-                        <div className="flex-1 flex items-end justify-between px-2 gap-1.5 border-b border-border pb-2">
-                            {[...Array(24)].map((_, i) => (
-                                <div
-                                    key={i}
-                                    className="w-full bg-primary/20 rounded-t-sm hover:bg-primary/40 transition-all duration-300 relative group"
-                                    style={{ height: `${Math.random() * 80 + 10}%` }}
-                                >
-                                    <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-surface border border-border text-[10px] py-1 px-2 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10 pointer-events-none">
-                                        {Math.floor(Math.random() * 50)} sessions
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                        <div className="flex justify-between text-[10px] text-muted-foreground mt-3 font-mono">
-                            <span>00:00</span>
-                            <span>06:00</span>
-                            <span>12:00</span>
-                            <span>18:00</span>
-                            <span>23:59</span>
-                        </div>
-                    </Card>
-                </div>
-
-
-                <div className="space-y-6">
-                    <h2 className="text-lg font-display font-medium text-foreground invisible">Metrics</h2>
-                    <Card variant="glass" className="p-6 relative overflow-hidden group">
-                        <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-                            <Clock className="w-20 h-20 text-blue-500 rotate-12" />
-                        </div>
-                        <span className="text-[11px] text-muted-foreground uppercase font-bold tracking-wider mb-2 flex items-center gap-2">
-                            Uptime (30d) <Info className="w-3.5 h-3.5" />
-                        </span>
-                        <div className="text-4xl font-display font-bold text-foreground mt-4 mb-1">99.9%</div>
-                        <div className="text-xs text-emerald-500 font-medium flex items-center gap-1">
-                            <Activity className="w-3 h-3" />
-                            Operational
-                        </div>
-                    </Card>
-
-                    <Card variant="glass" className="p-6 relative overflow-hidden group">
-                        <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-                            <Activity className="w-20 h-20 text-purple-500 -rotate-12" />
-                        </div>
-                        <span className="text-[11px] text-muted-foreground uppercase font-bold tracking-wider mb-2 flex items-center gap-2">
-                            Avg. Latency <Info className="w-3.5 h-3.5" />
-                        </span>
-                        <div className="text-4xl font-display font-bold text-foreground mt-4 mb-1">124ms</div>
-                        <div className="text-xs text-muted-foreground font-medium">
-                            <span className="text-emerald-500">-12ms</span> vs last week
-                        </div>
-                    </Card>
-                </div>
+            <div className="flex items-end justify-between">
+              <span className="text-2xl font-bold tracking-tight text-foreground">{stat.value}</span>
+              {stat.trend && (
+                <span className={cn(
+                  "text-[10px] font-bold px-1.5 py-0.5 rounded-md",
+                  stat.trendUp === true ? "bg-green-50 text-green-600" : 
+                  stat.trendUp === false ? "bg-red-50 text-red-600" :
+                  "bg-muted text-muted-foreground"
+                )}>
+                  {stat.trend}
+                </span>
+              )}
             </div>
+          </div>
+        ))}
+      </div>
 
-
-            <div className="mt-8">
-                <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-lg font-display font-medium text-foreground">Configuration</h3>
-                </div>
-
-                <Card variant="glass" className="overflow-hidden p-0">
-                    <div className="px-6 py-4 border-b border-border bg-surface flex items-center gap-2">
-                        <Shield className="w-4 h-4 text-primary" />
-                        <h4 className="text-sm font-semibold text-foreground">Secrets & Environment Variables</h4>
-                    </div>
-
-                    <div className="min-h-[150px] flex flex-col items-center justify-center p-8 text-center bg-background/50">
-                        <div className="w-12 h-12 rounded-xl bg-surface border border-border flex items-center justify-center mb-3 shadow-inner">
-                            <Shield className="w-6 h-6 text-muted-foreground/50" />
-                        </div>
-                        <p className="text-sm text-muted-foreground font-medium">No secrets configured</p>
-                        <p className="text-xs text-muted-foreground/60 max-w-xs mt-1">
-                            Securely store API keys and other sensitive information for your agent flow.
-                        </p>
-                        <Button variant="outline" size="sm" className="mt-4 border-border hover:bg-surface-hover">
-                            Add Secret
-                        </Button>
-                    </div>
-                </Card>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Main Analytics Section */}
+        <div className="lg:col-span-2 space-y-6">
+          <div className="bg-white border border-border/60 rounded-2xl overflow-hidden shadow-sm">
+            <div className="px-6 py-5 border-b border-border/60 flex items-center justify-between">
+               <div>
+                 <h3 className="font-bold flex items-center gap-2 text-foreground">
+                   <Activity className="w-4.5 h-4.5 text-primary" />
+                   Performance Activity
+                 </h3>
+                 <p className="text-xs text-muted-foreground mt-0.5">Real-time engagement and processing throughput.</p>
+               </div>
+               <div className="flex bg-muted/30 p-1 rounded-lg border border-border/40">
+                 {['24h', '7d', '30d'].map((p) => (
+                   <button key={p} className={cn(
+                     "px-3 py-1 text-[10px] font-bold uppercase tracking-wider rounded-md transition-all",
+                     p === '24h' ? "bg-white text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+                   )}>
+                     {p}
+                   </button>
+                 ))}
+               </div>
             </div>
+            
+            <div className="p-8">
+              <div className="h-[240px] flex items-end justify-between gap-1.5 border-b border-border/40 pb-2 relative">
+                {/* Simulated Grid Lines */}
+                <div className="absolute inset-0 flex flex-col justify-between py-2 pointer-events-none opacity-50">
+                   {[...Array(5)].map((_, i) => (
+                     <div key={i} className="w-full border-t border-dashed border-border/40" />
+                   ))}
+                </div>
+                
+                {[...Array(32)].map((_, i) => (
+                  <div key={i} className="group relative flex-1 flex flex-col justify-end h-full">
+                    <div 
+                      className="w-full bg-[oklch(0.627_0.265_273.15)]/20 rounded-t-sm group-hover:bg-[oklch(0.627_0.265_273.15)]/40 transition-all duration-300 relative"
+                      style={{ height: `${20 + Math.random() * 70}%` }}
+                    >
+                      <div className="absolute -top-10 left-1/2 -translate-x-1/2 bg-foreground text-background text-[10px] font-bold py-1.5 px-2.5 rounded-lg opacity-0 group-hover:opacity-100 transition-all duration-200 pointer-events-none whitespace-nowrap z-30 shadow-xl scale-95 group-hover:scale-100">
+                        {Math.floor(Math.random() * 100)} Requests
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div className="flex justify-between text-[10px] text-muted-foreground mt-4 font-bold uppercase tracking-wider">
+                <span>12:00 AM</span>
+                <span>06:00 AM</span>
+                <span>12:00 PM</span>
+                <span>06:00 PM</span>
+                <span>11:59 PM</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white border border-border/60 rounded-2xl overflow-hidden shadow-sm">
+            <div className="px-6 py-5 border-b border-border/60 bg-muted/10">
+              <h3 className="font-bold flex items-center gap-2 text-foreground">
+                <Database className="w-4.5 h-4.5 text-primary" />
+                Resource Configuration
+              </h3>
+            </div>
+            <div className="divide-y divide-border/40">
+              {[
+                { label: "Deployment Region", value: "US-East (N. Virginia)", icon: Globe },
+                { label: "Agent Environment", value: "Production v2.4.1", icon: Server },
+                { label: "Compute Engine", value: "Dedicated Instance (2 vCPU)", icon: Cpu },
+                { label: "Data Retention", value: "30 Days (Rolling)", icon: Clock }
+              ].map((item, i) => (
+                <div key={i} className="px-6 py-4 flex items-center justify-between hover:bg-muted/10 transition-colors">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-muted/20 border border-border/40 rounded-lg">
+                      <item.icon className="w-4 h-4 text-muted-foreground" />
+                    </div>
+                    <span className="text-sm font-medium text-muted-foreground">{item.label}</span>
+                  </div>
+                  <span className="text-sm font-semibold text-foreground">{item.value}</span>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
+
+        {/* Info & Activity Feed */}
+        <div className="space-y-6">
+          <div className="bg-white border border-border/60 rounded-2xl p-6 shadow-sm">
+            <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-5">Agent Identity</h3>
+            <div className="space-y-5">
+               <div className="p-4 bg-muted/20 rounded-xl border border-border/40">
+                 <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1.5 flex items-center gap-1.5">
+                   Internal ID <Info className="w-3 h-3" />
+                 </div>
+                 <div className="font-mono text-sm text-foreground break-all bg-white px-2 py-1 rounded border border-border/40">{agentId}</div>
+               </div>
+               
+               <div className="space-y-4">
+                 <div className="flex items-center justify-between">
+                   <span className="text-xs text-muted-foreground font-medium">Model</span>
+                   <span className="text-xs font-bold px-2 py-0.5 bg-primary/10 text-primary rounded-full">GPT-4o</span>
+                 </div>
+                 <div className="flex items-center justify-between">
+                   <span className="text-xs text-muted-foreground font-medium">Last Deployment</span>
+                   <span className="text-xs font-medium text-foreground">3h ago by <span className="underline">D. Relatim</span></span>
+                 </div>
+                 <div className="flex items-center justify-between">
+                   <span className="text-xs text-muted-foreground font-medium">API Version</span>
+                   <span className="text-xs font-medium font-mono">v1.2.0-stable</span>
+                 </div>
+               </div>
+            </div>
+          </div>
+
+          <div className="bg-white border border-border/60 rounded-2xl p-6 shadow-sm">
+             <div className="flex items-center justify-between mb-5">
+               <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Secrets & Safety</h3>
+               <Shield className="w-4 h-4 text-amber-500" />
+             </div>
+             
+             <div className="p-4 rounded-xl bg-amber-50/50 border border-amber-100/50 mb-5">
+               <p className="text-xs text-amber-900 leading-relaxed font-medium">
+                 Ensure all API keys and LLM providers are configured in the Models section.
+               </p>
+             </div>
+
+             <Button variant="outline" className="w-full border-border/60 shadow-sm rounded-xl">
+               Manage Environment
+             </Button>
+          </div>
+
+          <div className="bg-[oklch(0.627_0.265_273.15)]/5 rounded-2xl p-6 border border-[oklch(0.627_0.265_273.15)]/10 text-center">
+             <div className="w-10 h-10 bg-white shadow-sm rounded-lg flex items-center justify-center mx-auto mb-3">
+               <ArrowUpRight className="w-5 h-5 text-primary" />
+             </div>
+             <h4 className="text-sm font-bold text-foreground">Need help scaling?</h4>
+             <p className="text-[11px] text-muted-foreground mt-1 mb-4">Read our documentation on deploying voice agents at scale.</p>
+             <button className="text-xs font-bold text-primary hover:underline uppercase tracking-wider">Read Guide →</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
     );
 }

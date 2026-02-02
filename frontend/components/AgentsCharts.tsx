@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { Card } from './ui/Card';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
+import { BarChart as BarChartIcon } from 'lucide-react';
 
 interface AgentStatCardProps {
     title: string;
@@ -19,17 +20,17 @@ interface ChartDataPoint {
 
 export function AgentStatCard({ title, value, subValue }: AgentStatCardProps) {
     return (
-        <Card variant="glass" className="p-6 relative overflow-hidden group">
+        <Card className="p-6 relative overflow-hidden group bg-white border-border/40 shadow-sm hover:shadow-md transition-shadow">
             <div className="relative z-10">
                 <div className="flex items-center gap-2 mb-2">
-                    <h3 className="text-xs font-semibold text-muted-foreground tracking-wider uppercase">{title}</h3>
+                    <h3 className="text-[10px] font-bold text-muted-foreground tracking-[0.15em] uppercase">{title}</h3>
                 </div>
                 <div className="flex items-baseline gap-2">
-                    <span className="text-3xl font-bold text-foreground font-display">{value}</span>
-                    {subValue && <span className="text-sm text-cyan-400 font-medium">{subValue}</span>}
+                    <span className="text-3xl font-black text-foreground tracking-tight">{value}</span>
+                    {subValue && <span className="text-xs font-bold text-primary px-2 py-0.5 bg-primary/10 rounded-full">{subValue}</span>}
                 </div>
             </div>
-            <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+            <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full -mr-16 -mt-16 group-hover:bg-primary/10 transition-colors" />
         </Card>
     );
 }
@@ -74,58 +75,80 @@ export function AgentSessionsChart() {
     }, []);
 
     return (
-        <Card variant="glass" className="p-6 h-[400px]">
-            <div className="flex items-center justify-between mb-8">
-                <div className="flex items-center gap-2">
-                    <h3 className="text-lg font-semibold text-foreground">Agent Sessions Served</h3>
-                    <span className="text-muted-foreground text-sm cursor-help hover:text-foreground transition-colors">ⓘ</span>
-                </div>
-                <div className="flex items-center gap-4 text-xs">
+        <Card className="p-8 h-[450px] bg-white border-border/40 shadow-sm transition-all">
+            <div className="flex items-center justify-between mb-10">
+                <div className="space-y-1">
                     <div className="flex items-center gap-2">
-                        <div className="w-2 h-2 rounded-full bg-red-500" />
-                        <span className="text-muted-foreground">Agent dispatch errors</span>
+                         <h3 className="text-[10px] font-black uppercase tracking-[0.15em] text-muted-foreground/60">Agent Sessions Served</h3>
+                         <div className="w-3.5 h-3.5 rounded-full border border-muted-foreground/30 flex items-center justify-center text-[8px] text-muted-foreground shrink-0">i</div>
+                    </div>
+                </div>
+                <div className="flex items-center gap-6 text-[10px] font-bold tracking-tight">
+                    <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 bg-[#4f46e5]" />
+                        <span className="text-muted-foreground/80">Total number of active sessions</span>
                     </div>
                     <div className="flex items-center gap-2">
-                        <div className="w-2 h-2 rounded-full bg-cyan-500" />
-                        <span className="text-muted-foreground">Total number of active sessions</span>
+                        <div className="w-2 h-2 bg-red-500" />
+                        <span className="text-muted-foreground/80">Agent dispatch errors</span>
                     </div>
                 </div>
             </div>
 
             <div className="h-[300px] w-full">
                 {loading ? (
-                    <div className="flex items-center justify-center h-full text-muted-foreground">
+                    <div className="flex items-center justify-center h-full text-muted-foreground animate-pulse text-sm">
                         Loading session data...
                     </div>
                 ) : chartData.length === 0 ? (
-                    <div className="flex items-center justify-center h-full text-muted-foreground">
-                        No session data available
+                    <div className="flex items-center justify-center h-full text-muted-foreground text-sm flex-col gap-2">
+                        <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center">
+                            <BarChartIcon className="w-6 h-6 opacity-20" />
+                        </div>
+                        No session data available yet
                     </div>
                 ) : (
                     <ResponsiveContainer width="100%" height="100%">
-                        <BarChart data={chartData} barGap={0} barCategoryGap="20%">
-                            <XAxis
-                                dataKey="name"
-                                axisLine={false}
-                                tickLine={false}
-                                tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 10 }}
+                        <BarChart data={chartData} margin={{ top: 0, right: 0, left: -20, bottom: 0 }} barGap={6}>
+                            <XAxis 
+                                dataKey="name" 
+                                axisLine={false} 
+                                tickLine={false} 
+                                tick={{ fill: '#94a3b8', fontSize: 11, fontWeight: 600 }}
                                 dy={10}
                             />
-                            <YAxis
-                                axisLine={false}
-                                tickLine={false}
-                                tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 10 }}
-                                dx={-10}
+                            <YAxis 
+                                axisLine={false} 
+                                tickLine={false} 
+                                tick={{ fill: '#94a3b8', fontSize: 11, fontWeight: 600 }}
                             />
-                            <Tooltip
-                                contentStyle={{ backgroundColor: '#000', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px' }}
-                                itemStyle={{ fontSize: '12px' }}
-                                cursor={{ fill: 'rgba(255,255,255,0.05)' }}
+                            <Tooltip 
+                                cursor={{ fill: 'rgba(79, 70, 229, 0.04)' }}
+                                content={({ active, payload }) => {
+                                    if (active && payload && payload.length) {
+                                        return (
+                                            <div className="bg-white border border-border/40 p-3 rounded-xl shadow-xl space-y-2">
+                                                <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest">{payload[0].payload.name}</p>
+                                                <div className="space-y-1">
+                                                    <div className="flex items-center justify-between gap-8">
+                                                        <span className="text-xs font-medium">Sessions</span>
+                                                        <span className="text-xs font-bold text-primary">{payload[1]?.value || 0}</span>
+                                                    </div>
+                                                    <div className="flex items-center justify-between gap-8">
+                                                        <span className="text-xs font-medium">Errors</span>
+                                                        <span className="text-xs font-bold text-red-500">{payload[0]?.value || 0}</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        );
+                                    }
+                                    return null;
+                                }}
                             />
-                            <Bar dataKey="errors" stackId="a" fill="#EF4444" radius={[0, 0, 4, 4]} barSize={40} />
-                            <Bar dataKey="sessions" stackId="a" fill="#06B6D4" radius={[4, 4, 0, 0]} barSize={40}>
+                            <Bar dataKey="errors" fill="#ef4444" radius={[4, 4, 0, 0]} barSize={8} />
+                            <Bar dataKey="sessions" radius={[4, 4, 0, 0]} barSize={8}>
                                 {chartData.map((entry, index) => (
-                                    <Cell key={`cell-${index}`} fill={entry.sessions > 10 ? '#06B6D4' : 'rgba(6, 182, 212, 0.5)'} />
+                                    <Cell key={`cell-${index}`} fill="oklch(0.58 0.25 258.33)" />
                                 ))}
                             </Bar>
                         </BarChart>

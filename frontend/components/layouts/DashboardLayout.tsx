@@ -27,15 +27,15 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
     return (
         <div className="min-h-screen bg-background text-foreground flex relative">
 
-            <div className="md:hidden fixed top-0 left-0 right-0 h-16 bg-surface/80 backdrop-blur-lg border-b border-white/5 flex items-center px-4 z-40 justify-between">
+            <div className="md:hidden fixed top-0 left-0 right-0 h-16 bg-background/80 backdrop-blur-xl border-b border-border/50 flex items-center px-4 z-40 justify-between">
                 <div className="flex items-center gap-3">
                     <button
                         onClick={() => setIsSidebarOpen(true)}
-                        className="p-2 -ml-2 text-muted-foreground hover:text-foreground rounded-lg hover:bg-white/5"
+                        className="p-2 -ml-2 text-muted-foreground hover:text-foreground rounded-lg hover:bg-muted/50"
                     >
                         <Menu className="w-6 h-6" />
                     </button>
-                    <span className="font-display font-semibold text-lg">Relatim</span>
+                    <span className="font-semibold text-lg tracking-tight">Relatim</span>
                 </div>
                 <div className="flex items-center gap-4">
                     <ThemeToggle />

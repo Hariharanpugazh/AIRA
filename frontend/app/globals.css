@@ -72,25 +72,25 @@
 }
 
 :root {
-  /* Light Mode (New Base) - Clean, Professional */
-  --background: oklch(0.98 0.01 240);
-  --foreground: oklch(0.1 0.01 240);
+  /* Light Mode - Refined Indigo & Slate */
+  --background: oklch(0.99 0.005 240);
+  --foreground: oklch(0.25 0.02 240);
 
-  --surface: oklch(0.95 0.01 240);
-  --surface-hover: oklch(0.92 0.02 240);
-  --border: oklch(0.85 0.02 240);
+  --surface: oklch(0.98 0.01 240);
+  --surface-hover: oklch(0.95 0.02 240);
+  --border: oklch(0.92 0.02 240);
 
-  --primary: oklch(0.55 0.2 260);
-  --primary-foreground: oklch(0.98 0 0);
+  --primary: oklch(0.55 0.18 250); /* Modern Indigo */
+  --primary-foreground: oklch(1 0 0);
 
-  --secondary: oklch(0.92 0.02 240);
+  --secondary: oklch(0.96 0.01 240);
   --secondary-foreground: oklch(0.2 0.02 240);
 
-  --muted: oklch(0.96 0.01 240);
-  --muted-foreground: oklch(0.45 0.02 240);
+  --muted: oklch(0.97 0.01 240);
+  --muted-foreground: oklch(0.5 0.03 240);
 
-  --accent: oklch(0.6 0.15 320);
-  --accent-foreground: oklch(0.98 0 0);
+  --accent: oklch(0.6 0.18 300); /* Vivid Violet */
+  --accent-foreground: oklch(1 0 0);
 
   --success: oklch(0.65 0.15 150);
   --warning: oklch(0.85 0.15 80);
@@ -98,25 +98,25 @@
 }
 
 .dark {
-  /* Dark Mode (Existing Premium Look) */
-  --background: oklch(0.05 0.01 240);
-  --foreground: oklch(0.95 0.01 240);
+  /* Dark Mode - Deep Space & Electric Indigo */
+  --background: oklch(0.12 0.015 240);
+  --foreground: oklch(0.92 0.01 240);
 
-  --surface: oklch(0.1 0.01 240);
-  --surface-hover: oklch(0.15 0.02 240);
-  --border: oklch(0.2 0.02 240);
+  --surface: oklch(0.16 0.02 240);
+  --surface-hover: oklch(0.19 0.03 240);
+  --border: oklch(0.22 0.03 240);
 
-  --primary: oklch(0.65 0.18 240);
-  --primary-foreground: oklch(0.98 0 0);
+  --primary: oklch(0.65 0.22 255); /* Electric Indigo */
+  --primary-foreground: oklch(1 0 0);
 
-  --secondary: oklch(0.85 0.02 240);
-  --secondary-foreground: oklch(0.1 0.01 240);
+  --secondary: oklch(0.25 0.03 240);
+  --secondary-foreground: oklch(0.9 0.01 240);
 
-  --muted: oklch(0.4 0.02 240);
-  --muted-foreground: oklch(0.7 0.02 240);
+  --muted: oklch(0.35 0.03 240);
+  --muted-foreground: oklch(0.75 0.02 240);
 
-  --accent: oklch(0.6 0.15 320);
-  --accent-foreground: oklch(0.98 0 0);
+  --accent: oklch(0.7 0.2 310); /* Electric Violet */
+  --accent-foreground: oklch(1 0 0);
 
   --success: oklch(0.65 0.15 150);
   --warning: oklch(0.85 0.15 80);

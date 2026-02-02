@@ -329,137 +329,150 @@ export default function DeployAgentPage() {
     };
 
     return (
-        <div className="p-8 max-w-6xl mx-auto">
-            <div className="mb-8">
-                <h2 className="text-lg font-medium text-foreground mb-1">Deploy Agent</h2>
-                <p className="text-secondary text-sm">
-                    Deploy your agent using Docker, Kubernetes, or LiveKit CLI.
-                    Choose your preferred method below.
-                </p>
+        <div className="p-8 max-w-7xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-500">
+            <div className="flex items-center justify-between">
+                <div>
+                    <h2 className="text-xl font-bold text-foreground tracking-tight">Deploy Agent</h2>
+                    <p className="text-muted-foreground text-[13px] mt-1">
+                        Deployment templates for Docker, Kubernetes, and local development.
+                    </p>
+                </div>
+                <div className="flex bg-muted/30 p-1 rounded-xl border border-border/60">
+                    {DEPLOYMENT_METHODS.map((method) => {
+                        const Icon = method.icon;
+                        const isActive = activeTab === method.id;
+                        return (
+                            <button
+                                key={method.id}
+                                onClick={() => setActiveTab(method.id)}
+                                className={cn(
+                                    "flex items-center gap-2 px-4 py-1.5 rounded-lg text-xs font-bold uppercase tracking-widest transition-all",
+                                    isActive 
+                                        ? "bg-background text-primary shadow-sm" 
+                                        : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                                )}
+                            >
+                                <Icon className="w-3.5 h-3.5" />
+                                {method.name}
+                            </button>
+                        );
+                    })}
+                </div>
             </div>
 
-
-            <div className="flex gap-2 mb-6">
-                {DEPLOYMENT_METHODS.map((method) => {
-                    const Icon = method.icon;
-                    return (
-                        <button
-                            key={method.id}
-                            onClick={() => setActiveTab(method.id)}
-                            className={`flex items-center gap-2 px-4 py-2 rounded-lg border transition-all ${activeTab === method.id
-                                ? "bg-primary/10 border-primary text-primary"
-                                : "bg-surface border-border text-foreground hover:bg-surface-hover"
-                                }`}
-                        >
-                            <Icon className="w-4 h-4" />
-                            <span className="text-sm font-medium">{method.name}</span>
-                        </button>
-                    );
-                })}
-            </div>
-
-
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-
-                <Card variant="glass" className="p-0 overflow-hidden">
-                    <div className="flex items-center justify-between px-4 py-3 border-b border-border">
-                        <span className="text-sm font-medium text-foreground">
-                            {activeTab === "docker" && "docker-compose.yml"}
-                            {activeTab === "kubernetes" && "deployment.yaml"}
-                            {activeTab === "cli" && "deploy.sh"}
-                        </span>
-                        <Button
-                            size="sm"
-                            variant="ghost"
-                            leftIcon={copied === "main" ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-                            onClick={() => handleCopy(getTemplate(), "main")}
-                        >
-                            {copied === "main" ? "Copied!" : "Copy"}
-                        </Button>
-                    </div>
-                    <pre className="p-4 text-xs text-foreground overflow-x-auto bg-black border-none max-h-[500px] overflow-y-auto">
-                        <code>{getTemplate()}</code>
-                    </pre>
-                </Card>
-
-
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 <div className="space-y-4">
-
-                    <Card variant="glass" className="p-0 overflow-hidden">
-                        <div className="flex items-center justify-between px-4 py-3 border-b border-border">
-                            <span className="text-sm font-medium text-foreground">main.py</span>
+                    <div className="flex items-center gap-2 px-1">
+                        <Server className="w-4 h-4 text-primary" />
+                        <h3 className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest">Environment Template</h3>
+                    </div>
+                    <Card className="p-0 overflow-hidden border-border/60 shadow-sm bg-[#0a0a0b] group">
+                        <div className="flex items-center justify-between px-6 py-4 border-b border-white/5 bg-white/[0.02]">
+                            <span className="text-[11px] font-mono text-muted-foreground/60 uppercase">
+                                {activeTab === "docker" && "docker-compose.yml"}
+                                {activeTab === "kubernetes" && "deployment.yaml"}
+                                {activeTab === "cli" && "deploy.sh"}
+                            </span>
                             <Button
                                 size="sm"
                                 variant="ghost"
-                                leftIcon={copied === "mainpy" ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-                                onClick={() => handleCopy(PYTHON_AGENT_TEMPLATE, "mainpy")}
+                                className="h-8 text-[11px] font-bold text-white/40 hover:text-primary hover:bg-primary/10 uppercase"
+                                onClick={() => handleCopy(getTemplate(), "main")}
                             >
-                                {copied === "mainpy" ? "Copied!" : "Copy"}
+                                {copied === "main" ? <Check className="w-3.5 h-3.5 mr-2" /> : <Copy className="w-3.5 h-3.5 mr-2" />}
+                                {copied === "main" ? "Copied!" : "Copy"}
                             </Button>
                         </div>
-                        <pre className="p-4 text-xs text-foreground overflow-x-auto bg-black border-none max-h-[200px] overflow-y-auto">
-                            <code>{PYTHON_AGENT_TEMPLATE}</code>
-                        </pre>
+                        <div className="relative">
+                            <pre className="p-6 text-[13px] text-white/80 overflow-x-auto font-mono leading-relaxed max-h-[600px] overflow-y-auto selection:bg-primary/30">
+                                <code>{getTemplate()}</code>
+                            </pre>
+                            <div className="absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-[#0a0a0b] to-transparent pointer-events-none" />
+                        </div>
                     </Card>
+                </div>
 
+                <div className="space-y-6">
+                    <div className="flex items-center gap-2 px-1">
+                        <Cpu className="w-4 h-4 text-primary" />
+                        <h3 className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest">Boilerplate Logic</h3>
+                    </div>
+                    
+                    <div className="space-y-4">
+                        <Card className="p-0 overflow-hidden border-border/60 shadow-sm bg-[#0a0a0b]">
+                            <div className="flex items-center justify-between px-6 py-3 border-b border-white/5 bg-white/[0.01]">
+                                <span className="text-[11px] font-mono text-muted-foreground/40">main.py</span>
+                                <button
+                                    className="text-[11px] font-bold text-white/30 hover:text-primary transition-colors uppercase tracking-widest"
+                                    onClick={() => handleCopy(PYTHON_AGENT_TEMPLATE, "mainpy")}
+                                >
+                                    {copied === "mainpy" ? "Copied!" : "Copy File"}
+                                </button>
+                            </div>
+                            <pre className="p-5 text-[12px] text-white/70 overflow-x-auto font-mono max-h-[250px] overflow-y-auto leading-relaxed">
+                                <code>{PYTHON_AGENT_TEMPLATE}</code>
+                            </pre>
+                        </Card>
 
-                    <Card variant="glass" className="p-0 overflow-hidden">
-                        <div className="flex items-center justify-between px-4 py-3 border-b border-border">
-                            <span className="text-sm font-medium text-foreground">Dockerfile</span>
-                            <Button
-                                size="sm"
-                                variant="ghost"
-                                leftIcon={copied === "dockerfile" ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-                                onClick={() => handleCopy(DOCKERFILE_TEMPLATE, "dockerfile")}
-                            >
-                                {copied === "dockerfile" ? "Copied!" : "Copy"}
-                            </Button>
+                        <div className="grid grid-cols-2 gap-4">
+                            <Card className="p-0 overflow-hidden border-border/60 shadow-sm bg-[#0a0a0b]">
+                                <div className="flex items-center justify-between px-4 py-3 border-b border-white/5">
+                                    <span className="text-[10px] font-mono text-muted-foreground/40">Dockerfile</span>
+                                    <button onClick={() => handleCopy(DOCKERFILE_TEMPLATE, "dockerfile")}>
+                                        <Copy className="w-3.5 h-3.5 text-white/20 hover:text-primary" />
+                                    </button>
+                                </div>
+                                <pre className="p-4 text-[11px] text-white/60 overflow-x-auto font-mono max-h-[150px] overflow-y-auto">
+                                    <code>{DOCKERFILE_TEMPLATE}</code>
+                                </pre>
+                            </Card>
+
+                            <Card className="p-0 overflow-hidden border-border/60 shadow-sm bg-[#0a0a0b]">
+                                <div className="flex items-center justify-between px-4 py-3 border-b border-white/5">
+                                    <span className="text-[10px] font-mono text-muted-foreground/40">requirements.txt</span>
+                                    <button onClick={() => handleCopy(REQUIREMENTS_TEMPLATE, "requirements")}>
+                                        <Copy className="w-3.5 h-3.5 text-white/20 hover:text-primary" />
+                                    </button>
+                                </div>
+                                <pre className="p-4 text-[11px] text-white/60 overflow-x-auto font-mono max-h-[150px] overflow-y-auto">
+                                    <code>{REQUIREMENTS_TEMPLATE}</code>
+                                </pre>
+                            </Card>
                         </div>
-                        <pre className="p-4 text-xs text-foreground overflow-x-auto bg-black border-none max-h-[150px] overflow-y-auto">
-                            <code>{DOCKERFILE_TEMPLATE}</code>
-                        </pre>
-                    </Card>
+                    </div>
 
-
-                    <Card variant="glass" className="p-0 overflow-hidden">
-                        <div className="flex items-center justify-between px-4 py-3 border-b border-border">
-                            <span className="text-sm font-medium text-foreground">requirements.txt</span>
-                            <Button
-                                size="sm"
-                                variant="ghost"
-                                leftIcon={copied === "requirements" ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-                                onClick={() => handleCopy(REQUIREMENTS_TEMPLATE, "requirements")}
-                            >
-                                {copied === "requirements" ? "Copied!" : "Copy"}
-                            </Button>
+                    <Card className="p-6 bg-primary/5 border-primary/20 relative overflow-hidden group">
+                        <div className="absolute top-0 right-0 p-8 opacity-[0.03] group-hover:scale-110 transition-transform duration-700">
+                            <Cpu className="w-24 h-24 text-primary" />
                         </div>
-                        <pre className="p-4 text-xs text-foreground overflow-x-auto bg-black border-none">
-                            <code>{REQUIREMENTS_TEMPLATE}</code>
-                        </pre>
+                        <div className="relative">
+                            <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
+                                <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+                                Hybrid Mode Configuration
+                            </h3>
+                            <p className="text-[13px] text-muted-foreground mt-2 leading-relaxed">
+                                Your agent is pre-configured for **Hybrid Mode**. It will prioritize high-performance cloud APIs but can instantly fall back to local models for STT, TTS, and LLM services if connectivity is compromised.
+                            </p>
+                            <div className="grid grid-cols-2 gap-4 mt-6">
+                                <div className="space-y-1">
+                                    <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Local Fallback</span>
+                                    <p className="text-xs font-medium">Whisper, Kokoro, Ollama</p>
+                                </div>
+                                <div className="space-y-1">
+                                    <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Cloud Primary</span>
+                                    <p className="text-xs font-medium">Deepgram, Cartesia, OpenAI</p>
+                                </div>
+                            </div>
+                        </div>
                     </Card>
                 </div>
             </div>
-
-
-            <Card variant="glass" className="p-6 mt-6 bg-primary/5 border-primary/20">
-                <div className="flex items-start gap-4">
-                    <div className="p-2 rounded-lg bg-primary/10">
-                        <Cpu className="w-5 h-5 text-primary" />
-                    </div>
-                    <div>
-                        <h3 className="text-foreground font-semibold mb-2">Hybrid Mode Configuration</h3>
-                        <p className="text-muted-foreground text-sm mb-3">
-                            The agent is configured to use <strong>Hybrid Mode</strong> by default. This means:
-                        </p>
-                        <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
-                            <li>Primary AI services use cloud APIs (OpenAI, Deepgram, Cartesia)</li>
-                            <li>Automatic fallback to local models when APIs are unavailable</li>
-                            <li>Local services: Whisper (STT), Kokoro (TTS), Ollama (LLM)</li>
-                            <li>Zero-downtime operation for government-grade deployments</li>
-                        </ul>
-                    </div>
-                </div>
-            </Card>
         </div>
     );
 }
+
+// Helper function for class merging
+function cn(...inputs: any[]) {
+    return inputs.filter(Boolean).join(" ");
+}
+

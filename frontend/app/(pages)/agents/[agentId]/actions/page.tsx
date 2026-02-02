@@ -1,71 +1,272 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
+import { Plus, Globe, Monitor, Terminal, FileText, ChevronDown, ChevronRight, Info, Search, Filter, X } from "lucide-react";
 import { Button } from "../../../../../components/ui/Button";
-import { PlusIcon } from "../../../../../app/components/icons";
+import { Modal } from "../../../../../components/ui/Modal";
+import { Input } from "../../../../../components/ui/Input";
 
 export default function ActionsPage() {
-    return (
-        <div className="p-8 max-w-4xl mx-auto">
-            <div className="mb-8">
-                <h2 className="text-lg font-medium text-foreground mb-1">Actions</h2>
-                <p className="text-secondary text-sm">Define tools and capabilities your agent can use.</p>
-            </div>
+    const [openAddHttp, setOpenAddHttp] = useState(false);
+    const [openAddClient, setOpenAddClient] = useState(false);
+    const [openAddMcp, setOpenAddMcp] = useState(false);
 
-            <div className="space-y-6">
-                
-                <div>
-                    <div className="flex items-center justify-between mb-2">
-                        <h3 className="text-sm font-medium text-foreground">HTTP tools</h3>
+    return (
+        <div className="p-10 max-w-4xl space-y-8 animate-in fade-in duration-500">
+            {/* HTTP Tools */}
+            <div className="space-y-4">
+                <div className="flex items-center gap-2 group cursor-pointer">
+                    <ChevronDown className="w-4 h-4 text-muted-foreground/60" />
+                    <label className="text-[13px] font-bold text-foreground">
+                        HTTP tools
+                    </label>
+                </div>
+                <div className="pl-6 space-y-4">
+                    <div className="text-[13px] text-muted-foreground">
+                        Define web requests to enable your agent to interact with web-based APIs and services. <a href="#" className="underline decoration-muted-foreground/30 hover:decoration-primary text-muted-foreground/80">Learn more</a>
                     </div>
-                    <p className="text-xs text-secondary mb-4">Define web requests to enable your agent to interact with web-based APIs and services.</p>
-                    <Button variant="outline" size="sm" leftIcon={<PlusIcon className="w-3.5 h-3.5" />}>
+                    <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={() => setOpenAddHttp(true)}
+                        className="h-8 text-[11px] font-bold border-border/60 hover:bg-muted/30 px-3 uppercase tracking-wider"
+                    >
+                        <Plus className="w-3.5 h-3.5 mr-2" />
                         Add HTTP tool
                     </Button>
                 </div>
+            </div>
 
-                <div className="w-full h-px bg-white/5 my-6"></div>
-
-                
-                <div>
-                    <div className="flex items-center justify-between mb-2">
-                        <h3 className="text-sm font-medium text-foreground">Client tools</h3>
+            {/* Client Tools */}
+            <div className="space-y-4">
+                <div className="flex items-center gap-2 group cursor-pointer">
+                    <ChevronDown className="w-4 h-4 text-muted-foreground/60" />
+                    <label className="text-[13px] font-bold text-foreground">
+                        Client tools
+                    </label>
+                </div>
+                <div className="pl-6 space-y-4">
+                    <div className="text-[13px] text-muted-foreground">
+                        Connect your agent to client-side RPC methods to retrieve data or perform actions. <a href="#" className="underline decoration-muted-foreground/30 hover:decoration-primary text-muted-foreground/80">Learn more</a>
                     </div>
-                    <p className="text-xs text-secondary mb-4">Connect your agent to client-side RPC methods to retrieve data or perform actions.</p>
-                    <Button variant="outline" size="sm" leftIcon={<PlusIcon className="w-3.5 h-3.5" />}>
+                    <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={() => setOpenAddClient(true)}
+                        className="h-8 text-[11px] font-bold border-border/60 hover:bg-muted/30 px-3 uppercase tracking-wider"
+                    >
+                        <Plus className="w-3.5 h-3.5 mr-2" />
                         Add client tool
                     </Button>
                 </div>
+            </div>
 
-                <div className="w-full h-px bg-white/5 my-6"></div>
-
-                
-                <div>
-                    <div className="flex items-center justify-between mb-2">
-                        <h3 className="text-sm font-medium text-foreground">MCP servers</h3>
+            {/* MCP Servers */}
+            <div className="space-y-4">
+                <div className="flex items-center gap-2 group cursor-pointer">
+                    <ChevronDown className="w-4 h-4 text-muted-foreground/60" />
+                    <label className="text-[13px] font-bold text-foreground">
+                        MCP servers
+                    </label>
+                </div>
+                <div className="pl-6 space-y-4">
+                    <div className="text-[13px] text-muted-foreground">
+                        Configure external MCP servers for your agent to connect and interact with. <a href="#" className="underline decoration-muted-foreground/30 hover:decoration-primary text-muted-foreground/80">Learn more</a>
                     </div>
-                    <p className="text-xs text-secondary mb-4">Configure external MCP servers for your agent to connect and interact with.</p>
-                    <Button variant="outline" size="sm" leftIcon={<PlusIcon className="w-3.5 h-3.5" />}>
+                    <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={() => setOpenAddMcp(true)}
+                        className="h-8 text-[11px] font-bold border-border/60 hover:bg-muted/30 px-3 uppercase tracking-wider"
+                    >
+                        <Plus className="w-3.5 h-3.5 mr-2" />
                         Add MCP server
                     </Button>
                 </div>
+            </div>
 
-                <div className="w-full h-px bg-white/5 my-6"></div>
-
-                
-                <div>
-                    <div className="flex items-center justify-between mb-2">
-                        <h3 className="text-sm font-medium text-foreground">End-of-call summary</h3>
+            {/* End of call summary */}
+            <div className="space-y-4 text-muted-foreground/40">
+                <div className="flex items-center gap-2 group cursor-pointer">
+                    <ChevronDown className="w-4 h-4" />
+                    <label className="text-[13px] font-bold">
+                        End-of-call summary
+                    </label>
+                </div>
+                <div className="pl-6 space-y-4">
+                    <div className="text-[13px]">
+                        Optionally summarize and report outcomes at the end of each call.
                     </div>
-                    <p className="text-xs text-secondary mb-4">Optionally summarize and report outcomes at the end of each call.</p>
-                    <div className="flex items-center gap-2">
-                        <span className="text-xs font-semibold text-secondary">OFF</span>
-                        <div className="w-10 h-5 bg-white/10 rounded-full relative cursor-pointer">
-                            <div className="absolute left-1 top-1 w-3 h-3 bg-secondary rounded-full shadow-sm"></div>
+                    <div className="flex items-center gap-3">
+                        <div className="w-8 h-4 bg-muted/40 rounded-full relative cursor-pointer">
+                             <div className="absolute left-1 top-1 w-2 h-2 bg-white rounded-full" />
                         </div>
+                        <span className="text-[10px] font-bold uppercase tracking-widest">OFF</span>
                     </div>
                 </div>
             </div>
+
+            {/* HTTP Tool Modal */}
+            <Modal
+                isOpen={openAddHttp}
+                onClose={() => setOpenAddHttp(false)}
+                title="Add HTTP tool"
+                width="max-w-xl"
+            >
+                <div className="space-y-6 pt-2">
+                    <div className="space-y-3">
+                        <label className="text-[13px] font-bold text-foreground">Tool name</label>
+                        <div className="text-[12px] text-muted-foreground">Unique name used by the LLM to identify and use the tool.</div>
+                        <Input defaultValue="get_weather" className="border-primary h-10" />
+                    </div>
+
+                    <div className="space-y-3">
+                        <label className="text-[13px] font-bold text-foreground">Description</label>
+                        <div className="text-[12px] text-muted-foreground">The tool's purpose, outcomes, usage instructions, and examples.</div>
+                        <textarea className="w-full h-24 rounded-lg border border-border/60 bg-white p-3 text-[12px] focus:outline-none focus:ring-2 focus:ring-primary/20" />
+                    </div>
+
+                    <div className="grid grid-cols-3 gap-4">
+                        <div className="space-y-3">
+                            <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest px-1">HTTP method</label>
+                            <div className="relative">
+                                <select className="flex h-10 w-full rounded-lg border border-border/60 bg-[#F2F2F2] px-3 py-2 text-sm appearance-none">
+                                    <option>GET</option>
+                                    <option>POST</option>
+                                </select>
+                                <ChevronDown className="absolute right-3 top-3 w-4 h-4 text-muted-foreground/40" />
+                            </div>
+                        </div>
+                        <div className="col-span-2 space-y-3">
+                            <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest px-1 flex items-center gap-1">URL <Info className="w-3 h-3" /></label>
+                            <Input placeholder="https://api.example.com/some/endpoint" className="h-10" />
+                        </div>
+                    </div>
+
+                    <div className="space-y-3">
+                        <label className="text-[13px] font-bold text-foreground">Parameters</label>
+                        <div className="text-[12px] text-muted-foreground">Arguments passed by the LLM when the tool is called.</div>
+                        <div className="border border-dashed border-border/60 rounded-lg p-6 flex flex-col items-center justify-center text-muted-foreground text-[12px]">
+                            No parameters added
+                        </div>
+                        <Button variant="outline" size="sm" className="h-8 text-[11px] font-bold border-border/60 bg-muted/10">
+                            <Plus className="w-3.5 h-3.5 mr-1" /> Add parameter
+                        </Button>
+                    </div>
+
+                    <div className="space-y-3">
+                        <div className="flex items-center justify-between">
+                            <label className="text-[13px] font-bold text-foreground flex items-center gap-1">Silent <Info className="w-3 h-3" /></label>
+                            <div className="flex items-center gap-2">
+                                <div className="w-8 h-4 bg-muted/40 rounded-full relative">
+                                    <div className="absolute left-1 top-1 w-2 h-2 bg-white rounded-full" />
+                                </div>
+                                <span className="text-[10px] font-bold text-muted-foreground">NO</span>
+                            </div>
+                        </div>
+                        <div className="text-[12px] text-muted-foreground">Hide tool call result from the agent and do not generate a response.</div>
+                    </div>
+                </div>
+                <div className="flex justify-end gap-3 pt-6 border-t border-border/40 mt-6">
+                    <Button variant="ghost" size="sm" onClick={() => setOpenAddHttp(false)} className="h-9 px-4 text-[13px] font-bold">Cancel</Button>
+                    <Button size="sm" className="bg-primary hover:bg-primary/95 text-white h-9 px-4 text-[13px] font-bold rounded-lg px-6">Add tool</Button>
+                </div>
+            </Modal>
+
+            {/* Client Tool Modal */}
+            <Modal
+                isOpen={openAddClient}
+                onClose={() => setOpenAddClient(false)}
+                title="Add client tool"
+                width="max-w-xl"
+            >
+                <div className="space-y-6 pt-2">
+                    <div className="space-y-3">
+                        <label className="text-[13px] font-bold text-foreground">Tool name</label>
+                        <div className="text-[12px] text-muted-foreground">Unique name used by the LLM to identify and use the tool.</div>
+                        <Input defaultValue="get_weather" className="border-primary h-10" />
+                    </div>
+
+                    <div className="space-y-3">
+                        <label className="text-[13px] font-bold text-foreground">Description</label>
+                        <div className="text-[12px] text-muted-foreground">The tool's purpose, outcomes, usage instructions, and examples.</div>
+                        <textarea className="w-full h-24 rounded-lg border border-border/60 bg-white p-3 text-[12px] focus:outline-none focus:ring-2 focus:ring-primary/20" />
+                    </div>
+
+                    <div className="space-y-3">
+                        <label className="text-[13px] font-bold text-foreground">Parameters</label>
+                        <div className="text-[12px] text-muted-foreground">Arguments passed by the LLM when the tool is called.</div>
+                        <div className="border border-dashed border-border/60 rounded-lg p-6 flex flex-col items-center justify-center text-muted-foreground text-[12px]">
+                            No parameters added
+                        </div>
+                        <Button variant="outline" size="sm" className="h-8 text-[11px] font-bold border-border/60 bg-muted/10">
+                            <Plus className="w-3.5 h-3.5 mr-1" /> Add parameter
+                        </Button>
+                    </div>
+
+                    <div className="space-y-3">
+                        <label className="text-[13px] font-bold text-foreground flex items-center gap-1">Preview response <Info className="w-3 h-3" /></label>
+                        <div className="text-[12px] text-muted-foreground">A sample response returned by the client.</div>
+                        <div className="border border-border/60 rounded-lg bg-muted/5 p-4 font-mono text-[12px]">
+                            1
+                        </div>
+                    </div>
+
+                    <div className="space-y-3">
+                        <div className="flex items-center justify-between">
+                            <label className="text-[13px] font-bold text-foreground flex items-center gap-1">Silent <Info className="w-3 h-3" /></label>
+                            <div className="flex items-center gap-2">
+                                <div className="w-8 h-4 bg-muted/40 rounded-full relative">
+                                    <div className="absolute left-1 top-1 w-2 h-2 bg-white rounded-full" />
+                                </div>
+                                <span className="text-[10px] font-bold text-muted-foreground">NO</span>
+                            </div>
+                        </div>
+                        <div className="text-[12px] text-muted-foreground">Hide tool call result from the agent and do not generate a response.</div>
+                    </div>
+                </div>
+                <div className="flex justify-end gap-3 pt-6 border-t border-border/40 mt-6">
+                    <Button variant="ghost" size="sm" onClick={() => setOpenAddClient(false)} className="h-9 px-4 text-[13px] font-bold">Cancel</Button>
+                    <Button size="sm" className="bg-primary hover:bg-primary/95 text-white h-9 px-4 text-[13px] font-bold rounded-lg px-6">Add tool</Button>
+                </div>
+            </Modal>
+
+            {/* MCP Modal */}
+            <Modal
+                isOpen={openAddMcp}
+                onClose={() => setOpenAddMcp(false)}
+                title="Add MCP server"
+                width="max-w-xl"
+            >
+                <div className="space-y-6 pt-2">
+                    <div className="space-y-3">
+                        <label className="text-[13px] font-bold text-foreground">Server name</label>
+                        <div className="text-[12px] text-muted-foreground">A human-readable name for this MCP server.</div>
+                        <Input defaultValue="docs_server" className="border-primary h-10" />
+                    </div>
+
+                    <div className="space-y-3">
+                        <label className="text-[13px] font-bold text-foreground flex items-center gap-1">URL <Info className="w-3 h-3" /></label>
+                        <Input placeholder="https://api.example.com/mcp" className="h-10" />
+                    </div>
+
+                    <div className="space-y-3">
+                        <label className="text-[13px] font-bold text-foreground">Headers</label>
+                        <div className="text-[12px] text-muted-foreground">Optional HTTP headers for authentication or other purposes.</div>
+                        <div className="border border-dashed border-border/60 rounded-lg p-6 flex flex-col items-center justify-center text-muted-foreground text-[12px]">
+                            No headers added
+                        </div>
+                        <Button variant="outline" size="sm" className="h-8 text-[11px] font-bold border-border/60 bg-muted/10">
+                            <Plus className="w-3.5 h-3.5 mr-1" /> Add header
+                        </Button>
+                    </div>
+                </div>
+                <div className="flex justify-end gap-3 pt-6 border-t border-border/40 mt-6">
+                    <Button variant="ghost" size="sm" onClick={() => setOpenAddMcp(false)} className="h-9 px-4 text-[13px] font-bold">Cancel</Button>
+                    <Button size="sm" className="bg-primary hover:bg-primary/95 text-white h-9 px-4 text-[13px] font-bold rounded-lg px-6">Add server</Button>
+                </div>
+            </Modal>
         </div>
     );
 }
+

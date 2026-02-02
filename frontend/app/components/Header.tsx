@@ -7,6 +7,7 @@ import { useClickOutside } from "../../hooks/useClickOutside";
 
 interface HeaderProps {
   projectName: string;
+  sectionName?: string;
   pageName: string;
   showTimeRange?: boolean;
   actionButton?: React.ReactNode;
@@ -36,6 +37,7 @@ const REFRESH_INTERVALS = [
 
 export default function Header({
   projectName,
+  sectionName,
   pageName,
   showTimeRange = true,
   actionButton,
@@ -120,16 +122,22 @@ export default function Header({
   };
 
   return (
-    <header className="h-16 px-4 md:px-8 flex items-center justify-between sticky top-0 bg-background/80 backdrop-blur-xl border-b border-border z-20 transition-all">
-      <div className="flex items-center gap-3 text-sm overflow-hidden">
-        <div className="px-2.5 py-1 rounded-md bg-surface border border-border text-muted-foreground whitespace-nowrap hidden sm:block font-medium">
-          {projectName}
+    <header className="h-20 px-4 md:px-8 flex items-center justify-between sticky top-0 bg-background/80 backdrop-blur-xl border-b border-border/50 z-20 transition-all">
+      <div className="flex flex-col">
+        <div className="flex items-center gap-1.5 text-[11px] font-medium text-muted-foreground/60 mb-0.5">
+          <span>{projectName}</span>
+          {sectionName && (
+            <>
+              <span className="opacity-40">/</span>
+              <span>{sectionName}</span>
+            </>
+          )}
+          <span className="opacity-40">/</span>
         </div>
-        <span className="text-muted-foreground hidden sm:block">/</span>
-        <h1 className="text-foreground font-display font-semibold truncate text-base">{pageName}</h1>
+        <h1 className="text-xl font-semibold tracking-tight text-foreground">{pageName}</h1>
       </div>
 
-      <div className="flex items-center gap-3 ml-auto">
+      <div className="flex items-center gap-3">
         {showTimeRange && (
           <div className="flex items-center gap-2">
 

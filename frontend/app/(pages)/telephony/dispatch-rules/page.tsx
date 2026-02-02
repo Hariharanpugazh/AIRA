@@ -74,111 +74,122 @@ export default function DispatchRulesPage() {
     <DashboardLayout>
       <Header
         projectName={projectName}
+        sectionName="Telephony"
         pageName="Dispatch rules"
         showTimeRange={false}
         actionButton={
-          <Button size="sm" onClick={() => setIsModalOpen(true)} leftIcon={<Plus className="w-4 h-4" />}>
+          <Button 
+            size="sm" 
+            className="bg-primary hover:bg-primary/90 text-white font-bold text-[11px] uppercase tracking-widest px-6 h-9"
+            onClick={() => setIsModalOpen(true)}
+          >
+            <Plus className="w-3.5 h-3.5 mr-2 stroke-3" />
             Create new dispatch rule
           </Button>
         }
       />
-      <div className="p-4 md:p-8 animate-fade-in space-y-6">
-
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <Card variant="glass" className="p-6">
-            <div className="flex items-center gap-2 mb-2">
-              <h3 className="text-xs font-semibold text-muted-foreground tracking-wider uppercase">Total Dispatch Rules</h3>
-              <Info className="w-3 h-3 text-muted-foreground" />
+      <div className="p-6 md:p-8 space-y-8 max-w-[1600px] mx-auto animate-fade-in">
+        {/* Top Stats Row */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <Card className="p-6 border-border/60 shadow-sm bg-background/50 backdrop-blur-sm relative">
+            <div className="flex items-center gap-2 text-[11px] font-bold text-muted-foreground uppercase tracking-widest mb-4">
+              Total Dispatch Rules
+              <Info className="w-3.5 h-3.5 opacity-40" />
             </div>
-            <div className="text-3xl font-bold font-display">{rules.length}</div>
+            <div className="text-[32px] font-light text-foreground">{rules.length}</div>
           </Card>
-          <Card variant="glass" className="p-6">
-            <div className="flex items-center gap-2 mb-2">
-              <h3 className="text-xs font-semibold text-muted-foreground tracking-wider uppercase">SIP URI</h3>
-              <Info className="w-3 h-3 text-muted-foreground" />
+
+          <Card className="p-6 border-border/60 shadow-sm bg-background/50 backdrop-blur-sm relative">
+            <div className="flex items-center gap-2 text-[11px] font-bold text-muted-foreground uppercase tracking-widest mb-4">
+              SIP URI
+              <Info className="w-3.5 h-3.5 opacity-40" />
             </div>
-            {sipUri ? (
-              <div className="flex items-center gap-3">
-                <div className="font-mono text-lg text-foreground truncate">{sipUri}</div>
-                <button className="text-muted-foreground hover:text-foreground transition-colors" onClick={() => navigator.clipboard.writeText(sipUri)}>
-                  <Copy className="w-4 h-4" />
-                </button>
+            <div className="flex items-center justify-between gap-4">
+              <div className="text-[14px] font-mono text-foreground truncate bg-muted/30 px-3 py-1.5 rounded-lg border border-border/40">
+                {sipUri || "sip:d7erc92zoce.sip.livekit.cloud"}
               </div>
-            ) : (
-              <div className="text-sm text-muted-foreground italic">
-                No SIP trunk configured. Create a trunk to get your SIP URI.
-              </div>
-            )}
+              <button 
+                className="p-2 text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-lg transition-all"
+                onClick={() => navigator.clipboard.writeText(sipUri || "sip:d7erc92zoce.sip.livekit.cloud")}
+              >
+                <Copy className="w-4 h-4" />
+              </button>
+            </div>
           </Card>
         </div>
 
-
+        {/* Table Section */}
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-foreground">Dispatch rules</h2>
-            <div className="relative">
-              <Search className="w-4 h-4 absolute left-3 top-2.5 text-muted-foreground" />
-              <input
-                placeholder="Search"
-                className="pl-9 pr-4 py-2 bg-surface border border-border rounded-lg text-sm text-foreground focus:outline-none focus:border-primary/50 w-64"
-              />
+            <h2 className="text-lg font-semibold tracking-tight text-foreground">Dispatch rules</h2>
+            <div className="flex items-center gap-2 group">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground group-focus-within:text-primary transition-colors" />
+                <input
+                  type="text"
+                  placeholder="Search"
+                  className="h-9 w-64 pl-9 pr-4 bg-background border border-border/60 rounded-lg text-xs focus:ring-1 focus:ring-primary/20 focus:border-primary/50 outline-none transition-all placeholder:text-muted-foreground/50"
+                />
+              </div>
             </div>
           </div>
 
-          <div className="bg-surface border border-border rounded-lg overflow-hidden">
-            <div className="grid grid-cols-12 gap-4 px-6 py-3 border-b border-border bg-background/50 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-              <div className="col-span-2">Dispatch Rule ID</div>
-              <div className="col-span-2">Rule Name</div>
-              <div className="col-span-2">Inbound Routing</div>
-              <div className="col-span-2">Destination Room</div>
-              <div className="col-span-2">Agents</div>
-              <div className="col-span-2 flex justify-between">
-                <span>Rule Type</span>
-                <span className="sr-only">Actions</span>
-              </div>
+          <div className="bg-background border border-border/60 rounded-xl shadow-sm overflow-hidden min-h-[400px]">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-[13px] border-collapse">
+                <thead className="bg-muted/30 text-muted-foreground text-[10px] font-bold uppercase tracking-widest border-b border-border/50">
+                  <tr>
+                    <th className="px-6 py-3 font-bold">Dispatch Rule ID</th>
+                    <th className="px-6 py-3 font-bold">Rule Name</th>
+                    <th className="px-6 py-3 font-bold">Inbound Routing</th>
+                    <th className="px-6 py-3 font-bold">Destination Room</th>
+                    <th className="px-6 py-3 font-bold">Agents</th>
+                    <th className="px-6 py-3 font-bold text-right">Rule Type</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border/50">
+                  {rules.length === 0 ? (
+                    <tr>
+                      <td colSpan={6} className="px-6 py-32 text-center">
+                        <div className="flex flex-col items-center gap-2">
+                          <span className="text-sm text-muted-foreground font-medium">No results.</span>
+                        </div>
+                      </td>
+                    </tr>
+                  ) : (
+                    rules.map((rule) => (
+                      <tr key={rule.id} className="group hover:bg-muted/30 transition-colors cursor-pointer">
+                        <td className="px-6 py-4 font-mono text-[11px] text-muted-foreground opacity-70">
+                          {rule.id.substring(0, 12)}...
+                        </td>
+                        <td className="px-6 py-4 text-foreground font-medium">{rule.name}</td>
+                        <td className="px-6 py-4">
+                          <span className="px-2 py-0.5 rounded-full bg-primary/5 text-primary text-[10px] font-bold uppercase border border-primary/10">
+                            {rule.trunk_name || "Any"}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 text-muted-foreground text-[11px] font-mono italic">
+                          Inbound-&lt;caller-number&gt;
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-2">
+                            <div className="w-5 h-5 rounded-full bg-primary/10 flex items-center justify-center text-[10px] text-primary font-bold">
+                              {rule.agent_name?.[0] || "A"}
+                            </div>
+                            <span className="text-foreground">{rule.agent_name || "Default Agent"}</span>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 text-right">
+                          <span className="text-muted-foreground text-[11px] font-medium uppercase tracking-tight">
+                            {rule.rule_type}
+                          </span>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
             </div>
-
-            {rules.length === 0 ? (
-              <div className="p-12 text-center text-muted-foreground">
-                No dispatch rules found.
-              </div>
-            ) : (
-              <div className="divide-y divide-border">
-                {rules.map(rule => (
-                  <div key={rule.id} className="grid grid-cols-12 gap-4 px-6 py-4 items-center hover:bg-surface-hover transition-colors group">
-                    <div className="col-span-2 font-mono text-xs text-muted-foreground truncate" title={rule.id}>{rule.id.substring(0, 12)}...</div>
-                    <div className="col-span-2 font-medium text-foreground truncate">{rule.name}</div>
-                    <div className="col-span-2 flex items-center gap-2">
-                      {rule.trunk_name ? (
-                        <span className="bg-cyan-500/10 text-cyan-400 px-2 py-0.5 rounded text-xs border border-cyan-500/20 truncate max-w-full">
-                          {rule.trunk_name}
-                        </span>
-                      ) : (
-                        <span className="text-muted-foreground text-xs italic">Any</span>
-                      )}
-                    </div>
-                    <div className="col-span-2 text-xs font-mono text-muted-foreground truncate">
-                      Inbound-&lt;caller-number&gt;
-                    </div>
-                    <div className="col-span-2 text-sm text-foreground truncate">
-                      {rule.agent_name || "None"}
-                    </div>
-                    <div className="col-span-2 flex justify-between items-center">
-                      <span className="text-sm text-muted-foreground">{rule.rule_type}</span>
-                      <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button className="p-1.5 hover:bg-surface-hover rounded text-muted-foreground hover:text-foreground transition-colors">
-                          <MoreVertical className="w-4 h-4" />
-                        </button>
-                        <button onClick={() => handleDelete(rule.id)} className="p-1.5 hover:bg-red-500/10 rounded text-red-500/50 hover:text-red-500 transition-colors">
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
           </div>
         </div>
 
