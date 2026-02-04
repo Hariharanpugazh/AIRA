@@ -1,0 +1,25 @@
+# Rust build artifacts
+/target/
+Cargo.lock
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# OS-specific files
+Thumbs.db
+
+# Rust backup files
+**/*.rs.bk
+
+# Windows debug symbols
+*.pdb

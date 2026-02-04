@@ -5,18 +5,36 @@ const API_BASE = process.env.NEXT_PUBLIC_API_URL || "";
 let accessToken: string | null = null;
 
 export function setAccessToken(token: string | null) {
-    accessToken = token;
+    // sanitize token to remove any stray non-Latin1 characters that
+    // can break the browser fetch headers (must be ISO-8859-1 compatible)
+    function sanitize(t: string) {
+        return t.replace(/\uFEFF/g, "").trim().replace(/[^\x00-\xFF]/g, "");
+    }
+
     if (token) {
-        localStorage.setItem("token", token);
+        const clean = sanitize(token);
+        accessToken = clean;
+        if (typeof document !== "undefined") {
+            document.cookie = `token=${encodeURIComponent(clean)}; path=/; max-age=${24 * 60 * 60}; samesite=strict`;
+        }
     } else {
-        localStorage.removeItem("token");
+        accessToken = null;
+        if (typeof document !== "undefined") {
+            document.cookie = "token=; path=/; max-age=0";
+        }
     }
 }
 
 export function getAccessToken(): string | null {
     if (accessToken) return accessToken;
-    if (typeof window !== "undefined") {
-        accessToken = localStorage.getItem("token");
+    if (typeof document !== "undefined") {
+        const match = document.cookie.match(/(?:^|; )token=([^;]*)/);
+        if (match && match[1]) {
+            const raw = decodeURIComponent(match[1]);
+            accessToken = raw.replace(/\uFEFF/g, "").trim().replace(/[^\x00-\xFF]/g, "");
+        } else {
+            accessToken = null;
+        }
     }
     return accessToken;
 }
@@ -59,7 +77,9 @@ export async function apiFetch<T>(
     };
 
     if (token) {
-        headers["Authorization"] = `Bearer ${token}`;
+        // ensure Authorization header contains only Latin1-safe characters
+        const safeToken = token.replace(/\uFEFF/g, "").trim().replace(/[^\x00-\xFF]/g, "");
+        headers["Authorization"] = `Bearer ${safeToken}`;
     }
 
     let lastError: Error | null = null;
@@ -252,30 +272,34 @@ export async function login(email: string, password: string): Promise<User> {
             email: "admin@admin.con",
             name: "Admin User",
         };
-        if (typeof window !== "undefined") {
-            localStorage.setItem("user", JSON.stringify(mockUser));
-        }
         return mockUser;
     }
 
-    const formData = new URLSearchParams();
-    formData.append("username", email);
-    formData.append("password", password);
-
-    const response = await fetch(`${API_BASE}/api/auth/login`, {
+    const response = await fetch(`${API_BASE}/login`, {
         method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: formData,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
     });
 
+    // Read body once to avoid "body stream already read" errors
+    const bodyText = await response.text();
+
     if (!response.ok) {
-        throw new Error("Invalid credentials");
+        throw new Error(bodyText || "Invalid credentials");
     }
 
-    const data: LoginResponse = await response.json();
-    setAccessToken(data.access_token);
+    let token: string = "";
+    try {
+        const parsed = JSON.parse(bodyText);
+        token = typeof parsed === "string" ? parsed : (parsed?.access_token || "");
+    } catch {
+        token = bodyText.trim();
+    }
 
-    // Get user info
+    if (!token) throw new Error("No token returned from server");
+
+    setAccessToken(token);
+
     return getMe();
 }
 
