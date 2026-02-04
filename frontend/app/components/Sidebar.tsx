@@ -50,10 +50,81 @@ export default function LiveKitStyleSidebar({ user }: SidebarProps) {
   const [projectOpen, setProjectOpen] = useState(false);
   const [supportOpen, setSupportOpen] = useState(false);
   const [userSettingsOpen, setUserSettingsOpen] = useState(false);
+  const [createProjectOpen, setCreateProjectOpen] = useState(false);
+  const [newProjectName, setNewProjectName] = useState("");
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
 
+  // Determine which sections contain active routes
+  const isTelephonyActive = pathname.startsWith("/telephony");
+  const isSettingsActive = pathname.startsWith("/settings");
+
+  // Load persisted state from localStorage on mount
   useEffect(() => {
     setMounted(true);
+    
+    try {
+      const saved = localStorage.getItem("sidebar-state");
+      if (saved) {
+        const state = JSON.parse(saved);
+        setTelephonyOpen(state.telephonyOpen ?? false);
+        setSettingsOpen(state.settingsOpen ?? false);
+      }
+    } catch (e) {
+      console.error("Failed to load sidebar state:", e);
+    }
   }, []);
+
+  // Auto-expand sections containing active routes
+  useEffect(() => {
+    if (isTelephonyActive) {
+      setTelephonyOpen(true);
+    }
+    if (isSettingsActive) {
+      setSettingsOpen(true);
+    }
+  }, [pathname, isTelephonyActive, isSettingsActive]);
+
+  // Persist state to localStorage whenever it changes
+  useEffect(() => {
+    if (mounted) {
+      try {
+        localStorage.setItem(
+          "sidebar-state",
+          JSON.stringify({ telephonyOpen, settingsOpen })
+        );
+      } catch (e) {
+        console.error("Failed to save sidebar state:", e);
+      }
+    }
+  }, [telephonyOpen, settingsOpen, mounted]);
+
+  const handleCreateProject = () => {
+    if (newProjectName.trim()) {
+      // TODO: Call API to create project
+      console.log("Creating project:", newProjectName);
+      setNewProjectName("");
+      setCreateProjectOpen(false);
+    }
+  };
+
+  // Handle Ctrl+K for search
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === "k") {
+        e.preventDefault();
+        setSearchOpen(true);
+        setSearchQuery("");
+      }
+      if (e.key === "Escape" && searchOpen) {
+        setSearchOpen(false);
+        setSearchQuery("");
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [searchOpen]);
 
   const navItem = (href: string, label: string, Icon: any) => {
     const isActive = pathname === href;
@@ -215,7 +286,9 @@ export default function LiveKitStyleSidebar({ user }: SidebarProps) {
         <div className={cn("mt-auto p-4 space-y-4", isCollapsed && "px-2")}>
           {/* Search & Support Buttons */}
           <div className="space-y-1">
-            <button className={cn(
+            <button 
+              onClick={() => setSearchOpen(true)}
+              className={cn(
               "w-full flex items-center gap-3 px-3 py-2 text-[13px] text-muted-foreground hover:bg-muted/80 hover:text-foreground rounded-lg transition-colors group",
               isCollapsed && "justify-center px-0 h-10 w-10 mx-auto"
             )}>
@@ -315,7 +388,10 @@ export default function LiveKitStyleSidebar({ user }: SidebarProps) {
                       <Check className="w-4 h-4" />
                     </button>
                     <div className="h-px bg-border my-1.5 mx-1" />
-                    <button className="w-full text-left px-3 py-2 rounded-lg text-[13px] text-primary hover:bg-primary/5 font-medium">
+                    <button 
+                      onClick={() => setCreateProjectOpen(true)}
+                      className="w-full text-left px-3 py-2 rounded-lg text-[13px] text-primary hover:bg-primary/5 font-medium"
+                    >
                       + New Project
                     </button>
                   </div>
@@ -421,6 +497,125 @@ export default function LiveKitStyleSidebar({ user }: SidebarProps) {
               >
                 Close
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Create New Project Modal */}
+      {createProjectOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px] animate-in fade-in duration-300" onClick={() => setCreateProjectOpen(false)} />
+          <div className="relative w-full max-w-[520px] bg-background/95 backdrop-blur-xl border border-border/50 rounded-2xl shadow-[0_20px_60px_rgba(0,0,0,0.3)] animate-in zoom-in-95 fade-in duration-200 flex flex-col overflow-hidden">
+            <div className="flex items-center justify-between p-6 border-b border-border/50">
+              <h2 className="text-[17px] font-semibold text-foreground">Create a new project</h2>
+              <button onClick={() => setCreateProjectOpen(false)} className="p-1.5 hover:bg-muted rounded-lg transition-colors text-muted-foreground hover:text-foreground">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            
+            <div className="p-6 space-y-5">
+              <p className="text-[13px] text-muted-foreground leading-relaxed">
+                Each project is a separate container for agents, WebRTC sessions, and telephony. Free quota is shared among all your projects
+              </p>
+
+              <div className="space-y-2">
+                <label className="text-[13px] font-medium text-foreground">Project name</label>
+                <input
+                  type="text"
+                  placeholder="My new project"
+                  value={newProjectName}
+                  onChange={(e) => setNewProjectName(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      handleCreateProject();
+                    }
+                  }}
+                  className="w-full px-4 py-2.5 bg-background border border-border rounded-lg text-[13px] text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all"
+                  autoFocus
+                />
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-3 p-6 border-t border-border/50 bg-muted/30">
+              <button 
+                onClick={() => setCreateProjectOpen(false)}
+                className="px-6 py-2 bg-muted hover:bg-muted/80 text-foreground text-[13px] font-medium rounded-lg transition-colors"
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={handleCreateProject}
+                disabled={!newProjectName.trim()}
+                className="px-6 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-600/50 disabled:cursor-not-allowed text-white text-[13px] font-bold rounded-lg transition-colors shadow-lg shadow-blue-500/20"
+              >
+                Create
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Search Modal */}
+      {searchOpen && (
+        <div className="fixed inset-0 z-[110] flex items-start justify-center pt-20">
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px] animate-in fade-in duration-300" onClick={() => {
+            setSearchOpen(false);
+            setSearchQuery("");
+          }} />
+          <div className="relative w-full max-w-[640px] mx-4 animate-in zoom-in-95 fade-in slide-in-from-top-4 duration-200">
+            <div className="bg-background/95 backdrop-blur-xl border border-border/50 rounded-xl shadow-[0_20px_60px_rgba(0,0,0,0.3)] overflow-hidden flex flex-col max-h-[600px]">
+              {/* Search Input */}
+              <div className="flex items-center gap-3 px-5 py-4 border-b border-border/50 bg-background">
+                <Search className="w-5 h-5 text-muted-foreground shrink-0" />
+                <input
+                  type="text"
+                  placeholder="Search by exact ID or name within Relatim"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="flex-1 bg-transparent text-[15px] text-foreground placeholder:text-muted-foreground focus:outline-none"
+                  autoFocus
+                />
+                <button 
+                  onClick={() => {
+                    setSearchOpen(false);
+                    setSearchQuery("");
+                  }}
+                  className="p-1.5 hover:bg-muted rounded-lg transition-colors text-muted-foreground hover:text-foreground shrink-0"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Search Results */}
+              <div className="flex-1 overflow-y-auto">
+                {searchQuery.trim() === "" ? (
+                  <div className="flex items-center justify-center py-20 px-6">
+                    <div className="text-center space-y-3">
+                      <Search className="w-12 h-12 text-muted-foreground/30 mx-auto" />
+                      <p className="text-[13px] text-muted-foreground">
+                        Search by exact room or participant name, as well as session, participant, egress or call ID.
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="py-8 px-6">
+                    <div className="text-center space-y-3">
+                      <p className="text-[14px] font-medium text-foreground">
+                        No results found for "<span className="font-semibold">{searchQuery}</span>".
+                      </p>
+                      <p className="text-[13px] text-muted-foreground leading-relaxed">
+                        Try searching by exact room or participant name, as well as session, participant, egress or call ID.
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Footer Info */}
+              <div className="px-5 py-3 border-t border-border/50 bg-muted/20 flex items-center justify-between text-[11px] text-muted-foreground">
+                <span>Press <kbd className="px-1.5 py-0.5 bg-background border rounded text-xs font-medium mx-1">ESC</kbd> to close</span>
+              </div>
             </div>
           </div>
         </div>

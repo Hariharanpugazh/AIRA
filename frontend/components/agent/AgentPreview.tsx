@@ -41,7 +41,7 @@ class DefaultAgent(Agent):
         )`;
 
     return (
-        <div className="flex flex-col h-full bg-white relative">
+        <div className="flex flex-col h-full bg-surface relative">
             
             <div className="flex items-center justify-center px-4 border-b border-border/40 bg-muted/5">
                 <div className="flex items-center w-full">
@@ -61,7 +61,7 @@ class DefaultAgent(Agent):
             </div>
 
             {activeTab === 'preview' ? (
-                <div className="flex-1 flex flex-col items-center justify-center p-8 text-center bg-white border-l border-border/40">
+                <div className="flex-1 flex flex-col items-center justify-center p-8 text-center bg-surface border-l border-border/40">
                     {!isConnected ? (
                         <div className="flex flex-col items-center">
                             <div className="mb-8 relative">
@@ -83,7 +83,7 @@ class DefaultAgent(Agent):
 
                             <Button
                                 onClick={() => setIsConnected(true)}
-                                className="bg-[#4F46E5]/10 hover:bg-[#4F46E5]/15 text-[#4F46E5] border border-[#4F46E5]/20 font-bold text-[11px] uppercase tracking-widest px-8 py-2.5 h-auto transition-all shadow-none"
+                                className="bg-primary/10 hover:bg-primary/15 text-primary border border-primary/20 font-bold text-[11px] uppercase tracking-widest px-8 py-2.5 h-auto transition-all shadow-none"
                             >
                                 Start Call
                             </Button>
@@ -110,7 +110,7 @@ class DefaultAgent(Agent):
                             <Button
                                 variant="outline"
                                 onClick={() => setIsConnected(false)}
-                                className="border-red-200 text-red-600 hover:bg-red-50 font-bold text-[11px] uppercase tracking-widest px-8 py-2.5 h-auto"
+                                className="border-error/20 text-error hover:bg-error/10 font-bold text-[11px] uppercase tracking-widest px-8 py-2.5 h-auto transition-colors"
                             >
                                 <PhoneOff className="w-4 h-4 mr-2" />
                                 End Call
@@ -119,8 +119,8 @@ class DefaultAgent(Agent):
                     )}
                 </div>
             ) : (
-                <div className="flex-1 overflow-hidden flex flex-col bg-[#F8F9FB]">
-                    <div className="flex items-center justify-between px-4 py-2 border-b border-border/40 bg-white">
+                <div className="flex-1 overflow-hidden flex flex-col bg-muted/5">
+                    <div className="flex items-center justify-between px-4 py-2 border-b border-border/40 bg-surface">
                         <div className="flex items-center gap-2 text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
                             <Code2 className="w-3.5 h-3.5" />
                             agent.py
@@ -131,7 +131,7 @@ class DefaultAgent(Agent):
                             </Button>
                         </div>
                     </div>
-                    <div className="flex-1 overflow-auto bg-white font-mono text-[12px] leading-relaxed text-slate-700 flex">
+                    <div className="flex-1 overflow-auto bg-surface font-mono text-[12px] leading-relaxed text-foreground/80 flex">
                         <div className="w-12 bg-muted/10 border-r border-border/40 flex flex-col items-center py-4 text-muted-foreground/40 select-none">
                             {[...Array(pythonCode.split('\n').length)].map((_, i) => (
                                 <div key={i}>{i + 1}</div>

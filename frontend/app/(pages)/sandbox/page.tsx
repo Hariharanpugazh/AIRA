@@ -1,163 +1,20 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import React, { useState } from "react";
 import { DashboardLayout } from "../../../components/layouts/DashboardLayout";
 import Header from "../../components/Header";
-import { Card } from "../../../components/ui/Card";
 import { Button } from "../../../components/ui/Button";
 import {
-  getAccessToken,
-  getRooms,
-  generateToken,
-  createRoom,
-  User,
-  Room,
-  TokenResponse,
-} from "../../../lib/api";
-import {
-  Play,
-  Pause,
-  Mic,
-  MicOff,
-  Video as VideoIcon,
-  VideoOff,
-  Phone,
-  PhoneOff,
-  Settings,
-  Copy,
-  Check,
-  RefreshCw,
-  Plus,
+  ChevronLeft,
+  ChevronRight,
+  Monitor,
+  Database,
+  Users,
+  ExternalLink,
 } from "lucide-react";
 
 export default function SandboxPage() {
-  const router = useRouter();
-  const [loading, setLoading] = useState(true);
-
-  // Room state
-  const [rooms, setRooms] = useState<Room[]>([]);
-  const [selectedRoom, setSelectedRoom] = useState<string>("");
-  const [newRoomName, setNewRoomName] = useState("");
-  const [isCreating, setIsCreating] = useState(false);
-
-  // Connection state
-  const [identity, setIdentity] = useState("");
-  const [tokenData, setTokenData] = useState<TokenResponse | null>(null);
-  const [isConnecting, setIsConnecting] = useState(false);
-  const [isConnected, setIsConnected] = useState(false);
-  const [copied, setCopied] = useState(false);
-
-  // Media state
-  const [audioEnabled, setAudioEnabled] = useState(true);
-  const [videoEnabled, setVideoEnabled] = useState(false);
-
-  useEffect(() => {
-    const loadData = async () => {
-      const token = getAccessToken();
-      if (!token) {
-        router.push("/login");
-        return;
-      }
-
-      try {
-        const [roomsData] = await Promise.all([
-          getRooms(),
-        ]);
-        setRooms(roomsData || []);
-        // Assuming we can get identity from elsewhere or let user input it if needed. 
-        // For now, let's just initialize identity empty or from local storage if appropriate, 
-        // but the original code used user.email. split('@')[0].
-        // Since we are removing user, we might need to fetch it from useAuth context or similar if we strictly needed it.
-        // However, looking at the code, identity is just a state default.
-        // Let's rely on useAuth context inside component if we needed it, but here we can just leave it empty or fetch from auth context.
-        // Wait, I am inside a component so I can use useAuth().
-      } catch (error) {
-
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadData();
-  }, [router]);
-
-  const handleRefreshRooms = async () => {
-    try {
-      const roomsData = await getRooms();
-      setRooms(roomsData || []);
-    } catch (error) {
-
-    }
-  };
-
-  const handleCreateRoom = async () => {
-    if (!newRoomName.trim()) return;
-    setIsCreating(true);
-    try {
-      await createRoom(newRoomName.trim());
-      setNewRoomName("");
-      await handleRefreshRooms();
-      setSelectedRoom(newRoomName.trim());
-    } catch (error) {
-
-      alert("Failed to create room");
-    } finally {
-      setIsCreating(false);
-    }
-  };
-
-  const handleGenerateToken = async () => {
-    if (!selectedRoom) {
-      alert("Please select or create a room first");
-      return;
-    }
-    if (!identity.trim()) {
-      alert("Please enter an identity");
-      return;
-    }
-
-    setIsConnecting(true);
-    try {
-      const data = await generateToken(selectedRoom, identity.trim(), {
-        can_publish: true,
-        can_subscribe: true,
-      });
-      setTokenData(data);
-    } catch (error) {
-
-      alert("Failed to generate token");
-    } finally {
-      setIsConnecting(false);
-    }
-  };
-
-  const handleCopyToken = () => {
-    if (tokenData?.token) {
-      navigator.clipboard.writeText(tokenData.token);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    }
-  };
-
-  const handleConnect = () => {
-    setIsConnected(true);
-  };
-
-  const handleDisconnect = () => {
-    setIsConnected(false);
-    setTokenData(null);
-  };
-
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-primary"></div>
-      </div>
-    );
-  }
-
-  const projectName = localStorage.getItem("projectName") || "RELATIM";
+  const projectName = localStorage.getItem("projectName") || "Relatim";
 
   return (
     <DashboardLayout>
@@ -165,235 +22,121 @@ export default function SandboxPage() {
         projectName={projectName}
         pageName="Sandbox"
         showTimeRange={false}
-        actionButton={
-          <Button variant="ghost" onClick={handleRefreshRooms}>
-            <RefreshCw className="w-4 h-4 mr-2" />
-            Refresh Rooms
-          </Button>
-        }
       />
 
-      <div className="p-4 md:p-8 animate-fade-in space-y-6">
-
-        <div className="bg-gradient-to-br from-primary/10 to-purple-500/10 border border-primary/20 rounded-xl p-6">
-          <h1 className="text-2xl font-bold text-foreground mb-2">LiveKit Sandbox</h1>
-          <p className="text-muted-foreground">
-            Test voice agents, join rooms, and experiment with LiveKit features in a safe environment.
-          </p>
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-
-          <Card variant="glass" className="p-6">
-            <h2 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
-              <Settings className="w-5 h-5 text-primary" />
-              Room Configuration
-            </h2>
-
-            <div className="space-y-4">
-
-              <div>
-                <label className="block text-sm font-medium text-muted-foreground mb-2">
-                  Create New Room
-                </label>
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    value={newRoomName}
-                    onChange={(e) => setNewRoomName(e.target.value)}
-                    placeholder="Enter room name..."
-                    className="flex-1 px-3 py-2 bg-background border border-border rounded-lg text-sm focus:outline-none focus:border-primary/50"
-                    onKeyDown={(e) => e.key === "Enter" && handleCreateRoom()}
-                  />
-                  <Button onClick={handleCreateRoom} disabled={isCreating || !newRoomName.trim()}>
-                    <Plus className="w-4 h-4 mr-1" />
-                    Create
-                  </Button>
-                </div>
-              </div>
-
-
-              <div>
-                <label className="block text-sm font-medium text-muted-foreground mb-2">
-                  Or Select Existing Room ({rooms.length} available)
-                </label>
-                <select
-                  value={selectedRoom}
-                  onChange={(e) => setSelectedRoom(e.target.value)}
-                  className="w-full px-3 py-2 bg-background border border-border rounded-lg text-sm focus:outline-none focus:border-primary/50"
-                >
-                  <option value="">Select a room...</option>
-                  {rooms.map((room) => (
-                    <option key={room.sid} value={room.name}>
-                      {room.name} ({room.num_participants} participants)
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-
-              <div>
-                <label className="block text-sm font-medium text-muted-foreground mb-2">
-                  Your Identity
-                </label>
-                <input
-                  type="text"
-                  value={identity}
-                  onChange={(e) => setIdentity(e.target.value)}
-                  placeholder="Enter your identity..."
-                  className="w-full px-3 py-2 bg-background border border-border rounded-lg text-sm focus:outline-none focus:border-primary/50"
-                />
-              </div>
-
-
-              <Button
-                className="w-full"
-                onClick={handleGenerateToken}
-                disabled={isConnecting || !selectedRoom || !identity.trim()}
-              >
-                {isConnecting ? "Generating..." : "Generate Access Token"}
-              </Button>
+      <div className="p-8 space-y-12">
+        {/* Get started section */}
+        <section>
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-xl font-medium text-foreground">Get started</h2>
+            <div className="flex gap-1">
+              <button className="p-1 rounded border border-border/40 hover:bg-surface transition-colors disabled:opacity-30" disabled>
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+              <button className="p-1 rounded border border-border/40 hover:bg-surface transition-colors disabled:opacity-30" disabled>
+                <ChevronRight className="w-4 h-4" />
+              </button>
             </div>
-          </Card>
+          </div>
 
-
-          <Card variant="glass" className="p-6">
-            <h2 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
-              <Phone className="w-5 h-5 text-primary" />
-              Connection
-            </h2>
-
-            {tokenData ? (
-              <div className="space-y-4">
-
-                <div>
-                  <label className="block text-sm font-medium text-muted-foreground mb-2">
-                    Access Token
-                  </label>
-                  <div className="relative">
-                    <pre className="p-3 bg-muted rounded-lg text-xs font-mono text-green-500 overflow-x-auto max-h-24">
-                      {tokenData.token}
-                    </pre>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      className="absolute top-2 right-2"
-                      onClick={handleCopyToken}
-                    >
-                      {copied ? (
-                        <Check className="w-4 h-4 text-green-500" />
-                      ) : (
-                        <Copy className="w-4 h-4" />
-                      )}
-                    </Button>
-                  </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {/* Card 1: Web Voice Agent */}
+            <div className="group cursor-pointer rounded-xl border border-border/60 bg-white dark:bg-surface/30 hover:shadow-lg dark:hover:border-primary/40 transition-all overflow-hidden shadow-sm">
+              <div className="h-44 bg-slate-300/80 dark:bg-black/40 flex items-center justify-center relative overflow-hidden">
+                <div className="flex items-center gap-1.5 h-12">
+                  {[0.4, 0.7, 1, 0.6, 0.8, 0.4].map((h, i) => (
+                    <div
+                      key={i}
+                      className="w-1.5 bg-white rounded-full shadow-sm"
+                      style={{ height: `${h * 100}%` }}
+                    />
+                  ))}
                 </div>
-
-
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div>
-                    <span className="text-muted-foreground">WebSocket URL:</span>
-                    <p className="font-mono text-xs truncate">{tokenData.ws_url}</p>
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground">Room:</span>
-                    <p className="font-medium">{tokenData.room}</p>
-                  </div>
+                {/* Speech bubbles style from image */}
+                <div className="absolute top-4 left-4 scale-75 origin-top-left opacity-80">
+                  <div className="bg-white/40 dark:bg-muted/20 backdrop-blur-sm rounded-full px-3 py-1 text-[10px] mb-2 font-medium">How are you?</div>
+                  <div className="bg-blue-600/40 dark:bg-blue-600/30 backdrop-blur-sm rounded-full px-3 py-1 text-[10px] text-white">Hello, how are you?</div>
                 </div>
-
-
-                <div className="flex items-center justify-center gap-4 py-4">
-                  <Button
-                    variant={audioEnabled ? "primary" : "outline"}
-                    size="icon"
-                    onClick={() => setAudioEnabled(!audioEnabled)}
-                    className="rounded-full w-12 h-12"
-                  >
-                    {audioEnabled ? <Mic className="w-5 h-5" /> : <MicOff className="w-5 h-5" />}
-                  </Button>
-                  <Button
-                    variant={videoEnabled ? "primary" : "outline"}
-                    size="icon"
-                    onClick={() => setVideoEnabled(!videoEnabled)}
-                    className="rounded-full w-12 h-12"
-                  >
-                    {videoEnabled ? <VideoIcon className="w-5 h-5" /> : <VideoOff className="w-5 h-5" />}
-                  </Button>
+                <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-2 scale-75">
+                  <div className="w-8 h-8 rounded-full bg-white/40 dark:bg-muted/20 backdrop-blur-sm flex items-center justify-center shadow-sm"><Monitor className="w-4 h-4 text-white dark:text-white/60" /></div>
+                  <div className="w-8 h-8 rounded-full bg-white/40 dark:bg-muted/20 backdrop-blur-sm flex items-center justify-center shadow-sm"><Users className="w-4 h-4 text-white dark:text-white/60" /></div>
                 </div>
-
-
-                {!isConnected ? (
-                  <Button className="w-full" onClick={handleConnect}>
-                    <Play className="w-4 h-4 mr-2" />
-                    Connect to Room
-                  </Button>
-                ) : (
-                  <Button variant="danger" className="w-full" onClick={handleDisconnect}>
-                    <PhoneOff className="w-4 h-4 mr-2" />
-                    Disconnect
-                  </Button>
-                )}
-
-                {isConnected && (
-                  <div className="p-4 bg-green-500/10 border border-green-500/20 rounded-lg text-center">
-                    <div className="flex items-center justify-center gap-2 text-green-500">
-                      <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-                      Connected to {tokenData.room}
-                    </div>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Use this token with LiveKit SDKs to join from any client
-                    </p>
-                  </div>
-                )}
               </div>
-            ) : (
-              <div className="flex flex-col items-center justify-center h-64 text-center">
-                <div className="w-16 h-16 rounded-full bg-surface flex items-center justify-center mb-4">
-                  <Phone className="w-8 h-8 text-muted-foreground" />
-                </div>
-                <p className="text-muted-foreground mb-2">No token generated yet</p>
-                <p className="text-xs text-muted-foreground">
-                  Configure a room and generate a token to connect
+              <div className="p-5">
+                <h3 className="font-semibold text-foreground mb-1 group-hover:text-primary transition-colors">Web Voice Agent</h3>
+                <p className="text-sm text-muted-foreground leading-relaxed">
+                  A starter app for Next.js, featuring a flexible voice AI frontend
                 </p>
               </div>
-            )}
-          </Card>
-        </div>
-
-
-        <Card variant="glass" className="p-6">
-          <h3 className="text-lg font-semibold text-foreground mb-4">How to Use</h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-sm">
-            <div>
-              <div className="w-8 h-8 rounded-full bg-primary/20 text-primary flex items-center justify-center font-bold mb-2">
-                1
-              </div>
-              <h4 className="font-medium text-foreground mb-1">Create or Select a Room</h4>
-              <p className="text-muted-foreground">
-                Create a new test room or select an existing one from the dropdown.
-              </p>
             </div>
-            <div>
-              <div className="w-8 h-8 rounded-full bg-primary/20 text-primary flex items-center justify-center font-bold mb-2">
-                2
+
+            {/* Card 2: Token server */}
+            <div className="group cursor-pointer rounded-xl border border-border/60 bg-white dark:bg-surface/30 hover:shadow-lg dark:hover:border-primary/40 transition-all overflow-hidden shadow-sm">
+              <div className="h-44 bg-slate-300/80 dark:bg-black/40 flex items-center justify-center relative">
+                <div className="absolute inset-0 opacity-10 dark:opacity-10" 
+                  style={{ backgroundImage: 'radial-gradient(circle, currentColor 1px, transparent 1px)', backgroundSize: '16px 16px' }} 
+                />
+                <div className="w-12 h-12 rounded-lg bg-white/40 dark:bg-muted/20 border border-white/20 flex items-center justify-center relative z-10 shadow-sm backdrop-blur-sm">
+                  <Database className="w-6 h-6 text-white" />
+                </div>
               </div>
-              <h4 className="font-medium text-foreground mb-1">Generate Access Token</h4>
-              <p className="text-muted-foreground">
-                Set your identity and generate a token to authenticate with the room.
-              </p>
+              <div className="p-5">
+                <h3 className="font-semibold text-foreground mb-1 group-hover:text-primary transition-colors">Token server</h3>
+                <p className="text-sm text-muted-foreground leading-relaxed">
+                  A hosted token server to help you prototype your mobile applications faster
+                </p>
+              </div>
             </div>
-            <div>
-              <div className="w-8 h-8 rounded-full bg-primary/20 text-primary flex items-center justify-center font-bold mb-2">
-                3
+
+            {/* Card 3: Video conference */}
+            <div className="group cursor-pointer rounded-xl border border-border/60 bg-white dark:bg-surface/30 hover:shadow-lg dark:hover:border-primary/40 transition-all overflow-hidden shadow-sm">
+              <div className="h-44 bg-slate-300/80 dark:bg-black/40 flex items-center justify-center relative p-6">
+                <div className="w-full h-full border border-white/20 rounded-md bg-white/20 backdrop-blur-sm flex gap-2 p-2 shadow-sm">
+                  <div className="flex-1 bg-white/20 rounded flex items-center justify-center">
+                    <Users className="w-6 h-6 text-white/40 dark:text-white/20" />
+                  </div>
+                  <div className="w-12 flex flex-col gap-2">
+                    <div className="h-10 bg-white/10 rounded" />
+                    <div className="h-10 border border-white/40 rounded bg-white/30" />
+                    <div className="h-10 bg-white/10 rounded" />
+                  </div>
+                </div>
               </div>
-              <h4 className="font-medium text-foreground mb-1">Connect and Test</h4>
-              <p className="text-muted-foreground">
-                Use the token with any LiveKit SDK or copy it for use in your application.
+              <div className="p-5">
+                <h3 className="font-semibold text-foreground mb-1 group-hover:text-primary transition-colors">Video conference</h3>
+                <p className="text-sm text-muted-foreground leading-relaxed">
+                  An open source video conferencing app built on LiveKit Components, LiveKit Cloud, and...
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Sandbox apps section */}
+        <section>
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-xl font-medium text-foreground">Sandbox apps</h2>
+          </div>
+
+          <div className="w-full min-h-[300px] rounded-xl border border-border/40 bg-zinc-50 dark:bg-surface/10 flex flex-col items-center justify-center text-center p-8 border-dashed">
+            <div className="mb-6 opacity-30 dark:opacity-40">
+              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-slate-400 dark:text-foreground">
+                <path d="M3 13h18"></path>
+                <path d="M12 13v8"></path>
+                <path d="m8 13-2 8"></path>
+                <path d="m16 13 2 8"></path>
+                <path d="M7 2h10l1 11H6L7 2Z"></path>
+              </svg>
+            </div>
+            <div className="max-w-md space-y-4">
+              <p className="text-muted-foreground text-sm leading-relaxed">
+                Sandbox allows you to quickly prototype apps and agents running in your cloud without the need to manage deployments and tokens. Read our <a href="#" className="text-primary hover:underline inline-flex items-center gap-0.5">sandbox documentation<ExternalLink className="w-3 h-3" /></a> to learn more.
               </p>
             </div>
           </div>
-        </Card>
+        </section>
       </div>
     </DashboardLayout>
   );
 }
+

@@ -22,10 +22,10 @@ export default function AgentOverviewPage() {
           { label: "Uptime (30d)", value: "99.99%", icon: Clock, trend: "Stable", trendUp: null },
           { label: "Success Rate", value: "98.2%", icon: Globe, trend: "+0.4%", trendUp: true }
         ].map((stat, i) => (
-          <div key={i} className="bg-white border border-border/60 rounded-xl p-5 shadow-sm hover:shadow-md transition-all duration-200 group">
+          <div key={i} className="bg-surface border border-border/60 rounded-xl p-5 shadow-sm hover:shadow-md transition-all duration-200 group">
             <div className="flex items-center justify-between mb-3">
               <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest">{stat.label}</span>
-              <div className="p-2 bg-muted/30 rounded-lg group-hover:text-primary transition-colors">
+              <div className="p-2 bg-muted/20 rounded-lg group-hover:text-primary transition-colors">
                 <stat.icon className="w-4 h-4" />
               </div>
             </div>
@@ -34,8 +34,8 @@ export default function AgentOverviewPage() {
               {stat.trend && (
                 <span className={cn(
                   "text-[10px] font-bold px-1.5 py-0.5 rounded-md",
-                  stat.trendUp === true ? "bg-green-50 text-green-600" : 
-                  stat.trendUp === false ? "bg-red-50 text-red-600" :
+                  stat.trendUp === true ? "bg-success/10 text-success" : 
+                  stat.trendUp === false ? "bg-error/10 text-error" :
                   "bg-muted text-muted-foreground"
                 )}>
                   {stat.trend}
@@ -49,7 +49,7 @@ export default function AgentOverviewPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Main Analytics Section */}
         <div className="lg:col-span-2 space-y-6">
-          <div className="bg-white border border-border/60 rounded-2xl overflow-hidden shadow-sm">
+          <div className="bg-surface border border-border/60 rounded-2xl overflow-hidden shadow-sm">
             <div className="px-6 py-5 border-b border-border/60 flex items-center justify-between">
                <div>
                  <h3 className="font-bold flex items-center gap-2 text-foreground">
@@ -58,11 +58,11 @@ export default function AgentOverviewPage() {
                  </h3>
                  <p className="text-xs text-muted-foreground mt-0.5">Real-time engagement and processing throughput.</p>
                </div>
-               <div className="flex bg-muted/30 p-1 rounded-lg border border-border/40">
+               <div className="flex bg-muted/20 p-1 rounded-lg border border-border/40">
                  {['24h', '7d', '30d'].map((p) => (
                    <button key={p} className={cn(
                      "px-3 py-1 text-[10px] font-bold uppercase tracking-wider rounded-md transition-all",
-                     p === '24h' ? "bg-white text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+                     p === '24h' ? "bg-surface text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
                    )}>
                      {p}
                    </button>
@@ -102,7 +102,7 @@ export default function AgentOverviewPage() {
             </div>
           </div>
 
-          <div className="bg-white border border-border/60 rounded-2xl overflow-hidden shadow-sm">
+          <div className="bg-surface border border-border/60 rounded-2xl overflow-hidden shadow-sm">
             <div className="px-6 py-5 border-b border-border/60 bg-muted/10">
               <h3 className="font-bold flex items-center gap-2 text-foreground">
                 <Database className="w-4.5 h-4.5 text-primary" />
@@ -132,14 +132,14 @@ export default function AgentOverviewPage() {
 
         {/* Info & Activity Feed */}
         <div className="space-y-6">
-          <div className="bg-white border border-border/60 rounded-2xl p-6 shadow-sm">
+          <div className="bg-surface border border-border/60 rounded-2xl p-6 shadow-sm">
             <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-5">Agent Identity</h3>
             <div className="space-y-5">
                <div className="p-4 bg-muted/20 rounded-xl border border-border/40">
                  <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1.5 flex items-center gap-1.5">
                    Internal ID <Info className="w-3 h-3" />
                  </div>
-                 <div className="font-mono text-sm text-foreground break-all bg-white px-2 py-1 rounded border border-border/40">{agentId}</div>
+                 <div className="font-mono text-sm text-foreground break-all bg-surface px-2 py-1 rounded border border-border/40">{agentId}</div>
                </div>
                
                <div className="space-y-4">
@@ -159,7 +159,7 @@ export default function AgentOverviewPage() {
             </div>
           </div>
 
-          <div className="bg-white border border-border/60 rounded-2xl p-6 shadow-sm">
+          <div className="bg-surface border border-border/60 rounded-2xl p-6 shadow-sm">
              <div className="flex items-center justify-between mb-5">
                <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Secrets & Safety</h3>
                <Shield className="w-4 h-4 text-amber-500" />
@@ -177,7 +177,7 @@ export default function AgentOverviewPage() {
           </div>
 
           <div className="bg-[oklch(0.627_0.265_273.15)]/5 rounded-2xl p-6 border border-[oklch(0.627_0.265_273.15)]/10 text-center">
-             <div className="w-10 h-10 bg-white shadow-sm rounded-lg flex items-center justify-center mx-auto mb-3">
+             <div className="w-10 h-10 bg-surface shadow-sm rounded-lg flex items-center justify-center mx-auto mb-3">
                <ArrowUpRight className="w-5 h-5 text-primary" />
              </div>
              <h4 className="text-sm font-bold text-foreground">Need help scaling?</h4>

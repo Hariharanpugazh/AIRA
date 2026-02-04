@@ -123,18 +123,18 @@ export default function ActionsPage() {
                     <div className="space-y-3">
                         <label className="text-[13px] font-bold text-foreground">Description</label>
                         <div className="text-[12px] text-muted-foreground">The tool's purpose, outcomes, usage instructions, and examples.</div>
-                        <textarea className="w-full h-24 rounded-lg border border-border/60 bg-white p-3 text-[12px] focus:outline-none focus:ring-2 focus:ring-primary/20" />
+                        <textarea className="w-full h-24 rounded-lg border border-border/60 bg-surface p-3 text-[12px] focus:outline-none focus:ring-2 focus:ring-primary/20" />
                     </div>
 
                     <div className="grid grid-cols-3 gap-4">
                         <div className="space-y-3">
                             <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest px-1">HTTP method</label>
                             <div className="relative">
-                                <select className="flex h-10 w-full rounded-lg border border-border/60 bg-[#F2F2F2] px-3 py-2 text-sm appearance-none">
+                                <select className="flex h-10 w-full rounded-lg border border-border/60 bg-muted/20 px-3 py-2 text-sm appearance-none focus:outline-none focus:ring-2 focus:ring-primary/20">
                                     <option>GET</option>
                                     <option>POST</option>
                                 </select>
-                                <ChevronDown className="absolute right-3 top-3 w-4 h-4 text-muted-foreground/40" />
+                                <ChevronDown className="absolute right-3 top-3 w-4 h-4 text-muted-foreground/40 pointer-events-none" />
                             </div>
                         </div>
                         <div className="col-span-2 space-y-3">
@@ -190,7 +190,7 @@ export default function ActionsPage() {
                     <div className="space-y-3">
                         <label className="text-[13px] font-bold text-foreground">Description</label>
                         <div className="text-[12px] text-muted-foreground">The tool's purpose, outcomes, usage instructions, and examples.</div>
-                        <textarea className="w-full h-24 rounded-lg border border-border/60 bg-white p-3 text-[12px] focus:outline-none focus:ring-2 focus:ring-primary/20" />
+                        <textarea className="w-full h-24 rounded-lg border border-border/60 bg-surface p-3 text-[12px] focus:outline-none focus:ring-2 focus:ring-primary/20" />
                     </div>
 
                     <div className="space-y-3">

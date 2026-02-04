@@ -32,7 +32,7 @@ export default function ModelsPage() {
                         </div>
                     </div>
 
-                    <div className="border border-border/60 bg-white rounded-lg p-4 cursor-pointer relative hover:border-border transition-colors">
+                    <div className="border border-border/60 bg-surface rounded-lg p-4 cursor-pointer relative hover:border-border transition-colors">
                         <div className="flex justify-between items-start">
                              <div className="space-y-1">
                                 <span className="text-[13px] font-bold text-foreground block">Realtime model</span>
@@ -61,7 +61,7 @@ export default function ModelsPage() {
                     <div className="space-y-2">
                         <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest px-1">Model</label>
                         <div className="relative">
-                            <select className="flex h-10 w-full rounded-lg border border-border/60 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 appearance-none">
+                            <select className="flex h-10 w-full rounded-lg border border-border/60 bg-muted/20 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 appearance-none">
                                 <option>Cartesia Sonic 3</option>
                             </select>
                             <ChevronDown className="absolute right-3 top-3 w-4 h-4 text-muted-foreground/40 pointer-events-none" />
@@ -70,7 +70,7 @@ export default function ModelsPage() {
                     <div className="space-y-2">
                         <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest px-1">Voice</label>
                         <div className="relative">
-                            <select className="flex h-10 w-full rounded-lg border border-border/60 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 appearance-none">
+                            <select className="flex h-10 w-full rounded-lg border border-border/60 bg-muted/20 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 appearance-none">
                                 <option>Jacqueline English</option>
                             </select>
                             <ChevronDown className="absolute right-3 top-3 w-4 h-4 text-muted-foreground/40 pointer-events-none" />
@@ -95,7 +95,7 @@ export default function ModelsPage() {
                 <div className="space-y-2">
                     <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest px-1">Model</label>
                     <div className="relative">
-                        <select className="flex h-10 w-full rounded-lg border border-border/60 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 appearance-none">
+                        <select className="flex h-10 w-full rounded-lg border border-border/60 bg-muted/20 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 appearance-none">
                             <option>GPT-4o mini</option>
                         </select>
                         <ChevronDown className="absolute right-3 top-3 w-4 h-4 text-muted-foreground/40 pointer-events-none" />
@@ -120,7 +120,7 @@ export default function ModelsPage() {
                     <div className="col-span-3 space-y-2">
                         <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest px-1">Model</label>
                         <div className="relative">
-                            <select className="flex h-10 w-full rounded-lg border border-border/60 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 appearance-none">
+                            <select className="flex h-10 w-full rounded-lg border border-border/60 bg-muted/20 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 appearance-none">
                                 <option>AssemblyAI Universal-Streaming</option>
                             </select>
                             <ChevronDown className="absolute right-3 top-3 w-4 h-4 text-muted-foreground/40 pointer-events-none" />
@@ -129,7 +129,7 @@ export default function ModelsPage() {
                     <div className="col-span-2 space-y-2">
                         <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest px-1">Language</label>
                         <div className="relative">
-                            <select className="flex h-10 w-full rounded-lg border border-border/60 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 appearance-none">
+                            <select className="flex h-10 w-full rounded-lg border border-border/60 bg-muted/20 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 appearance-none">
                                 <option>English</option>
                             </select>
                             <ChevronDown className="absolute right-3 top-3 w-4 h-4 text-muted-foreground/40 pointer-events-none" />
@@ -152,7 +152,7 @@ export default function ModelsPage() {
                 </div>
 
                 <div className="relative">
-                    <select className="flex h-10 w-full rounded-lg border border-border/60 bg-[#F2F2F2] px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 appearance-none">
+                    <select className="flex h-10 w-full rounded-lg border border-border/60 bg-muted/20 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 appearance-none">
                         <option>None</option>
                     </select>
                     <ChevronDown className="absolute right-3 top-3 w-4 h-4 text-muted-foreground/40 pointer-events-none" />

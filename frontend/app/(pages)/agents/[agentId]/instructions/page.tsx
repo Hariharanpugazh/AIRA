@@ -42,7 +42,7 @@ You are interacting with the user via voice, and must apply the following rules 
                 <input
                     type="text"
                     defaultValue="Finley-1e01"
-                    className="w-full bg-white border border-border/60 rounded-lg px-4 py-2.5 text-[13px] text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/40 transition-all"
+                    className="w-full bg-surface border border-border/60 rounded-lg px-4 py-2.5 text-[13px] text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/40 transition-all"
                 />
             </div>
 
@@ -55,7 +55,7 @@ You are interacting with the user via voice, and must apply the following rules 
                     Define your agent's personality, tone, and behavior guidelines. <a href="#" className="underline decoration-muted-foreground/30 hover:decoration-primary text-muted-foreground/80">Learn more</a>
                 </div>
                 
-                <div className="border border-border/60 rounded-lg overflow-hidden flex flex-col bg-white">
+                <div className="border border-border/60 rounded-lg overflow-hidden flex flex-col bg-surface">
                     <div className="px-4 py-2 border-b border-border/40 bg-muted/5 flex items-center justify-end">
                         <Button variant="ghost" size="sm" className="h-7 text-[11px] font-bold text-muted-foreground hover:text-foreground hover:bg-transparent">
                             <Plus className="w-3.5 h-3.5 mr-1" />
@@ -105,7 +105,7 @@ You are interacting with the user via voice, and must apply the following rules 
                                 <span className="text-[11px] font-bold uppercase tracking-widest">Insert variable</span>
                             </button>
                         </div>
-                        <div className="border border-border/60 rounded-lg overflow-hidden bg-white">
+                        <div className="border border-border/60 rounded-lg overflow-hidden bg-surface">
                             <textarea
                                 defaultValue="Greet the user and offer your assistance."
                                 className="w-full h-32 bg-transparent p-4 text-[13px] text-foreground leading-relaxed resize-none focus:outline-none"

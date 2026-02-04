@@ -20,7 +20,7 @@ interface ChartDataPoint {
 
 export function AgentStatCard({ title, value, subValue }: AgentStatCardProps) {
     return (
-        <Card className="p-6 relative overflow-hidden group bg-white border-border/40 shadow-sm hover:shadow-md transition-shadow">
+        <Card className="p-6 relative overflow-hidden group bg-surface border-border/40 shadow-sm hover:shadow-md transition-shadow">
             <div className="relative z-10">
                 <div className="flex items-center gap-2 mb-2">
                     <h3 className="text-[10px] font-bold text-muted-foreground tracking-[0.15em] uppercase">{title}</h3>
@@ -75,7 +75,7 @@ export function AgentSessionsChart() {
     }, []);
 
     return (
-        <Card className="p-8 h-[450px] bg-white border-border/40 shadow-sm transition-all">
+        <Card className="p-8 h-[450px] bg-surface border-border/40 shadow-sm transition-all">
             <div className="flex items-center justify-between mb-10">
                 <div className="space-y-1">
                     <div className="flex items-center gap-2">
@@ -127,7 +127,7 @@ export function AgentSessionsChart() {
                                 content={({ active, payload }) => {
                                     if (active && payload && payload.length) {
                                         return (
-                                            <div className="bg-white border border-border/40 p-3 rounded-xl shadow-xl space-y-2">
+                                            <div className="bg-surface border border-border/40 p-3 rounded-xl shadow-xl space-y-2">
                                                 <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest">{payload[0].payload.name}</p>
                                                 <div className="space-y-1">
                                                     <div className="flex items-center justify-between gap-8">

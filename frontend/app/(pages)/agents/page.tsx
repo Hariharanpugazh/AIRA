@@ -196,7 +196,7 @@ export default function AgentsPage() {
                 </Button>
 
                 {isDropdownOpen && (
-                <div className="absolute right-0 top-full mt-2 w-72 bg-white border border-border/40 rounded-xl shadow-2xl z-[100] p-1.5 animate-in fade-in slide-in-from-top-2 duration-200">
+                <div className="absolute right-0 top-full mt-2 w-72 bg-surface border border-border/40 rounded-xl shadow-2xl z-[100] p-1.5 animate-in fade-in slide-in-from-top-2 duration-200">
                     <button
                     onClick={handleStartInBrowser}
                     disabled={creating}

@@ -33,7 +33,7 @@ export default function AgentLayout({ children }: AgentLayoutProps) {
     <DashboardLayout>
       <div className="flex flex-col h-screen overflow-hidden bg-background">
         {/* Agent Header */}
-        <header className="flex items-center justify-between px-6 py-4 border-b border-border/40 bg-white">
+        <header className="flex items-center justify-between px-6 py-4 border-b border-border/40 bg-surface">
           <div className="flex items-center gap-4">
             <Link href="/agents" className="p-2 hover:bg-muted/50 rounded-lg transition-colors border border-border/40">
               <ArrowLeft className="w-4 h-4 text-muted-foreground" />
@@ -72,7 +72,7 @@ export default function AgentLayout({ children }: AgentLayoutProps) {
         </header>
 
         {/* Tab Navigation */}
-        <div className="px-10 border-b border-border/40 bg-white sticky top-0 z-20">
+        <div className="px-10 border-b border-border/40 bg-surface sticky top-0 z-20">
           <div className="flex items-center gap-8">
             {tabs.map((tab) => (
               <Link
@@ -81,7 +81,7 @@ export default function AgentLayout({ children }: AgentLayoutProps) {
                 className={cn(
                   "py-3 text-[13px] font-bold transition-all duration-200 border-b-2 -mb-[1px]",
                   isActive(tab.path)
-                    ? "border-[#4F46E5] text-[#4F46E5]"
+                    ? "border-primary text-primary"
                     : "border-transparent text-muted-foreground hover:text-foreground"
                 )}
               >
@@ -92,14 +92,14 @@ export default function AgentLayout({ children }: AgentLayoutProps) {
         </div>
 
         {/* Main Content Area */}
-        <div className="flex-1 overflow-hidden flex bg-white">
+        <div className="flex-1 overflow-hidden flex bg-surface">
           {/* Scrollable Children (Left Panel) */}
           <div className="flex-1 overflow-y-auto relative custom-scrollbar border-r border-border/40">
             {children}
           </div>
 
           {/* Right Panel (Preview/Code) */}
-          <div className="hidden lg:block w-[500px] flex-shrink-0 relative z-10 bg-[#F8F9FB]">
+          <div className="hidden lg:block w-[500px] flex-shrink-0 relative z-10 bg-muted/5">
             <AgentPreview />
           </div>
         </div>

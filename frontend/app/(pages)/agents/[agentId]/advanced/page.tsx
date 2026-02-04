@@ -20,11 +20,11 @@ export default function AdvancedPage() {
                         Define custom metadata that is passed to your agent. <a href="#" className="underline decoration-muted-foreground/30 hover:decoration-primary text-muted-foreground/80">Learn more</a>
                     </div>
                     
-                    <div className="grid grid-cols-12 gap-4 items-end bg-white border border-border/40 rounded-xl p-4 shadow-sm">
+                    <div className="grid grid-cols-12 gap-4 items-end bg-surface border border-border/60 rounded-xl p-4 shadow-sm">
                         <div className="col-span-2 space-y-2">
                             <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest px-1">Type</label>
                             <div className="relative">
-                                <select className="flex h-10 w-full rounded-lg border border-border/60 bg-[#F2F2F2] px-3 py-2 text-[13px] appearance-none">
+                                <select className="flex h-10 w-full rounded-lg border border-border/60 bg-muted/20 px-3 py-2 text-[13px] appearance-none focus:outline-none focus:ring-2 focus:ring-primary/20">
                                     <option>String</option>
                                 </select>
                                 <ChevronDown className="absolute right-3 top-3 w-4 h-4 text-muted-foreground/40 pointer-events-none" />
@@ -41,7 +41,7 @@ export default function AdvancedPage() {
                             <Input defaultValue="John Doe" className="h-10 text-[13px]" />
                         </div>
                         <div className="col-span-1 pb-1">
-                            <Button variant="ghost" size="sm" className="h-9 w-9 p-0 hover:bg-red-50 hover:text-red-500 text-muted-foreground/40">
+                            <Button variant="ghost" size="sm" className="h-9 w-9 p-0 hover:bg-error/10 hover:text-error text-muted-foreground/40">
                                 <Trash2 className="w-4 h-4" />
                             </Button>
                         </div>
@@ -71,7 +71,7 @@ export default function AdvancedPage() {
                         Define secrets to be set as environment variables for your agent, and for use in HTTP tool calls. <a href="#" className="underline decoration-muted-foreground/30 hover:decoration-primary text-muted-foreground/80">Learn more</a>
                     </div>
 
-                    <div className="grid grid-cols-12 gap-4 items-end bg-white border border-border/40 rounded-xl p-4 shadow-sm">
+                    <div className="grid grid-cols-12 gap-4 items-end bg-surface border border-border/60 rounded-xl p-4 shadow-sm">
                         <div className="col-span-5 space-y-2">
                             <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest px-1">Key</label>
                             <Input defaultValue="MY_API_KEY" className="h-10 text-[13px]" />
@@ -81,7 +81,7 @@ export default function AdvancedPage() {
                             <Input defaultValue="********************" className="h-10 text-[13px]" />
                         </div>
                         <div className="col-span-1 pb-1">
-                            <Button variant="ghost" size="sm" className="h-9 w-9 p-0 hover:bg-red-50 hover:text-red-500 text-muted-foreground/40">
+                            <Button variant="ghost" size="sm" className="h-9 w-9 p-0 hover:bg-error/10 hover:text-error text-muted-foreground/40">
                                 <Trash2 className="w-4 h-4" />
                             </Button>
                         </div>

@@ -1,144 +1,199 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import React, { useState } from "react";
 import { DashboardLayout } from "../../../../components/layouts/DashboardLayout";
 import Header from "../../../components/Header";
-import { SearchSmIcon } from "../../../components/icons";
 import { Button } from "../../../../components/ui/Button";
-import { getAccessToken, getApiKeys, createApiKey, deleteApiKey } from "../../../../lib/api";
+import { Modal } from "../../../../components/ui/Modal";
+import { Search, Copy, Trash2, Check } from "lucide-react";
+
+interface ApiKey {
+  id: string;
+  name: string;
+  prefix: string;
+  owner: string;
+  createdAt: string;
+  isOwned: boolean;
+}
+
+const mockKeys: ApiKey[] = [
+  {
+    id: "1",
+    name: "(none)",
+    prefix: "API2NpTxw5u6BaS",
+    owner: "Hariharan P",
+    createdAt: "Feb 2, 2026",
+    isOwned: true,
+  },
+];
 
 export default function ApiKeysPage() {
-  const router = useRouter();
-  const [projectName, setProjectName] = useState<string>("");
-  const [keys, setKeys] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [keys, setKeys] = useState<ApiKey[]>(mockKeys);
+  const [activeTab, setActiveTab] = useState<"own" | "other">("own");
   const [showCreate, setShowCreate] = useState(false);
-  const [newKeyName, setNewKeyName] = useState("");
-  const [newKeySecret, setNewKeySecret] = useState<string | null>(null);
+  const [keyDescription, setKeyDescription] = useState("");
+  const [generatedKey, setGeneratedKey] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [copied, setCopied] = useState(false);
 
-  useEffect(() => {
-    const loadData = async () => {
-      const token = getAccessToken();
-      if (!token) {
-        router.push("/login");
-        return;
-      }
-      try {
-        const [keysData] = await Promise.all([
-          getApiKeys()
-        ]);
-        setKeys(keysData);
-        setProjectName(localStorage.getItem("projectName") || "My Project");
-      } catch (error) {
+  const ownKeys = keys.filter((k) => k.isOwned);
+  const otherKeys = keys.filter((k) => !k.isOwned);
+  const displayKeys = activeTab === "own" ? ownKeys : otherKeys;
 
-      } finally {
-        setLoading(false);
-      }
+  const filteredKeys = displayKeys.filter(
+    (k) =>
+      k.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      k.prefix.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      k.owner.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const handleGenerateKey = () => {
+    if (!keyDescription.trim()) return;
+
+    const newKey: ApiKey = {
+      id: Date.now().toString(),
+      name: keyDescription,
+      prefix: "SK" + Math.random().toString(36).substring(2, 15).toUpperCase(),
+      owner: "Hariharan P",
+      createdAt: new Date().toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+      }),
+      isOwned: true,
     };
-    loadData();
-  }, [router]);
 
-  const handleCreate = async () => {
-    if (!newKeyName.trim()) return;
-    try {
-      const newKey = await createApiKey(newKeyName);
-      setKeys([newKey, ...keys]);
-      setNewKeySecret(newKey.secret_key || "");
-      setNewKeyName("");
-    } catch (error) {
+    setGeneratedKey("sk_live_" + Math.random().toString(36).substring(2, 32));
+    setKeys([newKey, ...keys]);
+  };
 
+  const handleCopyKey = () => {
+    if (generatedKey) {
+      navigator.clipboard.writeText(generatedKey);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm("Delete this API key?")) return;
-    try {
-      await deleteApiKey(id);
-      setKeys(keys.filter(k => k.id !== id));
-    } catch (error) {
-
+  const handleDelete = (id: string) => {
+    if (confirm("Are you sure you want to delete this API key?")) {
+      setKeys(keys.filter((k) => k.id !== id));
     }
   };
-
-  if (loading) return null;
 
   return (
     <DashboardLayout>
-      <Header projectName={projectName} pageName="Keys" showTimeRange={false}
+      <Header
+        projectName="Default Project"
+        pageName="Keys"
+        showTimeRange={false}
         actionButton={
-          <Button size="sm" onClick={() => setShowCreate(true)} variant="primary">
-            Create key
-          </Button>
+          <Button onClick={() => setShowCreate(true)}>Create key</Button>
         }
       />
 
-      <div className="p-8 max-w-5xl mx-auto">
+      <div className="p-4 md:p-8 animate-fade-in max-w-5xl">
+        {/* Section Header */}
         <div className="mb-8">
-          <h1 className="text-xl font-semibold text-foreground mb-2">API keys</h1>
-          <p className="text-secondary text-sm">Manage project access keys.</p>
+          <h2 className="text-2xl font-semibold text-foreground mb-2">API keys</h2>
+          <p className="text-muted-foreground">Manage project access keys.</p>
         </div>
 
-
-        {showCreate && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-            <div className="bg-surface border border-border rounded-xl p-6 w-full max-w-md">
-              <h3 className="text-lg font-medium text-foreground mb-4">Create API Key</h3>
-
-              {!newKeySecret ? (
-                <>
-                  <input
-                    autoFocus
-                    type="text"
-                    placeholder="Key name (e.g. Production)"
-                    value={newKeyName}
-                    onChange={(e) => setNewKeyName(e.target.value)}
-                    className="w-full bg-surface border border-border rounded-lg px-4 py-2 text-foreground mb-4 focus:outline-none focus:border-primary"
-                  />
-                  <div className="flex justify-end gap-3">
-                    <Button variant="ghost" onClick={() => setShowCreate(false)}>Cancel</Button>
-                    <Button onClick={handleCreate} disabled={!newKeyName}>Create</Button>
-                  </div>
-                </>
-              ) : (
-                <>
-                  <div className="bg-primary/10 border border-primary/20 text-primary p-3 rounded-lg mb-4 text-sm break-all font-mono">
-                    {newKeySecret}
-                  </div>
-                  <p className="text-xs text-secondary mb-4">Copy this key now. You won't see it again.</p>
-                  <Button className="w-full" onClick={() => { setShowCreate(false); setNewKeySecret(null); }}>Done</Button>
-                </>
-              )}
+        {/* Tabs and Search */}
+        <div className="mb-6">
+          <div className="flex items-center justify-between border-b border-border/40 mb-4">
+            <div className="flex gap-6">
+              <button
+                onClick={() => setActiveTab("own")}
+                className={`pb-3 px-1 font-medium text-sm transition-colors ${
+                  activeTab === "own"
+                    ? "text-foreground border-b-2 border-primary"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                Your API keys
+              </button>
+              <button
+                onClick={() => setActiveTab("other")}
+                className={`pb-3 px-1 font-medium text-sm transition-colors ${
+                  activeTab === "other"
+                    ? "text-foreground border-b-2 border-primary"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                Other API keys
+              </button>
+            </div>
+            <div className="relative hidden sm:block">
+              <input
+                type="text"
+                placeholder="Search..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10 pr-4 py-2 rounded-lg bg-white dark:bg-muted/20 border border-border/40 text-sm text-foreground placeholder-muted-foreground focus:outline-none focus:border-primary/50"
+              />
+              <Search className="absolute left-3 top-2.5 w-4 h-4 text-muted-foreground pointer-events-none" />
             </div>
           </div>
-        )}
+        </div>
 
-
-        <div className="rounded-lg bg-surface border border-border overflow-hidden">
+        {/* Table */}
+        <div className="rounded-lg border border-border/40 bg-white dark:bg-surface/30 overflow-hidden">
           <table className="w-full">
             <thead>
-              <tr className="border-b border-border">
-                <th className="text-left px-4 py-3 text-secondary text-[11px] font-medium uppercase tracking-wider">Name</th>
-                <th className="text-left px-4 py-3 text-secondary text-[11px] font-medium uppercase tracking-wider">Prefix</th>
-                <th className="text-left px-4 py-3 text-secondary text-[11px] font-medium uppercase tracking-wider">Created</th>
+              <tr className="border-b border-border/40 bg-gray-50 dark:bg-muted/20">
+                <th className="text-left px-6 py-4 text-muted-foreground text-xs font-semibold uppercase tracking-wider">
+                  Description
+                </th>
+                <th className="text-left px-6 py-4 text-muted-foreground text-xs font-semibold uppercase tracking-wider">
+                  API Key
+                </th>
+                <th className="text-left px-6 py-4 text-muted-foreground text-xs font-semibold uppercase tracking-wider">
+                  Owner
+                </th>
+                <th className="text-left px-6 py-4 text-muted-foreground text-xs font-semibold uppercase tracking-wider">
+                  Issued On
+                </th>
                 <th className="w-10"></th>
               </tr>
             </thead>
-            <tbody>
-              {keys.length === 0 ? (
-                <tr><td colSpan={4} className="p-8 text-center text-secondary">No API keys found</td></tr>
+            <tbody className="divide-y divide-border/40">
+              {filteredKeys.length === 0 ? (
+                <tr>
+                  <td colSpan={5} className="px-6 py-12 text-center">
+                    <div className="text-muted-foreground">
+                      {activeTab === "own"
+                        ? "No API keys yet. Create one to get started."
+                        : "No other API keys to display."}
+                    </div>
+                  </td>
+                </tr>
               ) : (
-                keys.map(key => (
-                  <tr key={key.id} className="border-b border-border last:border-0 hover:bg-surface-hover transition-colors">
-                    <td className="px-4 py-3 text-[13px] text-foreground font-medium">{key.name}</td>
-                    <td className="px-4 py-3 text-[13px] font-mono text-secondary">{key.key_prefix}...</td>
-                    <td className="px-4 py-3 text-secondary text-[13px]">{new Date(key.created_at).toLocaleDateString()}</td>
-                    <td className="px-4 py-3">
-                      <button onClick={() => handleDelete(key.id)} className="text-red-500/70 hover:text-red-500 transition-colors p-1">
-                        <svg viewBox="0 0 24 24" className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2">
-                          <path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                        </svg>
-                      </button>
+                filteredKeys.map((key) => (
+                  <tr
+                    key={key.id}
+                    className="hover:bg-gray-50 dark:hover:bg-muted/10 transition-colors"
+                  >
+                    <td className="px-6 py-4 text-sm text-foreground font-medium">
+                      {key.name}
+                    </td>
+                    <td className="px-6 py-4 text-sm font-mono text-muted-foreground">
+                      {key.prefix}
+                    </td>
+                    <td className="px-6 py-4 text-sm text-foreground">{key.owner}</td>
+                    <td className="px-6 py-4 text-sm text-muted-foreground">
+                      {key.createdAt}
+                    </td>
+                    <td className="px-6 py-4">
+                      {activeTab === "own" && (
+                        <button
+                          onClick={() => handleDelete(key.id)}
+                          className="p-2 rounded-lg text-red-500/60 hover:text-red-500 hover:bg-red-500/10 transition-colors"
+                          title="Delete API key"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      )}
                     </td>
                   </tr>
                 ))
@@ -147,6 +202,112 @@ export default function ApiKeysPage() {
           </table>
         </div>
       </div>
+
+      {/* Create API Key Modal */}
+      <Modal
+        isOpen={showCreate}
+        onClose={() => {
+          setShowCreate(false);
+          setGeneratedKey(null);
+          setKeyDescription("");
+        }}
+        title="Create new API key"
+        footer={
+          generatedKey ? (
+            <div className="flex gap-2">
+              <Button
+                variant="ghost"
+                onClick={() => {
+                  setShowCreate(false);
+                  setGeneratedKey(null);
+                  setKeyDescription("");
+                }}
+              >
+                Done
+              </Button>
+            </div>
+          ) : (
+            <div className="flex gap-2">
+              <Button
+                variant="ghost"
+                onClick={() => {
+                  setShowCreate(false);
+                  setKeyDescription("");
+                }}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleGenerateKey}
+                disabled={!keyDescription.trim()}
+              >
+                Generate key
+              </Button>
+            </div>
+          )
+        }
+      >
+        {!generatedKey ? (
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Add a description to your key. This will help you identify it later.
+            </p>
+
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-2">
+                Key description
+              </label>
+              <input
+                type="text"
+                value={keyDescription}
+                onChange={(e) => setKeyDescription(e.target.value)}
+                placeholder="Key for iOS client"
+                onKeyDown={(e) =>
+                  e.key === "Enter" &&
+                  keyDescription.trim() &&
+                  handleGenerateKey()
+                }
+                autoFocus
+                className="w-full px-4 py-2.5 rounded-lg bg-white dark:bg-muted/20 border border-border/60 text-foreground placeholder-muted-foreground focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/30"
+              />
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            <div className="p-4 bg-green-50 dark:bg-green-500/10 border border-green-200 dark:border-green-500/20 rounded-lg">
+              <p className="text-sm text-green-800 dark:text-green-400 font-medium mb-3">
+                API key created successfully
+              </p>
+              <p className="text-xs text-green-700 dark:text-green-500 mb-3">
+                Copy this key now. You won't be able to see it again.
+              </p>
+
+              <div className="bg-white dark:bg-muted/20 rounded-lg p-3 font-mono text-xs text-foreground break-all border border-border/40 mb-3">
+                {generatedKey}
+              </div>
+
+              <Button
+                size="sm"
+                variant={copied ? "ghost" : "outline"}
+                onClick={handleCopyKey}
+                className="w-full flex items-center justify-center gap-2"
+              >
+                {copied ? (
+                  <>
+                    <Check className="w-4 h-4" />
+                    Copied!
+                  </>
+                ) : (
+                  <>
+                    <Copy className="w-4 h-4" />
+                    Copy to clipboard
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
+        )}
+      </Modal>
     </DashboardLayout>
   );
 }
