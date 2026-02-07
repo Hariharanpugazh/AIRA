@@ -5,11 +5,9 @@ import { useRouter } from "next/navigation";
 import { DashboardLayout } from "../../../components/layouts/DashboardLayout";
 import Header from "../../components/Header";
 import { Card } from "../../../components/ui/Card";
-import { Video, RefreshCw, Search, Filter, ChevronLeft, ChevronRight, Phone, Users as UsersIcon, Bot, ChevronDown } from "lucide-react";
+import { RefreshCw, Search, Filter, ChevronLeft, ChevronRight, Phone, Users as UsersIcon, Bot, ChevronDown } from "lucide-react";
 import { Button } from "../../../components/ui/Button";
 import { getAccessToken, getSessions, getSessionStats, User, Session, SessionStats, SessionsListResponse } from "../../../lib/api";
-import { createRoom } from "../../../lib/api";
-import { Modal } from "../../../components/ui/Modal";
 import { cn } from "../../../lib/utils";
 
 const formatDuration = (seconds: number) => {
@@ -39,10 +37,6 @@ export default function SessionsPage() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
-
-  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-  const [newRoomName, setNewRoomName] = useState("");
-  const [createLoading, setCreateLoading] = useState(false);
 
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedSearch(searchQuery), 500);
@@ -77,76 +71,75 @@ export default function SessionsPage() {
     loadData();
   }, [loadData]);
 
-  const handleCreateRoom = async () => {
-    if (!newRoomName.trim()) return;
-    setCreateLoading(true);
-    try {
-      await createRoom(newRoomName);
-      setNewRoomName("");
-      setIsCreateModalOpen(false);
-      setTimeout(loadData, 1000);
-    } catch (e) {
-      alert("Failed to create room");
-    } finally {
-      setCreateLoading(false);
-    }
-  };
-
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-primary"></div>
+  // Skeleton components
+  const SkeletonCard = () => (
+    <Card className="p-6 border-border/60 shadow-sm bg-background/50 backdrop-blur-sm">
+      <div className="animate-pulse">
+        <div className="flex items-center gap-2 mb-4">
+          <div className="h-4 bg-muted rounded w-32"></div>
+          <div className="w-3.5 h-3.5 rounded-full bg-muted"></div>
+        </div>
+        <div className="h-10 bg-muted rounded w-16"></div>
       </div>
-    );
-  }
+    </Card>
+  );
 
-  const projectName = localStorage.getItem("projectName") || "Relatim";
+  const SkeletonTableRow = () => (
+    <tr className="animate-pulse">
+      <td className="px-6 py-4"><div className="h-4 bg-muted rounded w-24"></div></td>
+      <td className="px-6 py-4"><div className="h-4 bg-muted rounded w-20"></div></td>
+      <td className="px-6 py-4"><div className="h-4 bg-muted rounded w-28"></div></td>
+      <td className="px-6 py-4"><div className="h-4 bg-muted rounded w-28"></div></td>
+      <td className="px-6 py-4"><div className="h-4 bg-muted rounded w-16"></div></td>
+      <td className="px-6 py-4"><div className="h-4 bg-muted rounded w-12"></div></td>
+      <td className="px-6 py-4"><div className="h-4 bg-muted rounded w-16"></div></td>
+      <td className="px-6 py-4 text-right"><div className="h-6 bg-muted rounded w-16 ml-auto"></div></td>
+    </tr>
+  );
 
   return (
     <DashboardLayout>
       <Header
-        projectName={projectName}
+        projectName="Divith"
         pageName="Sessions"
         showTimeRange={true}
         onRefresh={loadData}
-        actionButton={
-          <div className="flex gap-2">
-            <Button onClick={() => setIsCreateModalOpen(true)} size="sm">
-              <Video className="w-4 h-4 mr-2" />
-              Create Room
-            </Button>
-          </div>
-        }
       />
 
       <div className="p-6 md:p-8 space-y-8 max-w-[1600px] mx-auto">
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <Card className="p-6 border-border/60 shadow-sm bg-background/50 backdrop-blur-sm">
-            <div className="flex items-center gap-2 text-[11px] font-bold text-muted-foreground uppercase tracking-widest mb-4">
-              Unique Participants
-              <button className="opacity-40 hover:opacity-100 transition-opacity">
-                <div className="w-3.5 h-3.5 rounded-full border border-current flex items-center justify-center text-[10px]">i</div>
-              </button>
-            </div>
-            <div className="text-[42px] font-light text-foreground tracking-tight">
-              {stats?.unique_participants || 0}
-            </div>
-          </Card>
+        {loading ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <SkeletonCard />
+            <SkeletonCard />
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <Card className="p-6 border-border/60 shadow-sm bg-background/50 backdrop-blur-sm">
+              <div className="flex items-center gap-2 text-[11px] font-bold text-muted-foreground uppercase tracking-widest mb-4">
+                Unique Participants
+                <button className="opacity-40 hover:opacity-100 transition-opacity">
+                  <div className="w-3.5 h-3.5 rounded-full border border-current flex items-center justify-center text-[10px]">i</div>
+                </button>
+              </div>
+              <div className="text-[42px] font-light text-foreground tracking-tight">
+                {stats?.unique_participants || 0}
+              </div>
+            </Card>
 
-          <Card className="p-6 border-border/60 shadow-sm bg-background/50 backdrop-blur-sm">
-            <div className="flex items-center gap-2 text-[11px] font-bold text-muted-foreground uppercase tracking-widest mb-4">
-              Total Rooms
-              <button className="opacity-40 hover:opacity-100 transition-opacity">
-                <div className="w-3.5 h-3.5 rounded-full border border-current flex items-center justify-center text-[10px]">i</div>
-              </button>
-            </div>
-            <div className="text-[42px] font-light text-foreground tracking-tight">
-              {stats?.total_rooms || 0}
-            </div>
-          </Card>
-        </div>
-
+            <Card className="p-6 border-border/60 shadow-sm bg-background/50 backdrop-blur-sm">
+              <div className="flex items-center gap-2 text-[11px] font-bold text-muted-foreground uppercase tracking-widest mb-4">
+                Total Rooms
+                <button className="opacity-40 hover:opacity-100 transition-opacity">
+                  <div className="w-3.5 h-3.5 rounded-full border border-current flex items-center justify-center text-[10px]">i</div>
+                </button>
+              </div>
+              <div className="text-[42px] font-light text-foreground tracking-tight">
+                {stats?.total_rooms || 0}
+              </div>
+            </Card>
+          </div>
+        )}
 
         {/* Sessions Section */}
         <div className="space-y-4">
@@ -189,73 +182,79 @@ export default function SessionsPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border/50">
-                  {sessionsData?.data.map((session) => (
-                    <tr
-                      key={session.sid}
-                      className="group hover:bg-muted/30 transition-colors cursor-pointer"
-                      onClick={() => session.status === 'active' && router.push(`/sessions/${encodeURIComponent(session.room_name)}`)}
-                    >
-                      <td className="px-6 py-4 font-mono text-[11px] text-muted-foreground opacity-70">
-                        {session.sid}
-                      </td>
-                      <td className="px-6 py-4 font-medium text-foreground">
-                        {session.room_name}
-                      </td>
-                      <td className="px-6 py-4 text-muted-foreground whitespace-nowrap">
-                        {formatDate(session.start_time)}
-                      </td>
-                      <td className="px-6 py-4 text-muted-foreground whitespace-nowrap">
-                        {session.end_time ? formatDate(session.end_time) : "-"}
-                      </td>
-                      <td className="px-6 py-4 text-foreground">
-                        {session.status === 'active' ? (
-                          <span className="flex items-center gap-2 text-primary font-medium">
-                            <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
-                            Live
-                          </span>
-                        ) : (
-                          formatDuration(session.duration)
-                        )}
-                      </td>
-                      <td className="px-6 py-4 text-foreground">
-                        {session.total_participants}
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="flex gap-1.5 flex-wrap">
-                          {session.features?.map(f => (
-                            <span key={f} className="inline-flex items-center px-1.5 py-0.5 rounded bg-muted text-[10px] font-medium text-muted-foreground">
-                              {f}
+                  {loading ? (
+                    Array.from({ length: 5 }).map((_, i) => <SkeletonTableRow key={i} />)
+                  ) : (
+                    <>
+                      {sessionsData?.data.map((session) => (
+                        <tr
+                          key={session.sid}
+                          className="group hover:bg-muted/30 transition-colors cursor-pointer"
+                          onClick={() => session.status === 'active' && router.push(`/sessions/${encodeURIComponent(session.room_name)}`)}
+                        >
+                          <td className="px-6 py-4 font-mono text-[11px] text-muted-foreground opacity-70">
+                            {session.sid}
+                          </td>
+                          <td className="px-6 py-4 font-medium text-foreground">
+                            {session.room_name}
+                          </td>
+                          <td className="px-6 py-4 text-muted-foreground whitespace-nowrap">
+                            {formatDate(session.start_time)}
+                          </td>
+                          <td className="px-6 py-4 text-muted-foreground whitespace-nowrap">
+                            {session.end_time ? formatDate(session.end_time) : "-"}
+                          </td>
+                          <td className="px-6 py-4 text-foreground">
+                            {session.status === 'active' ? (
+                              <span className="flex items-center gap-2 text-primary font-medium">
+                                <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+                                Live
+                              </span>
+                            ) : (
+                              formatDuration(session.duration)
+                            )}
+                          </td>
+                          <td className="px-6 py-4 text-foreground">
+                            {session.total_participants}
+                          </td>
+                          <td className="px-6 py-4">
+                            <div className="flex gap-1.5 flex-wrap">
+                              {session.features?.map(f => (
+                                <span key={f} className="inline-flex items-center px-1.5 py-0.5 rounded bg-muted text-[10px] font-medium text-muted-foreground">
+                                  {f}
+                                </span>
+                              ))}
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 text-right">
+                            <span className={cn(
+                              "inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold border",
+                              session.status === 'active' 
+                                ? "bg-primary/10 text-primary border-primary/20" 
+                                : "bg-muted text-muted-foreground border-border/50"
+                            )}>
+                              {session.status.toUpperCase()}
                             </span>
-                          ))}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 text-right">
-                        <span className={cn(
-                          "inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold border",
-                          session.status === 'active' 
-                            ? "bg-primary/10 text-primary border-primary/20" 
-                            : "bg-muted text-muted-foreground border-border/50"
-                        )}>
-                          {session.status.toUpperCase()}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
+                          </td>
+                        </tr>
+                      ))}
 
-                  {(!sessionsData?.data || sessionsData.data.length === 0) && (
-                    <tr>
-                      <td colSpan={8} className="px-6 py-24 text-center">
-                        <div className="flex flex-col items-center gap-2">
-                          <span className="text-sm text-muted-foreground font-medium">No results.</span>
-                        </div>
-                      </td>
-                    </tr>
+                      {(!sessionsData?.data || sessionsData.data.length === 0) && (
+                        <tr>
+                          <td colSpan={8} className="px-6 py-24 text-center">
+                            <div className="flex flex-col items-center gap-2">
+                              <span className="text-sm text-muted-foreground font-medium">No results.</span>
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </>
                   )}
                 </tbody>
               </table>
             </div>
 
-            {sessionsData && sessionsData.total > 10 && (
+            {sessionsData && sessionsData.total > 10 && !loading && (
               <div className="flex items-center justify-between px-6 py-4 border-t border-border/50 bg-muted/10">
                 <Button
                   variant="ghost"
@@ -283,40 +282,6 @@ export default function SessionsPage() {
           </div>
         </div>
       </div>
-
-
-      <Modal
-        isOpen={isCreateModalOpen}
-        onClose={() => setIsCreateModalOpen(false)}
-        title="Create Room"
-        footer={
-          <div className="flex justify-end gap-3 p-4 bg-muted/20 border-t border-border/50">
-            <Button variant="ghost" onClick={() => setIsCreateModalOpen(false)} className="text-xs font-semibold">Cancel</Button>
-            <Button onClick={handleCreateRoom} disabled={createLoading || !newRoomName} size="sm" className="px-6">
-              {createLoading ? "Creating..." : "Create"}
-            </Button>
-          </div>
-        }
-      >
-        <div className="p-6 space-y-4">
-          <div>
-            <label className="block text-[11px] font-bold text-muted-foreground uppercase tracking-widest mb-2">Room Name</label>
-            <input
-              autoFocus
-              type="text"
-              className="w-full px-4 py-2.5 bg-background border border-border/60 rounded-xl focus:border-primary/50 focus:ring-4 focus:ring-primary/5 outline-none transition-all text-sm placeholder:text-muted-foreground/30"
-              placeholder="e.g. daily-sync-meeting"
-              value={newRoomName}
-              onChange={(e) => setNewRoomName(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleCreateRoom()}
-            />
-            <p className="mt-2 text-[11px] text-muted-foreground/60 flex items-center gap-1.5">
-              <span className="w-1 h-1 rounded-full bg-primary/40" />
-              This name will be used to identify the session in logs and billing.
-            </p>
-          </div>
-        </div>
-      </Modal>
     </DashboardLayout>
   );
 }

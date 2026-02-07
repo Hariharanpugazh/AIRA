@@ -214,11 +214,11 @@ export default function IngressesPage() {
                     type="button"
                     onClick={() => setFormData({ ...formData, type: option.value as IngressType })}
                     className={`p-3 rounded-lg border text-center transition-all ${formData.type === option.value
-                      ? "border-cyan-500 bg-cyan-500/10"
+                      ? "border-primary bg-primary/10"
                       : "border-border hover:border-primary/30 bg-surface/50"
                       }`}
                   >
-                    <option.icon className={`w-5 h-5 mx-auto mb-2 ${formData.type === option.value ? "text-cyan-400" : "text-muted-foreground"}`} />
+                    <option.icon className={`w-5 h-5 mx-auto mb-2 ${formData.type === option.value ? "text-primary" : "text-muted-foreground"}`} />
                     <p className="font-medium text-sm">{option.label}</p>
                     <p className="text-[10px] text-muted-foreground mt-1">{option.description}</p>
                   </button>
@@ -232,7 +232,7 @@ export default function IngressesPage() {
               <input
                 value={formData.name}
                 onChange={e => setFormData({ ...formData, name: e.target.value })}
-                className="w-full bg-surface border border-border rounded-lg p-2.5 focus:border-cyan-500/50 focus:outline-none"
+                className="w-full bg-surface border border-border rounded-lg p-2.5 focus:border-primary/50 focus:outline-none"
                 placeholder="My Stream"
               />
             </div>
@@ -245,7 +245,7 @@ export default function IngressesPage() {
                   <input
                     value={formData.url}
                     onChange={e => setFormData({ ...formData, url: e.target.value })}
-                    className="w-full bg-surface border border-border rounded-lg p-2.5 focus:border-cyan-500/50 focus:outline-none"
+                    className="w-full bg-surface border border-border rounded-lg p-2.5 focus:border-primary/50 focus:outline-none"
                     placeholder="https://example.com/stream.m3u8"
                   />
                   <p className="text-xs text-muted-foreground mt-1">
@@ -258,7 +258,7 @@ export default function IngressesPage() {
                   <input
                     value={formData.roomName}
                     onChange={e => setFormData({ ...formData, roomName: e.target.value })}
-                    className="w-full bg-surface border border-border rounded-lg p-2.5 focus:border-cyan-500/50 focus:outline-none"
+                    className="w-full bg-surface border border-border rounded-lg p-2.5 focus:border-primary/50 focus:outline-none"
                     placeholder="stream-room"
                   />
                 </div>
@@ -269,7 +269,7 @@ export default function IngressesPage() {
                     <input
                       value={formData.participantIdentity}
                       onChange={e => setFormData({ ...formData, participantIdentity: e.target.value })}
-                      className="w-full bg-surface border border-border rounded-lg p-2.5 focus:border-cyan-500/50 focus:outline-none"
+                      className="w-full bg-surface border border-border rounded-lg p-2.5 focus:border-primary/50 focus:outline-none"
                       placeholder="url-stream"
                     />
                   </div>
@@ -278,7 +278,7 @@ export default function IngressesPage() {
                     <input
                       value={formData.participantName}
                       onChange={e => setFormData({ ...formData, participantName: e.target.value })}
-                      className="w-full bg-surface border border-border rounded-lg p-2.5 focus:border-cyan-500/50 focus:outline-none"
+                      className="w-full bg-surface border border-border rounded-lg p-2.5 focus:border-primary/50 focus:outline-none"
                       placeholder="URL Stream"
                     />
                   </div>

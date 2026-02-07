@@ -17,7 +17,7 @@ import {
 } from "recharts";
 
 // Colors from Relatim Design System - Adjusted for Light/Dark visibility
-const COLORS = ["#00F0FF", "#BD00FF", "#888888", "#444444"];
+const COLORS = ["var(--color-primary)", "var(--color-accent)", "var(--color-muted)", "var(--color-secondary)"];
 
 interface DataPoint {
     timestamp: string;

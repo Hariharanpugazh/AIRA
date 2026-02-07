@@ -44,7 +44,6 @@ export default function LiveKitStyleSidebar({ user }: SidebarProps) {
   const { theme, setTheme, resolvedTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
   
-  const [isCollapsed, setIsCollapsed] = useState(false);
   const [telephonyOpen, setTelephonyOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [projectOpen, setProjectOpen] = useState(false);
@@ -135,13 +134,11 @@ export default function LiveKitStyleSidebar({ user }: SidebarProps) {
           "flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] transition-all duration-200 group relative",
           isActive
             ? "bg-primary/10 text-primary font-semibold"
-            : "text-muted-foreground hover:bg-muted/60 hover:text-foreground",
-          isCollapsed && "justify-center px-0 h-10 w-10 mx-auto"
+            : "text-muted-foreground hover:bg-muted/60 hover:text-foreground"
         )}
-        title={isCollapsed ? label : ""}
       >
         <Icon className={cn("w-4 h-4 transition-colors shrink-0", isActive ? "text-primary" : "text-muted-foreground group-hover:text-foreground")} />
-        {!isCollapsed && <span className="flex-1 truncate">{label}</span>}
+        <span className="flex-1 truncate">{label}</span>
       </Link>
     );
   };
@@ -153,13 +150,13 @@ export default function LiveKitStyleSidebar({ user }: SidebarProps) {
         href={href}
         className={cn(
           "flex px-3 py-1.5 rounded-md text-[13px] transition-all duration-200",
-          !isCollapsed ? "ml-7" : "mx-2 justify-center",
+          "ml-7",
           isActive
             ? "text-primary font-medium bg-primary/5"
             : "text-muted-foreground hover:bg-muted/60 hover:text-foreground"
         )}
       >
-        {!isCollapsed ? label : <div className="w-1.5 h-1.5 rounded-full bg-current opacity-40" />}
+        {label}
       </Link>
     );
   };
@@ -171,32 +168,6 @@ export default function LiveKitStyleSidebar({ user }: SidebarProps) {
     setIsOpen: (v: boolean) => void, 
     children: React.ReactNode
   ) => {
-    if (isCollapsed) {
-      return (
-        <div className="relative group/section">
-          <button
-            className={cn(
-              "flex items-center justify-center h-10 w-10 mx-auto rounded-lg text-muted-foreground hover:bg-muted/60 hover:text-foreground transition-all duration-200",
-              isOpen && "bg-primary/5 text-primary"
-            )}
-            onClick={() => setIsOpen(!isOpen)}
-          >
-            <Icon className="w-4 h-4" />
-          </button>
-          
-          {/* Floating Menu for Collapsed State */}
-          <div className="absolute left-[calc(100%+8px)] top-0 hidden group-hover/section:block z-[70] animate-in fade-in slide-in-from-left-2 duration-200">
-            <div className="bg-background border border-border/80 shadow-[0_8px_30px_rgb(0,0,0,0.12)] backdrop-blur-xl rounded-xl p-1.5 min-w-[160px]">
-              <div className="px-3 py-1.5 text-[11px] font-bold text-muted-foreground/50 uppercase tracking-widest">{label}</div>
-              <div className="space-y-0.5 mt-1">
-                {children}
-              </div>
-            </div>
-          </div>
-        </div>
-      );
-    }
-
     return (
       <div className="space-y-0.5">
         <button
@@ -226,35 +197,19 @@ export default function LiveKitStyleSidebar({ user }: SidebarProps) {
 
   return (
     <>
-      <aside className={cn(
-        "h-screen flex flex-col border-r bg-background sticky top-0 font-sans text-foreground transition-all duration-300 ease-in-out",
-        isCollapsed ? "w-[72px]" : "w-64"
-      )}>
+      <aside className="h-screen flex flex-col bg-background sticky top-0 font-sans text-foreground transition-all duration-300 ease-in-out w-64">
         {/* Header */}
-        <div className={cn("px-6 py-5 flex items-center justify-between", isCollapsed && "px-0 justify-center")}>
+        <div className="px-6 py-5 flex items-center justify-between">
           <div className="flex items-center gap-2.5 overflow-hidden">
             <div className="w-7 h-7 bg-primary rounded-md flex items-center justify-center shrink-0">
               <Radio className="w-4 h-4 text-white" />
             </div>
-            {!isCollapsed && <span className="font-bold text-[15px] tracking-tight animate-in fade-in slide-in-from-left-2 transition-all">LiveKit</span>}
+            <span className="font-bold text-[15px] tracking-tight animate-in fade-in slide-in-from-left-2 transition-all">LiveKit</span>
           </div>
-          
-          <button 
-            onClick={() => setIsCollapsed(!isCollapsed)}
-            className={cn(
-              "p-1.5 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition-all duration-200",
-              isCollapsed && "absolute -right-3 top-6 bg-background border shadow-sm z-50 rounded-full"
-            )}
-          >
-            {isCollapsed ? <ChevronRight className="w-3.5 h-3.5" /> : <ChevronDown className="w-4 h-4 rotate-90" />}
-          </button>
         </div>
 
         {/* Navigation */}
-        <nav className={cn(
-          "flex-1 overflow-y-auto px-3 py-2 space-y-1 scrollbar-hide",
-          isCollapsed && "px-2"
-        )}>
+        <nav className="flex-1 overflow-y-auto px-3 py-2 space-y-1 scrollbar-hide">
           {navItem("/dashboard", "Overview", LayoutGrid)}
           {navItem("/sessions", "Sessions", Radio)}
           {navItem("/agents", "Agents", Bot)}
@@ -283,18 +238,16 @@ export default function LiveKitStyleSidebar({ user }: SidebarProps) {
         </nav>
 
         {/* Footer / User Profile & Project Switcher */}
-        <div className={cn("mt-auto p-4 space-y-4", isCollapsed && "px-2")}>
+        <div className="mt-auto p-4 space-y-4">
           {/* Search & Support Buttons */}
           <div className="space-y-1">
             <button 
               onClick={() => setSearchOpen(true)}
-              className={cn(
-              "w-full flex items-center gap-3 px-3 py-2 text-[13px] text-muted-foreground hover:bg-muted/80 hover:text-foreground rounded-lg transition-colors group",
-              isCollapsed && "justify-center px-0 h-10 w-10 mx-auto"
-            )}>
+              className="w-full flex items-center gap-3 px-3 py-2 text-[13px] text-muted-foreground hover:bg-muted/80 hover:text-foreground rounded-lg transition-colors group"
+            >
               <Search className="w-4 h-4 shrink-0" />
-              {!isCollapsed && <span className="flex-1 text-left">Search</span>}
-              {!isCollapsed && <kbd className="hidden group-hover:inline-flex px-1.5 py-0.5 bg-background border rounded text-[10px] font-sans text-muted-foreground">CTRL+K</kbd>}
+              <span className="flex-1 text-left">Search</span>
+              <kbd className="hidden group-hover:inline-flex px-1.5 py-0.5 bg-background border rounded text-[10px] font-sans text-muted-foreground">CTRL+K</kbd>
             </button>
             
             <div className="relative group/support">
@@ -306,20 +259,19 @@ export default function LiveKitStyleSidebar({ user }: SidebarProps) {
                   "w-full flex items-center gap-3 px-3 py-2 text-[13px] rounded-lg transition-all duration-200 overflow-visible relative group",
                   supportOpen 
                     ? "bg-primary/5 text-primary border border-primary/20" 
-                    : "text-muted-foreground hover:bg-muted/80 hover:text-foreground border border-transparent",
-                  isCollapsed && "justify-center px-0 h-10 w-10 mx-auto"
+                    : "text-muted-foreground hover:bg-muted/80 hover:text-foreground border border-transparent"
                 )}
               >
                 <LifeBuoy className="w-4 h-4 shrink-0" />
-                {!isCollapsed && <span className="flex-1 text-left">Support</span>}
-                {!isCollapsed && <ChevronRight className={cn("w-3.5 h-3.5 opacity-50 transition-transform", supportOpen ? "rotate-90" : "group-hover:translate-x-0.5")} />}
+                <span className="flex-1 text-left">Support</span>
+                <ChevronRight className={cn("w-3.5 h-3.5 opacity-50 transition-transform", supportOpen ? "rotate-90" : "group-hover:translate-x-0.5")} />
               </button>
               
               {/* Support Popover */}
               {supportOpen && (
                 <div id="support-popover" className={cn(
                   "absolute bg-background/95 border border-primary/20 shadow-[0_12px_40px_rgba(0,0,0,0.15)] backdrop-blur-xl rounded-xl p-4 animate-in fade-in slide-in-from-left-2 duration-200 z-[80]",
-                  isCollapsed ? "left-[calc(100%+12px)] bottom-0 w-64" : "left-[calc(100%+8px)] bottom-0 w-64"
+                  "left-[calc(100%+8px)] bottom-0 w-64"
                 )}>
                   <div className="flex items-center justify-between mb-4">
                     <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Get Help</div>
@@ -330,7 +282,7 @@ export default function LiveKitStyleSidebar({ user }: SidebarProps) {
                   <div className="space-y-1">
                     <a href="#" className="flex items-center justify-between p-2 rounded-lg hover:bg-muted transition-colors text-[13px] font-medium group/link">
                       <div className="flex items-center gap-3">
-                         <Slack className="w-4 h-4 text-[#4A154B]" />
+                         <Slack className="w-4 h-4 text-accent" />
                          Community Slack
                       </div>
                       <ExternalLink className="w-3.5 h-3.5 opacity-40 group-hover/link:opacity-100 transition-opacity" />
@@ -348,9 +300,7 @@ export default function LiveKitStyleSidebar({ user }: SidebarProps) {
             </div>
           </div>
 
-          <div className="h-px bg-border/50" />
-
-          <div className={cn("flex items-center gap-2", isCollapsed && "flex-col")}>
+          <div className="flex items-center gap-2">
             {/* Project Switcher */}
             <div className="relative flex-1 w-full">
               <button
@@ -363,31 +313,30 @@ export default function LiveKitStyleSidebar({ user }: SidebarProps) {
                     ? "bg-primary/5 border-primary/20 text-primary" 
                     : "bg-muted/40 hover:bg-muted/70 border-transparent text-foreground",
                   "border",
-                  isCollapsed ? "h-10 w-10 mx-auto justify-center px-0" : "px-3 py-2"
+                  "px-3 py-2"
                 )}
               >
                 <div className="flex items-center gap-2 min-w-0">
-                  <Folder className="w-4 h-4 text-blue-500/80 shrink-0" />
-                  {!isCollapsed && <span className="truncate">Relatim</span>}
+                  <Folder className="w-4 h-4 text-accent shrink-0" />
+                  <span className="truncate">Relatim</span>
                 </div>
-                {!isCollapsed && <ChevronDown className={cn("w-3.5 h-3.5 transition-transform opacity-50 shrink-0", projectOpen && "rotate-180")} />}
+                <ChevronDown className={cn("w-3.5 h-3.5 transition-transform opacity-50 shrink-0", projectOpen && "rotate-180")} />
               </button>
 
               {projectOpen && (
                 <div className={cn(
                   "absolute z-[80] animate-in fade-in slide-in-from-bottom-2 duration-200",
-                  isCollapsed ? "left-[calc(100%+12px)] bottom-0 w-56" : "left-0 right-0 bottom-full mb-2"
+                  "left-0 right-0 bottom-full mb-2"
                 )}>
                   <div className="bg-background/95 border border-primary/20 shadow-[0_12px_40px_rgba(0,0,0,0.15)] backdrop-blur-xl rounded-xl overflow-hidden p-1.5">
                     <div className="px-3 py-1.5 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Projects</div>
                     <button className="w-full flex items-center justify-between px-3 py-2 rounded-lg text-[13px] bg-primary/10 text-primary font-medium">
                       <span className="flex items-center gap-2">
-                        <Folder className="w-4 h-4 text-blue-500/80 shrink-0" />
+                        <Folder className="w-4 h-4 text-accent shrink-0" />
                         Relatim
                       </span>
                       <Check className="w-4 h-4" />
                     </button>
-                    <div className="h-px bg-border my-1.5 mx-1" />
                     <button 
                       onClick={() => setCreateProjectOpen(true)}
                       className="w-full text-left px-3 py-2 rounded-lg text-[13px] text-primary hover:bg-primary/5 font-medium"
@@ -402,7 +351,7 @@ export default function LiveKitStyleSidebar({ user }: SidebarProps) {
             {/* User Avatar */}
             <button 
               onClick={() => setUserSettingsOpen(true)}
-              className="w-9 h-9 shrink-0 flex items-center justify-center rounded-lg bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 font-bold text-[13px] hover:ring-2 hover:ring-primary/20 transition-all border border-blue-200/50 dark:border-blue-800/50 h-10 w-10"
+              className="w-9 h-9 shrink-0 flex items-center justify-center rounded-lg bg-primary/10 text-primary font-bold text-[13px] hover:ring-2 hover:ring-primary/20 transition-all border border-primary/20 h-10 w-10"
             >
               {user?.name?.[0]?.toUpperCase() ?? "H"}
             </button>
@@ -493,7 +442,7 @@ export default function LiveKitStyleSidebar({ user }: SidebarProps) {
             <div className="flex justify-end p-4 border-t bg-muted/30">
               <button 
                 onClick={() => setUserSettingsOpen(false)}
-                className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-lg transition-colors shadow-lg shadow-blue-500/20"
+                className="px-6 py-2 bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-bold rounded-lg transition-colors shadow-lg shadow-primary/20"
               >
                 Close
               </button>
@@ -547,7 +496,7 @@ export default function LiveKitStyleSidebar({ user }: SidebarProps) {
               <button 
                 onClick={handleCreateProject}
                 disabled={!newProjectName.trim()}
-                className="px-6 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-600/50 disabled:cursor-not-allowed text-white text-[13px] font-bold rounded-lg transition-colors shadow-lg shadow-blue-500/20"
+                className="px-6 py-2 bg-primary hover:bg-primary/90 disabled:bg-primary/50 disabled:cursor-not-allowed text-primary-foreground text-[13px] font-bold rounded-lg transition-colors shadow-lg shadow-primary/20"
               >
                 Create
               </button>

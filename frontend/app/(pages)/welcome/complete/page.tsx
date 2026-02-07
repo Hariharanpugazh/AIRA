@@ -76,7 +76,7 @@ export default function CompletePage() {
 
       <div className="text-center mb-10">
         <h1
-          className={`text-3xl font-display font-bold text-foreground mb-3 bg-clip-text text-transparent bg-gradient-to-r from-white to-white/70 transition-all duration-700 delay-200 ${animate ? "translate-y-0 opacity-100" : "translate-y-4 opacity-0"
+          className={`text-3xl font-sans font-bold text-foreground mb-3 bg-clip-text text-transparent bg-gradient-to-r from-white to-white/70 transition-all duration-700 delay-200 ${animate ? "translate-y-0 opacity-100" : "translate-y-4 opacity-0"
             }`}
         >
           You&apos;re all set!

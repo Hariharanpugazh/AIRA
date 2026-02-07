@@ -28,7 +28,12 @@ export default function SipTrunksPage() {
         setTrunks(trunksData);
         setProjectName(localStorage.getItem("projectName") || "My Project");
       } catch (e) {
-        console.error("Failed to load trunks", e);
+        if ((e as any).status === 404) {
+          console.warn("No SIP trunks found.");
+          setTrunks([]); // Set trunks to an empty array if 404
+        } else {
+          console.error("Failed to load trunks", e);
+        }
       }
     };
     loadData();

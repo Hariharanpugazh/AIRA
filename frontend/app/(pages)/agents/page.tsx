@@ -7,11 +7,12 @@ import Header from "../../components/Header";
 import { Button } from "../../../components/ui/Button";
 import { Card } from "../../../components/ui/Card";
 import Link from "next/link";
-import { Plus, Bot, Trash2, Play, Pause, ChevronDown, Terminal, Globe, MoreVertical, ExternalLink, BookOpen, User as UserIcon, LifeBuoy, Check, Cloud, Code, ArrowRight, Activity, LayoutGrid } from "lucide-react";
+import { Plus, Trash2, Play, Pause, ChevronDown, Terminal, Globe, MoreVertical, ExternalLink, BookOpen, User as UserIcon, LifeBuoy, Check, Cloud, Code, ArrowRight, Activity, LayoutGrid } from "lucide-react";
 import { getAccessToken, getProjects, getAgents, createAgent, deleteAgent, updateAgent, User, Agent, Project, apiFetch } from "../../../lib/api";
 import { AgentStatCard, AgentSessionsChart } from "../../../components/AgentsCharts";
 import { useClickOutside } from "../../../hooks/useClickOutside";
 import { DeployAgentModal } from "../../../components/modals/DeployAgentModal";
+import { CreateAgentModal } from "../../../components/modals/CreateAgentModal";
 import { cn } from "../../../lib/utils";
 
 export default function AgentsPage() {
@@ -20,6 +21,7 @@ export default function AgentsPage() {
   const [currentProject, setCurrentProject] = useState<Project | null>(null);
   const [agents, setAgents] = useState<Agent[]>([]);
   const [loading, setLoading] = useState(true);
+  const [timeRange, setTimeRange] = useState("24h");
 
   // Create dropdown state
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -42,48 +44,48 @@ export default function AgentsPage() {
     ? window.location.protocol.replace('http', 'ws') + '//' + window.location.host
     : 'ws://localhost:7880';
 
-  useEffect(() => {
-    const loadData = async () => {
-      const token = getAccessToken();
-      if (!token) {
-        router.push("/login");
-        return;
-      }
+  const loadData = React.useCallback(async () => {
+    const token = getAccessToken();
+    if (!token) {
+      router.push("/login");
+      return;
+    }
 
-      try {
-        const [projectsData] = await Promise.all([
-          getProjects(),
-        ]);
+    try {
+      const [projectsData] = await Promise.all([
+        getProjects(),
+      ]);
 
-        setProjects(projectsData);
+      setProjects(projectsData);
 
-        const savedProjectId = localStorage.getItem("projectId");
-        const project = projectsData.find((p: Project) => p.id === savedProjectId) || projectsData[0];
+      const savedProjectId = localStorage.getItem("projectId");
+      const project = projectsData.find((p: Project) => p.id === savedProjectId) || projectsData[0];
 
-        if (project) {
-          setCurrentProject(project);
-          const agentsData = await getAgents(project.id);
-          setAgents(agentsData);
+      if (project) {
+        setCurrentProject(project);
+        const agentsData = await getAgents(project.id);
+        setAgents(agentsData);
 
-          // Fetch agent stats
-          try {
-            const statsResponse = await apiFetch<{ activeSessions: number; totalMinutes: number; quotaMinutes: number }>(
-              `/api/projects/${project.id}/agents/stats`
-            );
-            setAgentStats(statsResponse);
-          } catch (e) {
-            console.warn("Agent stats endpoint not available yet");
-          }
+        // Fetch agent stats
+        try {
+          const statsResponse = await apiFetch<{ activeSessions: number; totalMinutes: number; quotaMinutes: number }>(
+            `/api/projects/${project.id}/agents/stats`
+          );
+          setAgentStats(statsResponse);
+        } catch (e) {
+          console.warn("Agent stats endpoint not available yet");
         }
-      } catch (error) {
-
-      } finally {
-        setLoading(false);
       }
-    };
+    } catch (error) {
 
-    loadData();
+    } finally {
+      setLoading(false);
+    }
   }, [router]);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
   const handleCreateAgent = async () => {
     if (!currentProject) return;
@@ -176,14 +178,11 @@ export default function AgentsPage() {
       <Header
         projectName={currentProject?.name || "Relatim"}
         pageName="Agents"
-        showTimeRange={false}
+        showTimeRange={true}
+        onRefresh={loadData}
+        onTimeRangeChange={setTimeRange}
         actionButton={
           <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" className="h-9 px-3 text-[13px] font-medium text-muted-foreground border-border/60 hover:bg-muted flex items-center gap-2">
-                <Activity className="w-4 h-4" />
-                Auto-refresh off
-                <ChevronDown className="w-3.5 h-3.5" />
-            </Button>
             <div className="relative" ref={dropdownRef}>
                 <Button
                 size="sm"
@@ -234,21 +233,21 @@ export default function AgentsPage() {
           <>
             {/* Top Stat Cards */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <Card className="p-6 bg-card border-border/40 shadow-sm flex flex-col justify-between min-h-[140px]">
+                <Card className="p-6 bg-card border-border/40 shadow-md flex flex-col justify-between min-h-[140px]">
                     <div className="flex items-center gap-2">
                         <span className="text-[10px] font-black uppercase tracking-[0.15em] text-muted-foreground/60">Agents Deployed</span>
                         <div className="w-3.5 h-3.5 rounded-full border border-muted-foreground/30 flex items-center justify-center text-[8px] text-muted-foreground shrink-0">i</div>
                     </div>
                     <div className="text-3xl font-bold text-foreground tracking-tight">{deployedAgents}</div>
                 </Card>
-                <Card className="p-6 bg-card border-border/40 shadow-sm flex flex-col justify-between min-h-[140px]">
+                <Card className="p-6 bg-card border-border/40 shadow-md flex flex-col justify-between min-h-[140px]">
                     <div className="flex items-center gap-2">
                         <span className="text-[10px] font-black uppercase tracking-[0.15em] text-muted-foreground/60">Concurrent Agent Sessions</span>
                         <div className="w-3.5 h-3.5 rounded-full border border-muted-foreground/30 flex items-center justify-center text-[8px] text-muted-foreground shrink-0">i</div>
                     </div>
                     <div className="text-3xl font-bold text-foreground tracking-tight">{activeSessions}</div>
                 </Card>
-                <Card className="p-6 bg-card border-border/40 shadow-sm flex flex-col justify-between min-h-[140px]">
+                <Card className="p-6 bg-card border-border/40 shadow-md flex flex-col justify-between min-h-[140px]">
                     <div className="flex items-center gap-2">
                         <span className="text-[10px] font-black uppercase tracking-[0.15em] text-muted-foreground/60 whitespace-nowrap overflow-hidden text-ellipsis">Agent Session Minutes This Billing Pe...</span>
                         <div className="w-3.5 h-3.5 rounded-full border border-muted-foreground/30 flex items-center justify-center text-[8px] text-muted-foreground shrink-0">i</div>
@@ -270,7 +269,7 @@ export default function AgentsPage() {
               <AgentSessionsChart />
             </div>
 
-            {/* Your Agents Section */}
+                {/* Your Agents Section */}
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <h3 className="text-lg font-bold tracking-tight text-foreground">Your agents</h3>
@@ -283,7 +282,7 @@ export default function AgentsPage() {
                    </button>
                 </div>
               </div>
-              
+
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {agents.map((agent) => (
                   <Link key={agent.id} href={`/agents/${agent.id}/instructions`}>
@@ -303,7 +302,7 @@ export default function AgentsPage() {
                             <MoreVertical className="w-4 h-4" />
                           </button>
                         </div>
-                        
+
                         <div className="space-y-1.5">
                            <div className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60">CONCURRENT SESSIONS</div>
                            <div className="text-xl font-mono text-foreground font-medium">0</div>
@@ -329,9 +328,6 @@ export default function AgentsPage() {
           <div className="w-full space-y-16 py-10">
             {/* Hero Section */}
             <div className="text-center space-y-5">
-              <div className="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center mx-auto mb-2 text-primary">
-                <Bot className="w-8 h-8" />
-              </div>
               <h2 className="text-4xl font-black tracking-tight text-foreground">Agents</h2>
               <p className="text-muted-foreground max-w-[500px] mx-auto text-[15px] leading-relaxed font-medium">
                 Build and deploy AI-powered voice agents that can talk, listen, and reason in real-time.
@@ -341,7 +337,7 @@ export default function AgentsPage() {
             {/* Feature Cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-[850px] mx-auto">
               {/* Card 1: Browser */}
-              <button 
+              <button
                 onClick={handleStartInBrowser}
                 disabled={creating}
                 className="group flex flex-col text-left bg-card border border-border/60 rounded-[32px] overflow-hidden hover:border-primary/40 hover:shadow-[0_20px_50px_rgba(79,70,229,0.1)] transition-all duration-500 disabled:opacity-60"
@@ -360,13 +356,13 @@ export default function AgentsPage() {
                       <div className="mt-auto w-full flex justify-center pb-6">
                         <div className="flex items-end gap-1.5 h-12">
                            {[0.4, 0.6, 0.9, 0.5, 0.8, 1, 0.6, 0.4].map((h, i) => (
-                             <div 
-                                key={i} 
-                                className="w-1.5 bg-primary/80 rounded-full animate-wave" 
-                                style={{ 
+                             <div
+                                key={i}
+                                className="w-1.5 bg-primary/80 rounded-full animate-wave"
+                                style={{
                                     height: `${h * 100}%`,
-                                    animationDelay: `${i * 0.1}s` 
-                                }} 
+                                    animationDelay: `${i * 0.1}s`
+                                }}
                              />
                            ))}
                         </div>
@@ -384,7 +380,7 @@ export default function AgentsPage() {
               </button>
 
               {/* Card 2: Code */}
-              <button 
+              <button
                 onClick={() => setShowDeploy(true)}
                 className="group flex flex-col text-left bg-card border border-border/60 rounded-[32px] overflow-hidden hover:border-primary/40 hover:shadow-[0_20px_50px_rgba(0,0,0,0.05)] transition-all duration-500"
               >

@@ -96,7 +96,7 @@ export default function Step2Page() {
       </div>
 
       <div className="text-center mb-10">
-        <h1 className="text-3xl font-display font-bold text-foreground mb-3 bg-clip-text text-transparent bg-gradient-to-r from-white to-white/70">
+        <h1 className="text-3xl font-sans font-bold text-foreground mb-3 bg-clip-text text-transparent bg-gradient-to-r from-white to-white/70">
           Where did you hear about us?
         </h1>
         <p className="text-muted-foreground text-sm max-w-sm mx-auto leading-relaxed">

@@ -162,7 +162,7 @@ export default function Header({
               </Button>
 
               {isAutoRefreshOpen && (
-                <div className="absolute top-full mt-2 right-0 w-48 bg-popover border border-border rounded-lg shadow-xl z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+                <div className="absolute top-full mt-2 right-0 w-48 bg-background border border-border rounded-lg shadow-xl z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
                   <div className="py-1">
                     {REFRESH_INTERVALS.map((interval) => (
                       <button
@@ -196,7 +196,7 @@ export default function Header({
               </Button>
 
               {isTimeRangeOpen && (
-                <div className="absolute top-full mt-2 right-0 w-64 bg-popover border border-border rounded-lg shadow-xl z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+                <div className="absolute top-full mt-2 right-0 w-64 bg-background border border-border rounded-lg shadow-xl z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
                   <div className="px-4 py-2 border-b border-border">
                     <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">Quick Ranges</span>
                   </div>
@@ -219,7 +219,7 @@ export default function Header({
                     </button>
                   </div>
                   {localTimezone && (
-                    <div className="px-4 py-2 bg-surface/50 border-t border-border text-[10px] text-muted-foreground">
+                    <div className="px-4 py-2 bg-muted/30 border-t border-border text-[10px] text-muted-foreground">
                       Local timezone: {localTimezone}
                     </div>
                   )}

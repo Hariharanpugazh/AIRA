@@ -224,11 +224,11 @@ export default function EgressesPage() {
                     type="button"
                     onClick={() => setFormData({ ...formData, type: option.value as EgressType })}
                     className={`p-3 rounded-lg border text-left transition-all ${formData.type === option.value
-                      ? "border-cyan-500 bg-cyan-500/10"
+                      ? "border-primary bg-primary/10"
                       : "border-border hover:border-primary/30 bg-surface/50"
                       }`}
                   >
-                    <option.icon className={`w-5 h-5 mb-2 ${formData.type === option.value ? "text-cyan-400" : "text-muted-foreground"}`} />
+                    <option.icon className={`w-5 h-5 mb-2 ${formData.type === option.value ? "text-primary" : "text-muted-foreground"}`} />
                     <p className="font-medium text-sm">{option.label}</p>
                     <p className="text-xs text-muted-foreground mt-1">{option.description}</p>
                   </button>
@@ -244,7 +244,7 @@ export default function EgressesPage() {
                   value={formData.roomName}
                   onChange={e => setFormData({ ...formData, roomName: e.target.value })}
                   placeholder="e.g. daily-standup"
-                  className="w-full bg-surface border border-border rounded-lg p-2.5 focus:border-cyan-500/50 focus:outline-none"
+                  className="w-full bg-surface border border-border rounded-lg p-2.5 focus:border-primary/50 focus:outline-none"
                 />
                 <p className="text-xs text-muted-foreground mt-2">The room must be active for recording to start.</p>
               </div>
@@ -259,7 +259,7 @@ export default function EgressesPage() {
                     value={formData.url}
                     onChange={e => setFormData({ ...formData, url: e.target.value })}
                     placeholder="https://example.com"
-                    className="w-full bg-surface border border-border rounded-lg p-2.5 focus:border-cyan-500/50 focus:outline-none"
+                    className="w-full bg-surface border border-border rounded-lg p-2.5 focus:border-primary/50 focus:outline-none"
                   />
                   <p className="text-xs text-muted-foreground mt-2">A custom webpage URL to record.</p>
                 </div>
@@ -295,7 +295,7 @@ export default function EgressesPage() {
                     value={formData.roomName}
                     onChange={e => setFormData({ ...formData, roomName: e.target.value })}
                     placeholder="e.g. daily-standup"
-                    className="w-full bg-surface border border-white/10 rounded-lg p-2.5 focus:border-cyan-500/50 focus:outline-none"
+                    className="w-full bg-surface border border-white/10 rounded-lg p-2.5 focus:border-primary/50 focus:outline-none"
                   />
                 </div>
                 <div>
@@ -304,7 +304,7 @@ export default function EgressesPage() {
                     value={formData.trackSid}
                     onChange={e => setFormData({ ...formData, trackSid: e.target.value })}
                     placeholder="TR_xxxxx"
-                    className="w-full bg-surface border border-border rounded-lg p-2.5 focus:border-cyan-500/50 focus:outline-none"
+                    className="w-full bg-surface border border-border rounded-lg p-2.5 focus:border-primary/50 focus:outline-none"
                   />
                   <p className="text-xs text-muted-foreground mt-2">Track SID from a participant (can be found in room details).</p>
                 </div>
@@ -320,7 +320,7 @@ export default function EgressesPage() {
                     value={formData.roomName}
                     onChange={e => setFormData({ ...formData, roomName: e.target.value })}
                     placeholder="e.g. daily-standup"
-                    className="w-full bg-surface border border-white/10 rounded-lg p-2.5 focus:border-cyan-500/50 focus:outline-none"
+                    className="w-full bg-surface border border-white/10 rounded-lg p-2.5 focus:border-primary/50 focus:outline-none"
                   />
                 </div>
                 <div className="grid grid-cols-2 gap-3">
@@ -330,7 +330,7 @@ export default function EgressesPage() {
                       type="number"
                       value={formData.width}
                       onChange={e => setFormData({ ...formData, width: parseInt(e.target.value) || 1920 })}
-                      className="w-full bg-surface border border-border rounded-lg p-2.5 focus:border-cyan-500/50 focus:outline-none"
+                      className="w-full bg-surface border border-border rounded-lg p-2.5 focus:border-primary/50 focus:outline-none"
                     />
                   </div>
                   <div>
@@ -339,7 +339,7 @@ export default function EgressesPage() {
                       type="number"
                       value={formData.height}
                       onChange={e => setFormData({ ...formData, height: parseInt(e.target.value) || 1080 })}
-                      className="w-full bg-surface border border-border rounded-lg p-2.5 focus:border-cyan-500/50 focus:outline-none"
+                      className="w-full bg-surface border border-border rounded-lg p-2.5 focus:border-primary/50 focus:outline-none"
                     />
                   </div>
                 </div>
@@ -353,7 +353,7 @@ export default function EgressesPage() {
                 <select
                   value={formData.outputFormat}
                   onChange={e => setFormData({ ...formData, outputFormat: e.target.value })}
-                  className="w-full bg-surface border border-border rounded-lg p-2.5 focus:border-cyan-500/50 focus:outline-none"
+                  className="w-full bg-surface border border-border rounded-lg p-2.5 focus:border-primary/50 focus:outline-none"
                 >
                   <option value="mp4">MP4</option>
                   <option value="ogg">OGG</option>

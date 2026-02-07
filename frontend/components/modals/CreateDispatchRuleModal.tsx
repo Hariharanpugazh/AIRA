@@ -151,7 +151,7 @@ export function CreateDispatchRuleModal({ isOpen, onClose, onSubmit, agents, tru
                             <div className="bg-black/40 border border-white/10 rounded-lg overflow-hidden">
                                 <div className="flex border-b border-white/10">
                                     <button className="flex-1 py-2 text-xs font-medium text-muted-foreground hover:bg-white/5 border-r border-white/10">Phone numbers</button>
-                                    <button className="flex-1 py-2 text-xs font-medium text-cyan-400 bg-cyan-950/20 border-b-2 border-cyan-500">Trunks</button>
+                                    <button className="flex-1 py-2 text-xs font-medium text-primary bg-primary/10 border-b-2 border-primary">Trunks</button>
                                 </div>
                                 <div className="p-3">
                                     <div className="relative mb-2">
