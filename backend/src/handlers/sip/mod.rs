@@ -115,27 +115,61 @@ pub async fn create_sip_dispatch_rule(
         return Err(StatusCode::FORBIDDEN);
     }
 
+    // Create the dispatch rule based on the request type
+    let dispatch_rule = if let Some(room_name) = &req.room_name {
+        // Direct room assignment rule
+        Some(livekit_protocol::sip_dispatch_rule_info::DispatchRule::Direct(
+            livekit_protocol::SipDispatchRuleDirect {
+                room_name: room_name.clone(),
+                pin: req.pin.clone().unwrap_or_default(),
+            }
+        ))
+    } else if let Some(room_prefix) = &req.room_prefix {
+        // Room prefix rule
+        Some(livekit_protocol::sip_dispatch_rule_info::DispatchRule::Individual(
+            livekit_protocol::SipDispatchRuleIndividual {
+                room_prefix: room_prefix.clone(),
+                pin: req.pin.clone().unwrap_or_default(),
+            }
+        ))
+    } else {
+        // Default to direct rule with a generic room
+        Some(livekit_protocol::sip_dispatch_rule_info::DispatchRule::Direct(
+            livekit_protocol::SipDispatchRuleDirect {
+                room_name: "default-sip-room".to_string(),
+                pin: req.pin.clone().unwrap_or_default(),
+            }
+        ))
+    };
+
     let lk_req = livekit_protocol::CreateSipDispatchRuleRequest {
         name: req.name.unwrap_or_default(),
         metadata: req.metadata.unwrap_or_default(),
-        rule: None, // Needs complex mapping from models::sip::SipDispatchRule to livekit_protocol types
+        rule: dispatch_rule,
         trunk_ids: req.trunk_ids.unwrap_or_default(),
         hide_phone_number: req.hide_phone_number.unwrap_or_default(),
         attributes: Default::default(),
-        dispatch_rule: None,
-        inbound_numbers: vec![],
-        room_preset: "".to_string(),
-        room_config: None,
+        dispatch_rule: None, // Using the rule field instead
+        inbound_numbers: req.inbound_numbers.unwrap_or_default(),
+        room_preset: req.room_preset.clone().unwrap_or_default(),
+        room_config: req.room_config.clone().map(|config| serde_json::to_string(&config).unwrap_or_default()),
     };
 
     let r = state.lk_service.create_sip_dispatch_rule(lk_req).await
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+        .map_err(|e| {
+            eprintln!("Failed to create SIP dispatch rule: {:?}", e);
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?;
 
     Ok(Json(SipDispatchRuleResponse {
         sip_dispatch_rule_id: r.sip_dispatch_rule_id,
         name: Some(r.name),
         metadata: Some(r.metadata),
-        rule: None,
+        rule: Some(models::sip::SipDispatchRule {
+            rule_type: if r.dispatch_rule.is_some() { "direct".to_string() } else { "individual".to_string() },
+            room_name: None, // Would need to extract from the rule
+            room_prefix: None, // Would need to extract from the rule
+        }),
         trunk_ids: r.trunk_ids,
         hide_phone_number: r.hide_phone_number,
     }))

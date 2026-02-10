@@ -71,7 +71,8 @@ export default function CallsPage() {
             setCallForm(prev => ({ ...prev, trunkId: trunksData[0].id }));
           }
         } catch (e) {
-          console.log("SIP data not available:", e);
+          // Log error for debugging purposes
+          // console.error("SIP data not available:", e);
         }
       } catch {
         router.push("/login");

@@ -206,7 +206,7 @@ export default function ActionsPage() {
 
                     <div className="space-y-3">
                         <label className="text-[13px] font-bold text-foreground flex items-center gap-1">Preview response <Info className="w-3 h-3" /></label>
-                        <div className="text-[12px] text-muted-foreground">A sample response returned by the client.</div>
+                        <div className="text-[12px] text-muted-foreground">Response preview will appear here after testing.</div>
                         <div className="border border-border/60 rounded-lg bg-muted/5 p-4 font-mono text-[12px]">
                             1
                         </div>

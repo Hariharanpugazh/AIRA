@@ -49,7 +49,7 @@ pub async fn list_api_keys(
         return Err(StatusCode::FORBIDDEN);
     }
 
-    let keys = ApiKeys::find().all(&state.db).await
+    let keys = api_keys::Entity::find().all(&state.db).await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     let response = keys.into_iter().map(|k| ApiKeyResponse {

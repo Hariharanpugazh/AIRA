@@ -49,7 +49,7 @@ pub async fn create_role(
         id: Set(Uuid::new_v4().to_string()),
         name: Set(payload.name),
         description: Set(payload.description),
-        permissions: Set(Some(serde_json::to_string(&payload.permissions).unwrap())),
+        permissions: Set(Some(serde_json::to_string(&payload.permissions).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?)),
         is_system: Set(false),
         ..Default::default()
     };
@@ -85,7 +85,7 @@ pub async fn update_role(
     let mut active_model: roles::ActiveModel = role.into();
     active_model.name = Set(payload.name);
     active_model.description = Set(payload.description);
-    active_model.permissions = Set(Some(serde_json::to_string(&payload.permissions).unwrap()));
+    active_model.permissions = Set(Some(serde_json::to_string(&payload.permissions).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?));
 
     let updated = active_model.update(&state.db).await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
@@ -158,7 +158,7 @@ pub async fn create_service_account(
         name: Set(payload.name),
         client_id: Set(client_id.clone()),
         client_secret_hash: Set(hashed_secret),
-        permissions: Set(payload.permissions.map(|p| serde_json::to_string(&p).unwrap())),
+        permissions: Set(payload.permissions.map(|p| serde_json::to_string(&p).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?).transpose().map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?),
         is_active: Set(true),
         created_at: Set(Some(Utc::now().naive_utc())),
         ..Default::default()
@@ -402,7 +402,7 @@ pub async fn create_webhook(
         created_at: Utc::now().to_string(),
     };
 
-    let config_val = serde_json::to_string(&webhook).unwrap();
+    let config_val = serde_json::to_string(&webhook).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     let new_config = configs::ActiveModel {
         id: Set(Uuid::new_v4()),

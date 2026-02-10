@@ -58,7 +58,10 @@ pub struct AgentClaims {
 }
 
 fn jwt_secret() -> String {
-    env::var("JWT_SECRET").unwrap_or_else(|_| "SUPER_SECRET_KEY".to_string())
+    env::var("JWT_SECRET").unwrap_or_else(|_| {
+        eprintln!("Warning: JWT_SECRET not set, using default key. This is insecure for production!");
+        "SUPER_SECRET_KEY".to_string()
+    })
 }
 
 fn livekit_api_secret() -> String {
@@ -68,7 +71,7 @@ fn livekit_api_secret() -> String {
 pub fn create_jwt(user_id: String, is_admin: bool) -> String {
     let expiration = Utc::now()
         .checked_add_signed(Duration::hours(24))
-        .unwrap()
+        .expect("Failed to calculate JWT expiration time")
         .timestamp() as usize;
 
     let claims = Claims { sub: user_id, exp: expiration, is_admin };
@@ -78,7 +81,7 @@ pub fn create_jwt(user_id: String, is_admin: bool) -> String {
         &claims,
         &EncodingKey::from_secret(jwt_secret().as_ref()),
     )
-    .unwrap()
+    .expect("Failed to encode JWT")
 }
 
 pub fn decode_jwt(token: &str) -> Option<Claims> {
@@ -97,7 +100,7 @@ pub fn create_livekit_api_jwt(video_grants: serde_json::Value, ingress_grants: s
     let api_key = env::var("LIVEKIT_API_KEY").expect("LIVEKIT_API_KEY must be set");
     let expiration = Utc::now()
         .checked_add_signed(Duration::hours(1))
-        .unwrap()
+        .expect("Failed to calculate LiveKit API JWT expiration time")
         .timestamp() as usize;
 
     let claims = LiveKitApiClaims {
@@ -120,7 +123,7 @@ pub fn create_agent_jwt(identity: String, name: String, room: Option<String>, me
     let api_key = env::var("LIVEKIT_API_KEY").expect("LIVEKIT_API_KEY must be set");
     let expiration = Utc::now()
         .checked_add_signed(Duration::hours(24))
-        .unwrap()
+        .expect("Failed to calculate agent JWT expiration time")
         .timestamp() as usize;
 
     let claims = AgentClaims {

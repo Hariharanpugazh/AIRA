@@ -34,7 +34,8 @@ pub struct AppState {
 }
 
 async fn run_migrations(db: &DatabaseConnection) {
-    let pool = sqlx::SqlitePool::connect(&env::var("DATABASE_URL").unwrap_or_else(|_| "sqlite://./livekit_admin.db?mode=rwc".to_string())).await.unwrap();
+    let db_url = env::var("DATABASE_URL").unwrap_or_else(|_| "sqlite://./livekit_admin.db?mode=rwc".to_string());
+    let pool = sqlx::SqlitePool::connect(&db_url).await.expect("Failed to connect to database");
 
     let migrations = vec![
         include_str!("../migrations/20260204092336_create_users_table.sql"),
@@ -76,14 +77,8 @@ async fn main() {
     let lk_service = match LiveKitService::new() {
         Ok(service) => Arc::new(service),
         Err(e) => {
-            println!("Warning: Failed to initialize LiveKit service: {}. Server will start but LiveKit features will not work.", e);
-            // Create a dummy service that returns errors for all operations
-            Arc::new(LiveKitService {
-                room_client: RoomClient::with_api_key("http://dummy", "dummy", "dummy"),
-                egress_client: EgressClient::with_api_key("http://dummy", "dummy", "dummy"),
-                ingress_client: IngressClient::with_api_key("http://dummy", "dummy", "dummy"),
-                sip_client: SIPClient::with_api_key("http://dummy", "dummy", "dummy"),
-            })
+            eprintln!("Critical: Failed to initialize LiveKit service: {}. Server cannot start without LiveKit connection.", e);
+            std::process::exit(1);
         }
     };
 
@@ -138,9 +133,9 @@ async fn main() {
 
     let listener = TcpListener::bind("127.0.0.1:8000")
         .await
-        .unwrap();
+        .expect("Failed to bind to port 8000");
 
     println!("Server running on http://127.0.0.1:8000");
 
-    axum::serve(listener, app).await.unwrap();
+    axum::serve(listener, app).await.expect("Failed to serve application");
 }

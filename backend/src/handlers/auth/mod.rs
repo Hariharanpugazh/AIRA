@@ -27,7 +27,7 @@ pub async fn register(
         .filter(users::Column::Email.eq(&payload.email))
         .one(&state.db)
         .await
-        .unwrap();
+        .map_err(|_| (StatusCode::INTERNAL_SERVER_ERROR, "Database error".to_string()))?;
 
     if existing_user.is_some() {
         return Json("Email already exists".to_string());
@@ -44,7 +44,7 @@ pub async fn register(
         ..Default::default()
     };
 
-    new_user.insert(&state.db).await.unwrap();
+    new_user.insert(&state.db).await.map_err(|_| (StatusCode::INTERNAL_SERVER_ERROR, "Failed to create user".to_string()))?;
 
     Json("User registered".to_string())
 }
@@ -60,7 +60,7 @@ pub async fn login(
         .filter(users::Column::Email.eq(&payload.email))
         .one(&state.db)
         .await
-        .unwrap();
+        .map_err(|_| (StatusCode::INTERNAL_SERVER_ERROR, "Database error".to_string()))?;
 
     if user.is_none() {
         return Err((
@@ -69,7 +69,7 @@ pub async fn login(
         ));
     }
 
-    let user = user.unwrap();
+    let user = user.ok_or((axum::http::StatusCode::UNAUTHORIZED, "Invalid email or password".to_string()))?;
 
     if !verify_password(&user.password, &payload.password) {
         return Err((
@@ -107,7 +107,8 @@ pub async fn me(
     };
 
     // Since we're using string IDs directly, find by ID as string
-    if let Some(user) = users::Entity::find_by_id(&claims.sub).one(&state.db).await.unwrap() {
+    let user_result = users::Entity::find_by_id(&claims.sub).one(&state.db).await.map_err(|_| Json(json!({"error": "Database error"})))?;
+    if let Some(user) = user_result {
         return Json(json!({"id": user.id, "email": user.email}));
     }
 

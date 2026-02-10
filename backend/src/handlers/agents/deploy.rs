@@ -347,8 +347,8 @@ pub async fn deploy_process_agent(
     let db = state.db.clone();
     let instance_db_id = instance_db.id;
     let agent_id_clone = agent.id;
-    let mut stdout = child.stdout.take().unwrap();
-    let mut stderr = child.stderr.take().unwrap();
+    let stdout = child.stdout.take().unwrap();
+    let stderr = child.stderr.take().unwrap();
 
     tokio::spawn(async move {
         use tokio::io::AsyncBufReadExt;
