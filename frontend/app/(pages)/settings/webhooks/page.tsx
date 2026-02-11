@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { DashboardLayout } from "../../../../components/layouts/DashboardLayout";
+// DashboardLayout removed
 import Header from "../../../components/Header";
 import { Button } from "../../../../components/ui/Button";
 import { Modal } from "../../../../components/ui/Modal";
@@ -70,7 +70,7 @@ export default function WebhooksPage() {
   };
 
   return (
-    <DashboardLayout>
+    <>
       <Header
         projectName="Default Project"
         pageName="Webhooks"
@@ -215,6 +215,6 @@ export default function WebhooksPage() {
           </div>
         </div>
       </Modal>
-    </DashboardLayout>
+    </>
   );
 }

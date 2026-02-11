@@ -2,13 +2,14 @@
 
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { DashboardLayout } from "../../../components/layouts/DashboardLayout";
+// DashboardLayout removed
 import Header from "../../components/Header";
 import { Card } from "../../../components/ui/Card";
 import { Upload, RefreshCw, Globe, Video, Radio, Link2 } from "lucide-react";
 import { Button } from "../../../components/ui/Button";
 import { getAccessToken, getIngresses, createIngress, deleteIngress, User, Ingress, apiFetch } from "../../../lib/api";
 import { Modal } from "../../../components/ui/Modal";
+import Loader from "../../../components/ui/Loader";
 import { Select } from "../../../components/ui/Select";
 import { Plus, Trash2, Upload as UploadIcon } from "lucide-react";
 
@@ -140,10 +141,10 @@ export default function IngressesPage() {
     { value: "url", label: "URL", description: "HLS, MP4, MKV sources", icon: Link2 },
   ];
 
-  if (loading) return null;
+  if (loading) return <Loader message="Loading ingresses..." />;
 
   return (
-    <DashboardLayout>
+    <>
       <Header projectName="RELATIM" pageName="Ingress" showTimeRange={false}
         actionButton={
           <div className="flex gap-2">
@@ -321,6 +322,6 @@ export default function IngressesPage() {
           </div>
         </Modal>
       </div>
-    </DashboardLayout>
+    </>
   );
 }

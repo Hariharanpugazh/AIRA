@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { DashboardLayout } from "../../../../components/layouts/DashboardLayout";
+// DashboardLayout removed
 import Header from "../../../components/Header";
 import { Button } from "../../../../components/ui/Button";
 import { Card } from "../../../../components/ui/Card";
@@ -71,7 +71,7 @@ export default function DispatchRulesPage() {
   }
 
   return (
-    <DashboardLayout>
+    <>
       <Header
         projectName={projectName}
         sectionName="Telephony"
@@ -201,7 +201,7 @@ export default function DispatchRulesPage() {
           trunks={trunks}
         />
       </div>
-    </DashboardLayout>
+    </>
   );
 }
 

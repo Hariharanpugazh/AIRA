@@ -3,7 +3,7 @@
 import React from "react";
 import Link from "next/link";
 import { usePathname, useParams } from "next/navigation";
-import { DashboardLayout } from "../layouts/DashboardLayout";
+// DashboardLayout removed
 import AgentPreview from "./AgentPreview";
 import { Button } from "../ui/Button";
 import { ChevronRight, Save, Rocket, Activity, Check, ArrowLeft, MoreVertical, Play, Eye } from "lucide-react";
@@ -30,7 +30,7 @@ export default function AgentLayout({ children }: AgentLayoutProps) {
   const isActive = (path: string) => pathname === path;
 
   return (
-    <DashboardLayout>
+    <>
       <div className="flex flex-col h-screen overflow-hidden bg-background">
         {/* Agent Header */}
         <header className="flex items-center justify-between px-6 py-4 border-b border-border/40 bg-surface">
@@ -104,6 +104,6 @@ export default function AgentLayout({ children }: AgentLayoutProps) {
           </div>
         </div>
       </div>
-    </DashboardLayout>
+    </>
   );
 }

@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { DashboardLayout } from "../../../components/layouts/DashboardLayout";
+// DashboardLayout removed
 import Header from "../../components/Header";
 import { Card } from "../../../components/ui/Card";
 import { RefreshCw, Search, Filter, ChevronLeft, ChevronRight, Phone, Users as UsersIcon, Bot, ChevronDown } from "lucide-react";
@@ -98,7 +98,7 @@ export default function SessionsPage() {
   );
 
   return (
-    <DashboardLayout>
+    <>
       <Header
         projectName="Divith"
         pageName="Sessions"
@@ -282,6 +282,6 @@ export default function SessionsPage() {
           </div>
         </div>
       </div>
-    </DashboardLayout>
+    </>
   );
 }

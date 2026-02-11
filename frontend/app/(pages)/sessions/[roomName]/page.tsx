@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import { useRouter, useParams } from "next/navigation";
-import { DashboardLayout } from "../../../../components/layouts/DashboardLayout";
+// DashboardLayout removed
 import Header from "../../../components/Header";
 import { Card } from "../../../../components/ui/Card";
 import { Button } from "../../../../components/ui/Button";
@@ -299,7 +299,7 @@ export default function RoomDetailPage() {
   const participants = roomDetail?.participants || [];
 
   return (
-    <DashboardLayout>
+    <>
       <Header
         projectName={projectName}
         pageName={`Session: ${roomName}`}
@@ -836,6 +836,6 @@ export default function RoomDetailPage() {
           </div>
         </div>
       </Modal>
-    </DashboardLayout>
+    </>
   );
 }

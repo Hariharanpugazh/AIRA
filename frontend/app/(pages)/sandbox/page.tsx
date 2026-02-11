@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { DashboardLayout } from "../../../components/layouts/DashboardLayout";
+// DashboardLayout removed
 import Header from "../../components/Header";
 import { Button } from "../../../components/ui/Button";
 import {
@@ -22,7 +22,7 @@ export default function SandboxPage() {
   }, []);
 
   return (
-    <DashboardLayout>
+    <>
       <Header
         projectName={projectName}
         pageName="Sandbox"
@@ -141,7 +141,7 @@ export default function SandboxPage() {
           </div>
         </section>
       </div>
-    </DashboardLayout>
+    </>
   );
 }
 

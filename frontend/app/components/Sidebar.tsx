@@ -201,7 +201,16 @@ export default function LiveKitStyleSidebar({ user }: SidebarProps) {
     );
   };
 
-  if (!mounted) return <aside className="w-64 border-r h-screen bg-background" />;
+  if (!mounted) {
+     // Return a static version or null, but preferably the same structure to avoid layout shift
+     // preventing the "white flash" or "blank sidebar"
+     // We can just render the structure with default closed states.
+     // However, to be safe with Next.js hydration, we should suppress warning if unavoidable.
+     // But really, just rendering the component is fine if we accept default state.
+  }
+  
+  // We will simply remove the early return.
+
 
   return (
     <>

@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { DashboardLayout } from "../../../components/layouts/DashboardLayout";
+// DashboardLayout removed
 import Header from "../../components/Header";
 import { Button } from "../../../components/ui/Button";
 import { Card } from "../../../components/ui/Card";
@@ -174,7 +174,7 @@ export default function AgentsPage() {
   };
 
   return (
-    <DashboardLayout>
+    <>
       <Header
         projectName={currentProject?.name || "Relatim"}
         pageName="Agents"
@@ -431,7 +431,7 @@ export default function AgentsPage() {
           projectUrl={projectUrl}
         />
       </div>
-    </DashboardLayout>
+    </>
   );
 }
 

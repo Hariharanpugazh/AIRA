@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { DashboardLayout } from "../../../components/layouts/DashboardLayout";
+// DashboardLayout removed (handled by app wrapper)
 import Header from "../../components/Header";
 import { StatsCard } from "../../../components/StatsCard";
 import { Card } from "../../../components/ui/Card";
@@ -92,7 +92,7 @@ export default function DashboardPage() {
   );
 
   return (
-    <DashboardLayout>
+    <>
       <Header
         projectName={currentProject?.name || "Project"}
         pageName="Overview"
@@ -305,6 +305,6 @@ export default function DashboardPage() {
           </>
         )}
       </div>
-    </DashboardLayout>
+    </>
   );
 }

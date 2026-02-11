@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { DashboardLayout } from "../../../../components/layouts/DashboardLayout";
+// DashboardLayout removed
 import Header from "../../../components/Header";
 import { Card } from "../../../../components/ui/Card";
 import { getAccessToken, User, apiFetch } from "../../../../lib/api";
@@ -148,7 +148,7 @@ export default function CallsPage() {
   const activeCalls = calls.filter(c => c.status === "active" || c.status === "ringing");
 
   return (
-    <DashboardLayout>
+    <>
       <Header
         projectName={projectName}
         sectionName="Telephony"
@@ -391,6 +391,6 @@ export default function CallsPage() {
           )}
         </div>
       </Modal>
-    </DashboardLayout>
+    </>
   );
 }

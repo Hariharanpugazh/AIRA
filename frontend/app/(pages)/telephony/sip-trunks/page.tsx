@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { DashboardLayout } from "../../../../components/layouts/DashboardLayout";
+// DashboardLayout removed
 import Header from "../../../components/Header";
 import { Search, Plus, Phone, Server, Shield, Trash2, X, PlusCircle, Settings2, Filter, Info, Copy, PhoneIncoming, PhoneOutgoing, ChevronDown, MoreHorizontal } from "lucide-react";
 import { Card } from "../../../../components/ui/Card";
@@ -70,7 +70,7 @@ export default function SipTrunksPage() {
   const actionButton = null;
 
   return (
-    <DashboardLayout>
+    <>
       <Header
         projectName={projectName}
         sectionName="Telephony"
@@ -297,6 +297,6 @@ export default function SipTrunksPage() {
           </div>
         </Modal>
       </div>
-    </DashboardLayout>
+    </>
   );
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { DashboardLayout } from "../../../../components/layouts/DashboardLayout";
+// DashboardLayout removed
 import Header from "../../../components/Header";
 import { Button } from "../../../../components/ui/Button";
 import { Modal } from "../../../../components/ui/Modal";
@@ -68,7 +68,7 @@ export default function TeamMembersPage() {
   };
 
   return (
-    <DashboardLayout>
+    <>
       <Header
         projectName="Default Project"
         pageName="Members"
@@ -211,6 +211,6 @@ export default function TeamMembersPage() {
           </div>
         </div>
       </Modal>
-    </DashboardLayout>
+    </>
   );
 }

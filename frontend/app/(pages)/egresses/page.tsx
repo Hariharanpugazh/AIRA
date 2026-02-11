@@ -2,13 +2,14 @@
 
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { DashboardLayout } from "../../../components/layouts/DashboardLayout";
+// DashboardLayout removed
 import Header from "../../components/Header";
 import { Card } from "../../../components/ui/Card";
 import { Download, RefreshCw, Globe, FileVideo, Mic, Image as ImageIcon } from "lucide-react";
 import { Button } from "../../../components/ui/Button";
 import { getAccessToken, getEgresses, stopEgress, startRoomEgress, User, Egress, apiFetch } from "../../../lib/api";
 import { Modal } from "../../../components/ui/Modal";
+import Loader from "../../../components/ui/Loader";
 import { Plus, Download as DownloadIcon, Radio, StopCircle } from "lucide-react";
 
 type EgressType = "room_composite" | "web" | "track" | "image";
@@ -144,7 +145,7 @@ export default function EgressesPage() {
     }
   };
 
-  if (loading) return null;
+  if (loading) return <Loader message="Loading egresses..." />;
 
   const egressTypeOptions = [
     { value: "room_composite", label: "Room Composite", description: "Record entire room with all participants", icon: DownloadIcon },
@@ -154,7 +155,7 @@ export default function EgressesPage() {
   ];
 
   return (
-    <DashboardLayout>
+    <>
       <Header projectName="RELATIM" pageName="Egress" showTimeRange={false}
         actionButton={
           <div className="flex gap-2">
@@ -365,6 +366,6 @@ export default function EgressesPage() {
           </div>
         </Modal>
       </div>
-    </DashboardLayout>
+    </>
   );
 }

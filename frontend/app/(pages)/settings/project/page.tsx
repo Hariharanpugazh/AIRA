@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { DashboardLayout } from "../../../../components/layouts/DashboardLayout";
+// DashboardLayout removed
 import Header from "../../../components/Header";
 import { Button } from "../../../../components/ui/Button";
 import { Card } from "../../../../components/ui/Card";
@@ -29,7 +29,7 @@ export default function ProjectSettingsPage() {
   };
 
   return (
-    <DashboardLayout>
+    <>
       <Header
         projectName="Default Project"
         pageName="Project Settings"
@@ -309,6 +309,6 @@ export default function ProjectSettingsPage() {
           </Card>
         </div>
       </div>
-    </DashboardLayout>
+    </>
   );
 }
