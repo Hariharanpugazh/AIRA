@@ -31,3 +31,6 @@ pub mod regions;
 pub mod roles;
 pub mod audit_logs;
 pub mod transcripts;
+pub mod webhook_events;
+pub mod webhook_deliveries;
+pub mod error_logs;

@@ -32,6 +32,14 @@
   --radius-md: 0.5rem;
   --radius-sm: 0.25rem;
 
+  --z-dropdown: 10;
+  --z-sticky: 20;
+  --z-fixed: 30;
+  --z-modal-backdrop: 40;
+  --z-modal: 50;
+  --z-popover: 60;
+  --z-tooltip: 70;
+
   --animate-fade-in: fade-in 0.3s ease-out;
   --animate-slide-up: slide-up 0.4s ease-out;
   --animate-pulse-slow: pulse-slow 3s infinite;

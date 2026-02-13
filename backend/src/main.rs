@@ -10,7 +10,7 @@ use tokio::net::TcpListener;
 use routes::{
     auth, livekit, ingress, egress, sip, config as config_routes, metrics, agents,
     projects, sessions, analytics, settings, templates, rules, regions, webhook,
-    audit_logs, transcripts
+    audit_logs, transcripts, websocket
 };
 use services::livekit_service::LiveKitService;
 use axum::http::Method;
@@ -23,7 +23,6 @@ use std::env;
 use sea_orm::{Database, DatabaseConnection};
 
 async fn health_handler() -> &'static str {
-    println!("Health check handler hit!");
     "healthy"
 }
 
@@ -50,6 +49,7 @@ async fn run_migrations(_db: &DatabaseConnection) {
         include_str!("../migrations/20260210000005_seed_admin_user.sql"),
         include_str!("../migrations/20260212000000_add_phone_to_users.sql"),
         include_str!("../migrations/20260212010000_add_userid_shortid_to_projects.sql"),
+        include_str!("../migrations/20260213000000_create_webhook_and_error_tables.sql"),
     ];
 
     for migration in migrations {
@@ -65,21 +65,42 @@ async fn run_migrations(_db: &DatabaseConnection) {
 }
 
 use tower_http::trace::TraceLayer;
-use axum::extract::Request;
+use axum::extract::Request as AxumRequest;
 
-async fn cors_middleware(req: Request, next: Next) -> Response {
-    // Read Origin header from request so we can echo it back when credentials
-    // are allowed. Browsers block responses that set Access-Control-Allow-Credentials
-    // together with a wildcard `*` origin, so we must echo the exact Origin.
+/// Get allowed origins from environment
+fn get_allowed_origins() -> Vec<String> {
+    env::var("ALLOWED_ORIGINS")
+        .unwrap_or_else(|_| "http://localhost:3000,http://127.0.0.1:3000".to_string())
+        .split(',')
+        .map(|s| s.trim().to_string())
+        .collect()
+}
+
+/// Check if origin is allowed
+fn is_origin_allowed(origin: &str, allowed: &[String]) -> bool {
+    allowed.iter().any(|allowed_origin| {
+        origin == allowed_origin || 
+        origin.ends_with(allowed_origin.trim_start_matches("http://").trim_start_matches("https://"))
+    })
+}
+
+async fn cors_middleware(req: AxumRequest, next: Next) -> Response {
+    let allowed_origins = get_allowed_origins();
+    
     let origin_header = req
         .headers()
         .get("origin")
         .and_then(|v| v.to_str().ok())
         .map(|s| s.to_owned());
 
-    // Allowed methods — include common verbs used by the API
     const ALLOWED_METHODS: &str = "GET, POST, PUT, PATCH, DELETE, OPTIONS";
     const ALLOWED_HEADERS: &str = "content-type,authorization";
+
+    // Determine if origin is allowed
+    let cors_origin = origin_header.as_ref()
+        .filter(|origin| is_origin_allowed(origin, &allowed_origins))
+        .cloned()
+        .or_else(|| Some("null".to_string()));
 
     if req.method() == Method::OPTIONS {
         let mut res = Response::builder()
@@ -88,28 +109,26 @@ async fn cors_middleware(req: Request, next: Next) -> Response {
             .unwrap();
 
         let headers = res.headers_mut();
-        if let Some(origin) = &origin_header {
-            if let Ok(val) = HeaderValue::from_str(origin) {
+        if let Some(origin) = cors_origin {
+            if let Ok(val) = HeaderValue::from_str(&origin) {
                 headers.insert("access-control-allow-origin", val);
             }
-        } else {
-            headers.insert("access-control-allow-origin", HeaderValue::from_static("*"));
         }
         headers.insert("access-control-allow-methods", HeaderValue::from_static(ALLOWED_METHODS));
         headers.insert("access-control-allow-headers", HeaderValue::from_static(ALLOWED_HEADERS));
         headers.insert("access-control-allow-credentials", HeaderValue::from_static("true"));
+        headers.insert("access-control-max-age", HeaderValue::from_static("86400"));
 
         return res;
     }
 
     let mut res = next.run(req).await;
     let headers = res.headers_mut();
-    if let Some(origin) = &origin_header {
-        if let Ok(val) = HeaderValue::from_str(origin) {
+    
+    if let Some(origin) = cors_origin {
+        if let Ok(val) = HeaderValue::from_str(&origin) {
             headers.insert("access-control-allow-origin", val);
         }
-    } else {
-        headers.insert("access-control-allow-origin", HeaderValue::from_static("*"));
     }
     headers.insert("access-control-allow-methods", HeaderValue::from_static(ALLOWED_METHODS));
     headers.insert("access-control-allow-headers", HeaderValue::from_static(ALLOWED_HEADERS));
@@ -118,17 +137,80 @@ async fn cors_middleware(req: Request, next: Next) -> Response {
     res
 }
 
+/// Security headers middleware
+async fn security_headers_middleware(req: AxumRequest, next: Next) -> Response {
+    let mut res = next.run(req).await;
+    let headers = res.headers_mut();
+    
+    // Prevent MIME type sniffing
+    headers.insert("x-content-type-options", HeaderValue::from_static("nosniff"));
+    
+    // Prevent clickjacking
+    headers.insert("x-frame-options", HeaderValue::from_static("DENY"));
+    
+    // XSS Protection
+    headers.insert("x-xss-protection", HeaderValue::from_static("1; mode=block"));
+    
+    // Content Security Policy
+    headers.insert("content-security-policy", HeaderValue::from_static(
+        "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' ws: wss:;"
+    ));
+    
+    // Referrer Policy
+    headers.insert("referrer-policy", HeaderValue::from_static("strict-origin-when-cross-origin"));
+    
+    // Permissions Policy
+    headers.insert("permissions-policy", HeaderValue::from_static(
+        "accelerometer=(), camera=(), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), payment=(), usb=()"
+    ));
+    
+    res
+}
+
+/// Request size limit middleware
+async fn request_size_limit(req: AxumRequest, next: Next) -> Response {
+    // Default 10MB limit
+    let max_size: usize = env::var("MAX_REQUEST_SIZE")
+        .ok()
+        .and_then(|s| s.parse().ok())
+        .unwrap_or(10 * 1024 * 1024);
+    
+    let content_length = req
+        .headers()
+        .get("content-length")
+        .and_then(|v| v.to_str().ok())
+        .and_then(|v| v.parse::<usize>().ok());
+    
+    if let Some(size) = content_length {
+        if size > max_size {
+            return Response::builder()
+                .status(413)
+                .body(AxBody::from(format!("Request too large. Max size: {} bytes", max_size)))
+                .unwrap();
+        }
+    }
+    
+    next.run(req).await
+}
+
 #[tokio::main]
 async fn main() {
     tracing_subscriber::fmt::init();
     eprintln!("Backend starting up - Version: TraceLayer Enabled");
-    // Also try to load from parent directory if current directory doesn't have .env
+    
+    // Load environment variables
     if env::var("LIVEKIT_API_KEY").is_err() {
         let parent_env = std::path::Path::new("..").join(".env");
         if parent_env.exists() {
             dotenvy::from_path(parent_env).ok();
         }
     }
+
+    // Validate critical environment variables
+    env::var("JWT_SECRET").expect("JWT_SECRET must be set - do not use default secrets in production");
+    env::var("LIVEKIT_API_KEY").expect("LIVEKIT_API_KEY must be set");
+    env::var("LIVEKIT_API_SECRET").expect("LIVEKIT_API_SECRET must be set");
+    env::var("LIVEKIT_URL").expect("LIVEKIT_URL must be set");
 
     let db_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set (PostgreSQL only)");
     let db = Database::connect(&db_url)
@@ -151,6 +233,7 @@ async fn main() {
 
     let app = Router::new()
         .route("/health", axum::routing::get(health_handler))
+        .route("/api/ws/events", axum::routing::get(websocket::websocket_handler).layer(axum::middleware::from_fn(crate::utils::jwt::jwt_middleware)))
         .merge(auth::routes())
         .merge(livekit::routes())
         .merge(ingress::routes())
@@ -171,6 +254,8 @@ async fn main() {
         .merge(transcripts::routes())
         .with_state(state)
         .layer(TraceLayer::new_for_http())
+        .layer(axum::middleware::from_fn(request_size_limit))
+        .layer(axum::middleware::from_fn(security_headers_middleware))
         .layer(axum::middleware::from_fn(cors_middleware));
 
     let listener = TcpListener::bind("0.0.0.0:8000")
@@ -178,6 +263,7 @@ async fn main() {
         .expect("Failed to bind to port 8000");
 
     println!("Server running on http://127.0.0.1:8000");
+    println!("CORS allowed origins: {:?}", get_allowed_origins());
 
     axum::serve(listener, app).await.expect("Failed to serve application");
 }

@@ -63,6 +63,8 @@ export default function AgentsPage() {
 
       if (project) {
         setCurrentProject(project);
+        localStorage.setItem("projectId", project.id);
+        localStorage.setItem("projectName", project.name);
         const agentsData = await getAgents(project.id);
         setAgents(agentsData);
 
@@ -77,7 +79,7 @@ export default function AgentsPage() {
         }
       }
     } catch (error) {
-
+      console.error("Failed to load agents:", error);
     } finally {
       setLoading(false);
     }
@@ -98,7 +100,8 @@ export default function AgentsPage() {
       setAgents([agent, ...agents]);
       router.push(`/agents/${agent.id}/instructions`);
     } catch (error) {
-
+      console.error("Failed to create agent:", error);
+      alert("Failed to create agent. Please try again.");
     } finally {
       setCreating(false);
     }
@@ -130,7 +133,8 @@ export default function AgentsPage() {
       await deleteAgent(currentProject.id, agentId);
       setAgents(agents.filter(a => a.id !== agentId));
     } catch (error) {
-
+      console.error("Failed to delete agent:", error);
+      alert("Failed to delete agent. Please try again.");
     }
   };
 
@@ -141,7 +145,8 @@ export default function AgentsPage() {
       const updated = await updateAgent(currentProject.id, agent.id, { status: newStatus });
       setAgents(agents.map(a => a.id === agent.id ? updated : a));
     } catch (error) {
-
+      console.error("Failed to toggle agent status:", error);
+      alert("Failed to update agent status. Please try again.");
     }
   };
 

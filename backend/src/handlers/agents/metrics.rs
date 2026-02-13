@@ -212,22 +212,48 @@ fn parse_memory_usage(mem_str: &str) -> Option<f64> {
 pub async fn get_project_agent_stats(
     State(state): State<AppState>,
     axum::extract::Extension(claims): axum::extract::Extension<Claims>,
-    axum::extract::Path(_project_id): axum::extract::Path<String>,
+    axum::extract::Path(project_id): axum::extract::Path<String>,
 ) -> Result<Json<crate::models::agents::AgentProjectStats>, StatusCode> {
     if !claims.is_admin {
         return Err(StatusCode::FORBIDDEN);
     }
 
-    // Count active instances
+    // Get agents for this project
+    let agents_list = crate::entity::agents::Entity::find()
+        .filter(crate::entity::agents::Column::ProjectId.eq(project_id))
+        .all(&state.db)
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    
+    let agent_ids: Vec<uuid::Uuid> = agents_list.iter().map(|a| a.id).collect();
+
+    // Count active instances for these agents
     let active_sessions = agent_instances::Entity::find()
-        .filter(agent_instances::Column::Status.eq("active"))
+        .filter(agent_instances::Column::Status.eq("running"))
+        .filter(agent_instances::Column::AgentId.is_in(agent_ids.clone()))
         .count(&state.db)
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)? as i32;
 
+    // Calculate total minutes from agent instances (NO QUOTA LIMIT)
+    let instances = agent_instances::Entity::find()
+        .filter(agent_instances::Column::AgentId.is_in(agent_ids))
+        .all(&state.db)
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    
+    let total_minutes: i64 = instances.iter()
+        .filter_map(|instance| {
+            let start = instance.started_at?;
+            let end = instance.stopped_at.unwrap_or(start);
+            Some((end - start).num_minutes())
+        })
+        .sum();
+
+    // NO QUOTA - Unlimited usage
     Ok(Json(crate::models::agents::AgentProjectStats {
         active_sessions,
-        total_minutes: 0,
-        quota_minutes: 1000,
+        total_minutes: total_minutes as i32,
+        quota_minutes: -1, // -1 indicates unlimited
     }))
 }

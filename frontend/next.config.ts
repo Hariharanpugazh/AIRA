@@ -1,16 +1,22 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // Use standalone for Docker, but Vercel works with this too
   output: "standalone",
 
   // Environment variables
   env: {
     NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL || "",
-    NEXT_PUBLIC_LIVEKIT_URL: process.env.NEXT_PUBLIC_LIVEKIT_URL || "ws://localhost:7880",
+    NEXT_PUBLIC_LIVEKIT_URL: process.env.NEXT_PUBLIC_LIVEKIT_URL || "wss://livekit.divithselvam.in",
   },
 
-  // No rewrites needed - nginx handles API proxying in production
-  // In development, set NEXT_PUBLIC_API_URL=http://localhost:8000
+  // Image optimization
+  images: {
+    unoptimized: true,
+  },
+
+  // For Vercel deployment
+  trailingSlash: false,
 };
 
 export default nextConfig;

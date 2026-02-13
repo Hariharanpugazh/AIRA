@@ -17,3 +17,4 @@ pub mod regions;
 pub mod webhook;
 pub mod audit_logs;
 pub mod transcripts;
+pub mod websocket;

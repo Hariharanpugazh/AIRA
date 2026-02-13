@@ -47,14 +47,20 @@ export function DeployAgentModal({ isOpen, onClose, projectUrl }: DeployAgentMod
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-[2px] flex items-center justify-center z-[100] p-4 animate-in fade-in duration-300">
-            <div className="w-full max-w-2xl bg-card border border-border/50 rounded-2xl shadow-2xl animate-in zoom-in-95 duration-300 overflow-hidden">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-[2px] flex items-center justify-center z-50 p-4 animate-in fade-in duration-300">
+            <div 
+                className="w-full max-w-2xl bg-card border border-border/50 rounded-2xl shadow-2xl animate-in zoom-in-95 duration-300 overflow-hidden"
+                role="dialog"
+                aria-labelledby="deploy-agent-title"
+                aria-describedby="deploy-agent-description"
+            >
                 {/* Header */}
                 <div className="flex items-center justify-between px-8 py-6 border-b border-border/40 bg-card">
-                    <h2 className="text-lg font-extrabold text-foreground tracking-tight">Deploy an agent to LiveKit Cloud</h2>
+                    <h2 id="deploy-agent-title" className="text-lg font-extrabold text-foreground tracking-tight">Deploy an agent to LiveKit Cloud</h2>
                     <button
                         onClick={onClose}
                         className="p-2 hover:bg-muted rounded-xl transition-all text-muted-foreground/60 hover:text-foreground"
+                        aria-label="Close modal"
                     >
                         <X className="w-5 h-5" />
                     </button>
@@ -63,7 +69,7 @@ export function DeployAgentModal({ isOpen, onClose, projectUrl }: DeployAgentMod
                 {/* Content */}
                 <div className="px-8 py-6 space-y-6 max-h-[70vh] overflow-y-auto">
                     {/* Info Box */}
-                    <div className="bg-amber-50 dark:bg-amber-900/10 border border-amber-200/50 dark:border-amber-900/20 rounded-xl p-4 flex gap-4">
+                    <div id="deploy-agent-description" className="bg-amber-50 dark:bg-amber-900/10 border border-amber-200/50 dark:border-amber-900/20 rounded-xl p-4 flex gap-4">
                         <div className="w-5 h-5 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center shrink-0 mt-0.5">
                             <Info className="w-3.5 h-3.5 text-amber-700 dark:text-amber-500" />
                         </div>
@@ -96,6 +102,7 @@ export function DeployAgentModal({ isOpen, onClose, projectUrl }: DeployAgentMod
                                         <button
                                             onClick={() => copyToClipboard(step.command, idx)}
                                             className="absolute right-3 top-3 p-2 rounded-lg bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white transition-all opacity-0 group-hover:opacity-100 border border-white/5"
+                                            aria-label={`Copy ${step.title} command to clipboard`}
                                         >
                                             {copiedStep === idx ? (
                                                 <Check className="w-4 h-4 text-green-400" />

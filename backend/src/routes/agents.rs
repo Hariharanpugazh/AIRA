@@ -26,11 +26,13 @@ pub fn routes() -> Router<crate::AppState> {
         .route("/api/agent-instances/:instance_id/metrics", get(metrics::get_agent_metrics))
         .route("/api/agent-instances/:instance_id/metrics/collect", post(metrics::collect_agent_metrics))
 
-        // Agent room management
+        // Agent room management - ALL scoped by project for isolation
         .route("/api/projects/:project_id/agents/:agent_id/rooms", get(rooms::get_agent_room_assignments))
         .route("/api/projects/:project_id/agents/assign-room", post(rooms::assign_agent_to_room))
         .route("/api/projects/:project_id/agents/:agent_id/rooms/:room_name", delete(rooms::remove_agent_from_room))
-        .route("/api/rooms/:room_name/agents", get(rooms::get_room_agents))
+        .route("/api/projects/:project_id/rooms/:room_name/agents", get(rooms::get_room_agents))
+        
+        // Agent stats scoped by project
         .route("/api/projects/:project_id/agents/stats", get(metrics::get_project_agent_stats))
         .layer(middleware::from_fn(jwt_middleware))
 }

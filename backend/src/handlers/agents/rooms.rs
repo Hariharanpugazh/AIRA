@@ -1,23 +1,65 @@
 use axum::{extract::State, http::StatusCode, Json};
 use sea_orm::{EntityTrait, QueryFilter, ColumnTrait, ActiveModelTrait, Set};
 
-use crate::entity::{agent_rooms, agents};
+use crate::entity::{agent_rooms, agents, projects};
 use crate::models::agents::AgentRoomAssignment;
 use crate::utils::jwt::Claims;
 use crate::AppState;
 
+/// Verify user owns the project
+async fn verify_project_access(
+    state: &AppState,
+    project_id: &str,
+    user_id: &str,
+) -> Result<bool, StatusCode> {
+    let project = projects::Entity::find_by_id(project_id)
+        .one(&state.db)
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
+        .ok_or(StatusCode::NOT_FOUND)?;
+    
+    Ok(project.user_id == user_id)
+}
+
+/// Verify user owns the agent through its project
+async fn verify_agent_access(
+    state: &AppState,
+    agent_id: &str,
+    user_id: &str,
+) -> Result<bool, StatusCode> {
+    let agent = agents::Entity::find()
+        .filter(agents::Column::AgentId.eq(agent_id))
+        .one(&state.db)
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
+        .ok_or(StatusCode::NOT_FOUND)?;
+    
+    if let Some(project_id) = agent.project_id {
+        verify_project_access(state, &project_id, user_id).await
+    } else {
+        Ok(false)
+    }
+}
+
 pub async fn assign_agent_to_room(
     State(state): State<AppState>,
     axum::extract::Extension(claims): axum::extract::Extension<Claims>,
+    axum::extract::Path(project_id): axum::extract::Path<String>,
     Json(req): Json<AgentRoomAssignment>,
 ) -> Result<StatusCode, StatusCode> {
     if !claims.is_admin {
         return Err(StatusCode::FORBIDDEN);
     }
 
+    // Verify user owns this project
+    if !verify_project_access(&state, &project_id, &claims.sub).await? {
+        return Err(StatusCode::FORBIDDEN);
+    }
+
     // Find the agent
     let agent = agents::Entity::find()
         .filter(agents::Column::AgentId.eq(&req.agent_id))
+        .filter(agents::Column::ProjectId.eq(&project_id))
         .one(&state.db)
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
@@ -55,15 +97,21 @@ pub async fn assign_agent_to_room(
 pub async fn remove_agent_from_room(
     State(state): State<AppState>,
     axum::extract::Extension(claims): axum::extract::Extension<Claims>,
-    axum::extract::Path((agent_id, room_name)): axum::extract::Path<(String, String)>,
+    axum::extract::Path((project_id, agent_id, room_name)): axum::extract::Path<(String, String, String)>,
 ) -> Result<StatusCode, StatusCode> {
     if !claims.is_admin {
+        return Err(StatusCode::FORBIDDEN);
+    }
+
+    // Verify user owns this project
+    if !verify_project_access(&state, &project_id, &claims.sub).await? {
         return Err(StatusCode::FORBIDDEN);
     }
 
     // Find the agent
     let agent = agents::Entity::find()
         .filter(agents::Column::AgentId.eq(agent_id))
+        .filter(agents::Column::ProjectId.eq(project_id))
         .one(&state.db)
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
@@ -92,15 +140,21 @@ pub async fn remove_agent_from_room(
 pub async fn get_agent_room_assignments(
     State(state): State<AppState>,
     axum::extract::Extension(claims): axum::extract::Extension<Claims>,
-    axum::extract::Path(agent_id): axum::extract::Path<String>,
+    axum::extract::Path((project_id, agent_id)): axum::extract::Path<(String, String)>,
 ) -> Result<Json<Vec<AgentRoomAssignment>>, StatusCode> {
     if !claims.is_admin {
+        return Err(StatusCode::FORBIDDEN);
+    }
+
+    // Verify user owns this project
+    if !verify_project_access(&state, &project_id, &claims.sub).await? {
         return Err(StatusCode::FORBIDDEN);
     }
 
     // Find the agent
     let agent = agents::Entity::find()
         .filter(agents::Column::AgentId.eq(agent_id))
+        .filter(agents::Column::ProjectId.eq(project_id))
         .one(&state.db)
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
@@ -125,11 +179,14 @@ pub async fn get_agent_room_assignments(
 pub async fn get_room_agents(
     State(state): State<AppState>,
     axum::extract::Extension(claims): axum::extract::Extension<Claims>,
-    axum::extract::Path(room_name): axum::extract::Path<String>,
+    axum::extract::Path((_project_id, room_name)): axum::extract::Path<(String, String)>,
 ) -> Result<Json<Vec<AgentRoomAssignment>>, StatusCode> {
     if !claims.is_admin {
         return Err(StatusCode::FORBIDDEN);
     }
+
+    // Note: This endpoint returns agents in a room across all projects
+    // In a more strict isolation model, you'd filter by project
 
     // Get active assignments for the room
     let assignments = agent_rooms::Entity::find()

@@ -7,7 +7,7 @@ import Header from "../../components/Header";
 import { Card } from "../../../components/ui/Card";
 import { RefreshCw, Search, Filter, ChevronLeft, ChevronRight, Phone, Users as UsersIcon, Bot, ChevronDown } from "lucide-react";
 import { Button } from "../../../components/ui/Button";
-import { getAccessToken, getSessions, getSessionStats, User, Session, SessionStats, SessionsListResponse } from "../../../lib/api";
+import { getAccessToken, getSessions, getSessionStats, getProjects, Project, Session, SessionStats, SessionsListResponse } from "../../../lib/api";
 import { cn } from "../../../lib/utils";
 
 const formatDuration = (seconds: number) => {
@@ -30,8 +30,11 @@ export default function SessionsPage() {
   const router = useRouter();
   const [sessionsData, setSessionsData] = useState<SessionsListResponse | null>(null);
   const [stats, setStats] = useState<SessionStats | null>(null);
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [currentProject, setCurrentProject] = useState<Project | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const [page, setPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState("all");
@@ -50,17 +53,27 @@ export default function SessionsPage() {
       return;
     }
 
+    setError(null);
     try {
-      const [sessionsRes, statsRes] = await Promise.all([
+      const [sessionsRes, statsRes, projectsRes] = await Promise.all([
         getSessions(page, 10, statusFilter === "all" ? undefined : statusFilter, debouncedSearch),
-        getSessionStats("24h")
+        getSessionStats("24h"),
+        getProjects()
       ]);
 
       setSessionsData(sessionsRes);
       setStats(statsRes);
-    } catch (error) {
-      setLoading(false);
-      setRefreshing(false);
+      setProjects(projectsRes);
+      
+      // Set current project from localStorage or first project
+      const savedProjectId = localStorage.getItem("projectId");
+      const project = projectsRes.find((p: Project) => p.id === savedProjectId) || projectsRes[0];
+      if (project) {
+        setCurrentProject(project);
+      }
+    } catch (err) {
+      console.error("Failed to load sessions:", err);
+      setError(err instanceof Error ? err.message : "Failed to load sessions");
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -100,11 +113,17 @@ export default function SessionsPage() {
   return (
     <>
       <Header
-        projectName="Divith"
+        projectName={currentProject?.name || "Project"}
         pageName="Sessions"
         showTimeRange={true}
         onRefresh={loadData}
       />
+      
+      {error && (
+        <div className="mx-6 md:mx-8 mt-4 p-4 rounded-lg bg-red-500/10 border border-red-500/30 text-red-400 text-sm">
+          Error: {error}
+        </div>
+      )}
 
       <div className="p-6 md:p-8 space-y-8 max-w-[1600px] mx-auto">
         {/* Stats Cards */}

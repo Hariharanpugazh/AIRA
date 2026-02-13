@@ -22,7 +22,7 @@ pub struct LiveKitService {
 
 impl LiveKitService {
     pub fn new() -> Result<Self> {
-        let host = env::var("LIVEKIT_URL").unwrap_or_else(|_| "http://localhost:7880".to_string());
+        let host = env::var("LIVEKIT_URL").map_err(|_| anyhow::anyhow!("LIVEKIT_URL must be set"))?;
         let api_key = env::var("LIVEKIT_API_KEY").map_err(|_| anyhow::anyhow!("LIVEKIT_API_KEY must be set"))?;
         let api_secret = env::var("LIVEKIT_API_SECRET").map_err(|_| anyhow::anyhow!("LIVEKIT_API_SECRET must be set"))?;
 
@@ -72,7 +72,7 @@ impl LiveKitService {
     }
 
     pub async fn check_health(&self) -> Result<bool> {
-        let host = env::var("LIVEKIT_URL").unwrap_or_else(|_| "http://localhost:7880".to_string());
+        let host = env::var("LIVEKIT_URL").map_err(|_| anyhow::anyhow!("LIVEKIT_URL must be set"))?;
         let url = format!("{}/healthz", host);
         let response = self.http_client.get(&url).send().await?;
         Ok(response.status().is_success())

@@ -25,16 +25,19 @@ pub async fn generate_token(
     axum::extract::Extension(claims): axum::extract::Extension<Claims>,
     Json(req): Json<TokenRequest>,
 ) -> Result<Json<TokenResponse>, StatusCode> {
-    // Both admins and regular users can join rooms, but maybe only admins can join ANY room.
-    // For now, let's allow it if they are authenticated.
-    
     let identity = req.identity.unwrap_or_else(|| claims.sub.clone());
     
+    // Admin grants for dashboard users - provides full LiveKit Cloud parity
     let video_grants = json!({
+        "roomCreate": claims.is_admin,
+        "roomList": claims.is_admin,
         "roomJoin": true,
         "room": req.room_name,
+        "roomAdmin": claims.is_admin,
         "canPublish": req.can_publish.unwrap_or(true),
         "canSubscribe": req.can_subscribe.unwrap_or(true),
+        "canUpdateOwnMetadata": true,
+        "ingressAdmin": claims.is_admin,
     });
 
     let token = create_livekit_api_jwt(
@@ -71,11 +74,17 @@ pub async fn get_token(
     let identity = query.identity.unwrap_or_else(|| claims.sub.clone());
     let room_name = query.room.unwrap_or_else(|| "default-room".to_string());
     
+    // Admin grants for dashboard users
     let video_grants = json!({
+        "roomCreate": claims.is_admin,
+        "roomList": claims.is_admin,
         "roomJoin": true,
         "room": room_name,
+        "roomAdmin": claims.is_admin,
         "canPublish": true,
         "canSubscribe": true,
+        "canUpdateOwnMetadata": true,
+        "ingressAdmin": claims.is_admin,
     });
 
     let token = create_livekit_api_jwt(

@@ -11,16 +11,20 @@ export function setAccessToken(token: string | null) {
         return t.replace(/\uFEFF/g, "").trim().replace(/[^\x00-\xFF]/g, "");
     }
 
+    // Determine if we're in production (HTTPS)
+    const isProduction = typeof window !== "undefined" && window.location.protocol === "https:";
+    const secureFlag = isProduction ? "; secure" : "";
+
     if (token) {
         const clean = sanitize(token);
         accessToken = clean;
         if (typeof document !== "undefined") {
-            document.cookie = `token=${encodeURIComponent(clean)}; path=/; max-age=${24 * 60 * 60}; samesite=strict`;
+            document.cookie = `token=${encodeURIComponent(clean)}; path=/; max-age=${24 * 60 * 60}; samesite=strict${secureFlag}`;
         }
     } else {
         accessToken = null;
         if (typeof document !== "undefined") {
-            document.cookie = "token=; path=/; max-age=0";
+            document.cookie = `token=; path=/; max-age=0${secureFlag}`;
         }
     }
 }
@@ -46,7 +50,9 @@ export function clearAuth() {
         localStorage.removeItem("user");
         // Remove cookie token so it disappears from Application -> Cookies
         try {
-            document.cookie = "token=; path=/; max-age=0; samesite=strict";
+            const isProduction = window.location.protocol === "https:";
+            const secureFlag = isProduction ? "; secure" : "";
+            document.cookie = `token=; path=/; max-age=0; samesite=strict${secureFlag}`;
         } catch (e) {
             // ignore in non-browser contexts
         }
@@ -92,10 +98,17 @@ export async function apiFetch<T>(
 
     for (let attempt = 0; attempt <= maxRetries; attempt++) {
         try {
+            // Add timeout handling
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s timeout
+            
             const response = await fetch(`${API_BASE}${endpoint}`, {
                 ...options,
                 headers,
+                signal: controller.signal,
             });
+            
+            clearTimeout(timeoutId);
 
             if (response.status === 401) {
                 clearAuth();
@@ -141,7 +154,12 @@ export async function apiFetch<T>(
 
             return response.json();
         } catch (error) {
-            lastError = error as Error;
+            // Handle timeout specifically
+            if (error instanceof Error && error.name === 'AbortError') {
+                lastError = new Error("Request timeout - please try again");
+            } else {
+                lastError = error as Error;
+            }
 
             if (lastError.message === "Unauthorized") {
                 throw lastError;
@@ -516,8 +534,9 @@ export interface TokenResponse {
 }
 
 export async function getRooms(): Promise<Room[]> {
-    const data = await apiFetch<{ rooms: Room[] }>("/api/livekit/rooms");
-    return data.rooms;
+    // Backend returns direct array, not wrapped object
+    const data = await apiFetch<Room[]>("/api/livekit/rooms");
+    return data;
 }
 
 export async function getRoomDetail(roomName: string): Promise<RoomDetail> {
@@ -566,8 +585,9 @@ export interface Egress {
 }
 
 export async function getEgresses(): Promise<Egress[]> {
-    const data = await apiFetch<{ egresses: Egress[] }>("/api/livekit/egresses");
-    return data.egresses;
+    // Backend returns direct array, not wrapped object
+    const data = await apiFetch<Egress[]>("/api/livekit/egresses");
+    return data;
 }
 
 export async function startRoomEgress(roomName: string): Promise<Egress> {
@@ -601,8 +621,9 @@ export interface Ingress {
 }
 
 export async function getIngresses(): Promise<Ingress[]> {
-    const data = await apiFetch<{ ingresses: Ingress[] }>("/api/livekit/ingresses");
-    return data.ingresses;
+    // Backend returns direct array, not wrapped object
+    const data = await apiFetch<Ingress[]>("/api/livekit/ingresses");
+    return data;
 }
 
 export async function createIngress(name: string, type: "rtmp" | "whip"): Promise<Ingress> {

@@ -655,7 +655,7 @@ export default function LiveKitStyleSidebar({ user: initialUser }: SidebarProps)
 
       {/* Search Modal */}
       {searchOpen && (
-        <div className="fixed inset-0 z-[110] flex items-start justify-center pt-20">
+        <div className="fixed inset-0 z-50 flex items-start justify-center pt-20">
           <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px] animate-in fade-in duration-300" onClick={() => {
             setSearchOpen(false);
             setSearchQuery("");

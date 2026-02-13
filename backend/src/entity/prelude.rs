@@ -4,6 +4,7 @@ pub use super::users::Entity as Users;
 pub use super::api_keys::Entity as ApiKeys;
 pub use super::configs::Entity as Configs;
 pub use super::metrics::Entity as Metrics;
+pub use super::agents::Entity as Agents;
 pub use super::agent_instances::Entity as AgentInstances;
 
 pub use super::projects::Entity as Projects;
@@ -20,3 +21,6 @@ pub use super::regions::Entity as Regions;
 pub use super::roles::Entity as Roles;
 pub use super::audit_logs::Entity as AuditLogs;
 pub use super::transcripts::Entity as Transcripts;
+pub use super::webhook_events::Entity as WebhookEvents;
+pub use super::webhook_deliveries::Entity as WebhookDeliveries;
+pub use super::error_logs::Entity as ErrorLogs;

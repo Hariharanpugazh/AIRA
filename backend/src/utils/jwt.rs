@@ -65,12 +65,7 @@ pub struct AgentClaims {
 }
 
 fn jwt_secret() -> String {
-    match env::var("JWT_SECRET") {
-        Ok(secret) => secret,
-        Err(_) => {
-            "SUPER_SECRET_KEY".to_string()
-        }
-    }
+    env::var("JWT_SECRET").expect("JWT_SECRET environment variable must be set")
 }
 
 fn livekit_api_secret() -> String {

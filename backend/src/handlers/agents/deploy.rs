@@ -6,10 +6,25 @@ use std::process::Stdio;
 use tokio::process::Command;
 use uuid::Uuid;
 
-use crate::entity::{agents, agent_instances};
+use crate::entity::{agents, agent_instances, projects};
 use crate::models::agents::{CreateAgentRequest, UpdateAgentRequest, AgentResponse, DeployAgentRequest, DeployAgentResponse};
 use crate::utils::jwt::{Claims, create_agent_jwt};
 use crate::AppState;
+
+/// Verify user owns the project
+async fn verify_project_access(
+    state: &AppState,
+    project_id: &str,
+    user_id: &str,
+) -> Result<bool, StatusCode> {
+    let project = projects::Entity::find_by_id(project_id)
+        .one(&state.db)
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
+        .ok_or(StatusCode::NOT_FOUND)?;
+    
+    Ok(project.user_id == user_id)
+}
 
 pub async fn create_agent(
     State(state): State<AppState>,
@@ -18,6 +33,11 @@ pub async fn create_agent(
     Json(req): Json<CreateAgentRequest>,
 ) -> Result<Json<AgentResponse>, StatusCode> {
     if !claims.is_admin {
+        return Err(StatusCode::FORBIDDEN);
+    }
+
+    // Verify user owns this project
+    if !verify_project_access(&state, &project_id, &claims.sub).await? {
         return Err(StatusCode::FORBIDDEN);
     }
 
@@ -66,6 +86,11 @@ pub async fn update_agent(
     Json(req): Json<UpdateAgentRequest>,
 ) -> Result<Json<AgentResponse>, StatusCode> {
     if !claims.is_admin {
+        return Err(StatusCode::FORBIDDEN);
+    }
+
+    // Verify user owns this project
+    if !verify_project_access(&state, &project_id, &claims.sub).await? {
         return Err(StatusCode::FORBIDDEN);
     }
 
@@ -136,6 +161,11 @@ pub async fn list_agents(
         return Err(StatusCode::FORBIDDEN);
     }
 
+    // Verify user owns this project
+    if !verify_project_access(&state, &project_id, &claims.sub).await? {
+        return Err(StatusCode::FORBIDDEN);
+    }
+
     let agents = agents::Entity::find()
         .filter(agents::Column::ProjectId.eq(project_id))
         .all(&state.db)
@@ -171,7 +201,11 @@ pub async fn deploy_agent(
         return Err(StatusCode::FORBIDDEN);
     }
 
-    // Find the agent
+    // Verify user owns this project
+    if !verify_project_access(&state, &project_id, &claims.sub).await? {
+        return Err(StatusCode::FORBIDDEN);
+    }
+
     // Find the agent
     let agent = agents::Entity::find()
         .filter(agents::Column::AgentId.eq(&agent_id))
@@ -410,6 +444,11 @@ pub async fn get_agent(
         return Err(StatusCode::FORBIDDEN);
     }
 
+    // Verify user owns this project
+    if !verify_project_access(&state, &project_id, &claims.sub).await? {
+        return Err(StatusCode::FORBIDDEN);
+    }
+
     let agent = agents::Entity::find()
         .filter(agents::Column::AgentId.eq(agent_id))
         .filter(agents::Column::ProjectId.eq(project_id))
@@ -441,6 +480,11 @@ pub async fn delete_agent(
     axum::extract::Path((project_id, agent_id)): axum::extract::Path<(String, String)>,
 ) -> Result<StatusCode, StatusCode> {
     if !claims.is_admin {
+        return Err(StatusCode::FORBIDDEN);
+    }
+
+    // Verify user owns this project
+    if !verify_project_access(&state, &project_id, &claims.sub).await? {
         return Err(StatusCode::FORBIDDEN);
     }
 
