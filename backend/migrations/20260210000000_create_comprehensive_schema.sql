@@ -164,6 +164,6 @@ CREATE TABLE IF NOT EXISTS roles (
 -- I'll create `user_roles` linking table?
 -- `roles` table created above.
 -- I'll add `role_id` to `users`.
-ALTER TABLE users ADD COLUMN role_id TEXT REFERENCES roles(id);
-ALTER TABLE users ADD COLUMN name TEXT;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS role_id TEXT REFERENCES roles(id);
+ALTER TABLE users ADD COLUMN IF NOT EXISTS name TEXT;
 ALTER TABLE users ADD COLUMN is_active BOOLEAN DEFAULT TRUE;
