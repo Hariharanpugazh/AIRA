@@ -116,11 +116,11 @@ export default function SipTrunksPage() {
             </div>
             <div className="flex items-center justify-between gap-4">
               <div className="text-[14px] font-mono text-foreground truncate bg-muted/30 px-3 py-1.5 rounded-lg border border-border/40">
-                {trunks.length > 0 ? (trunks[0].sip_server || trunks[0].sip_uri || "No URI configured") : "N/A"}
+                {trunks.length > 0 ? (trunks[0].sip_uri || trunks[0].sip_server || "No URI configured") : "N/A"}
               </div>
               <button
                 className="p-2 text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-lg transition-all"
-                onClick={() => trunks.length > 0 && navigator.clipboard.writeText(trunks[0].sip_server || trunks[0].sip_uri || "")}
+                  onClick={() => trunks.length > 0 && navigator.clipboard.writeText(trunks[0].sip_uri || trunks[0].sip_server || "")}
               >
                 <Copy className="w-4 h-4" />
               </button>

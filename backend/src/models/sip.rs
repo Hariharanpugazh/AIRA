@@ -40,6 +40,7 @@ pub struct SipTrunkResponse {
     pub inbound_numbers_regex: Vec<String>,
     pub outbound_address: Option<String>,
     pub sip_server: Option<String>,
+    pub sip_uri: Option<String>,
     pub username: Option<String>,
     pub created_at: Option<String>,
 }

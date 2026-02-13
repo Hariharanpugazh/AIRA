@@ -36,18 +36,26 @@ fn normalize_string_list(list: Vec<String>) -> Vec<String> {
     normalized
 }
 
-fn map_inbound_trunk(t: livekit_protocol::SipInboundTrunkInfo) -> SipTrunkResponse {
-    SipTrunkResponse {
-        id: t.sip_trunk_id.clone(),
-        sip_trunk_id: t.sip_trunk_id,
-        name: Some(t.name),
-        metadata: Some(t.metadata),
-        inbound_addresses: t.allowed_addresses,
-        inbound_numbers_regex: t.numbers,
-        outbound_address: None,
-        sip_server: None,
-        username: None,
-        created_at: None,
+fn construct_sip_uri(trunk_id: &str) -> String {
+    // Extract domain from LIVEKIT_URL environment variable
+    // Format: sip:{trunk_id}@{domain} (LiveKit Cloud compatible format)
+    if let Ok(livekit_url) = std::env::var("LIVEKIT_URL") {
+        // Remove protocol (wss:// or ws://) and extract domain
+        let domain = if let Some(stripped) = livekit_url.strip_prefix("wss://") {
+            stripped
+        } else if let Some(stripped) = livekit_url.strip_prefix("ws://") {
+            stripped
+        } else {
+            livekit_url.as_str()
+        };
+
+        // Remove port if present
+        let domain = domain.split(':').next().unwrap_or(domain);
+
+        format!("sip:{}@{}", trunk_id, domain)
+    } else {
+        // Fallback if LIVEKIT_URL is not set
+        format!("sip:{}@livekit.local", trunk_id)
     }
 }
 
@@ -61,6 +69,27 @@ fn map_outbound_trunk(t: livekit_protocol::SipOutboundTrunkInfo) -> SipTrunkResp
         inbound_numbers_regex: t.numbers,
         outbound_address: Some(t.address.clone()),
         sip_server: Some(t.address),
+        sip_uri: None, // Outbound trunks don't have inbound SIP URIs
+        username: if t.auth_username.is_empty() {
+            None
+        } else {
+            Some(t.auth_username)
+        },
+        created_at: None,
+    }
+}
+
+fn map_inbound_trunk(t: livekit_protocol::SipInboundTrunkInfo) -> SipTrunkResponse {
+    SipTrunkResponse {
+        id: t.sip_trunk_id.clone(),
+        sip_trunk_id: t.sip_trunk_id.clone(),
+        name: Some(t.name),
+        metadata: Some(t.metadata),
+        inbound_addresses: t.allowed_addresses,
+        inbound_numbers_regex: t.allowed_numbers,
+        outbound_address: None,
+        sip_server: None,
+        sip_uri: Some(construct_sip_uri(&t.sip_trunk_id)), // Generate SIP URI for inbound trunks
         username: if t.auth_username.is_empty() {
             None
         } else {
