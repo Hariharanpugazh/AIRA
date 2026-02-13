@@ -51,7 +51,8 @@ export default function EgressesPage() {
       const [e] = await Promise.all([getEgresses()]);
       setEgresses(e);
     } catch (err) {
-
+      console.error("[Egresses] Failed to load data:", err);
+      // Error is handled silently - UI shows empty state
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -132,7 +133,7 @@ export default function EgressesPage() {
       await stopEgress(id);
       handleRefresh();
     } catch (e) {
-
+      console.error("[Egresses] Failed to stop egress:", e);
     }
   };
 
@@ -259,7 +260,7 @@ export default function EgressesPage() {
                   <input
                     value={formData.url}
                     onChange={e => setFormData({ ...formData, url: e.target.value })}
-                    placeholder="https://example.com"
+                    placeholder="https://website-to-record.com"
                     className="w-full bg-surface border border-border rounded-lg p-2.5 focus:border-primary/50 focus:outline-none"
                   />
                   <p className="text-xs text-muted-foreground mt-2">A custom webpage URL to record.</p>
@@ -330,7 +331,7 @@ export default function EgressesPage() {
                     <input
                       type="number"
                       value={formData.width}
-                      onChange={e => setFormData({ ...formData, width: parseInt(e.target.value) || 1920 })}
+                      onChange={e => setFormData({ ...formData, width: parseInt(e.target.value, 10) || 1920 })}
                       className="w-full bg-surface border border-border rounded-lg p-2.5 focus:border-primary/50 focus:outline-none"
                     />
                   </div>
@@ -339,7 +340,7 @@ export default function EgressesPage() {
                     <input
                       type="number"
                       value={formData.height}
-                      onChange={e => setFormData({ ...formData, height: parseInt(e.target.value) || 1080 })}
+                      onChange={e => setFormData({ ...formData, height: parseInt(e.target.value, 10) || 1080 })}
                       className="w-full bg-surface border border-border rounded-lg p-2.5 focus:border-primary/50 focus:outline-none"
                     />
                   </div>

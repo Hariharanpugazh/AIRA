@@ -1,372 +1,177 @@
-use axum::{extract::{State, Query, Path}, http::StatusCode, Json};
-use sea_orm::{EntityTrait, ColumnTrait, QueryFilter, PaginatorTrait, ActiveModelTrait, Set, QueryOrder, QuerySelect};
-use reqwest;
-use serde_json;
-use chrono::{Utc, Duration};
-use serde::{Deserialize, Serialize};
+use axum::{extract::State, http::StatusCode, Json};
+use serde_json::json;
+use std::sync::Arc;
 use std::collections::HashMap;
-use uuid::Uuid;
+use chrono::Utc;
 
-use crate::entity::{prelude::*, sessions, agents, error_logs};
-use crate::models::metrics::{MetricResponse, MetricsSummary};
-use crate::utils::jwt::Claims;
 use crate::AppState;
+use crate::utils::jwt::Claims;
 
-#[derive(Debug, Serialize, Deserialize)]
-pub struct SystemMetric {
-    pub metric_name: String,
-    pub metric_value: f64,
+/// System metrics response
+#[derive(serde::Serialize)]
+pub struct SystemMetrics {
     pub timestamp: String,
+    pub uptime_seconds: u64,
+    pub version: String,
+    pub livekit: LiveKitMetrics,
+    pub database: DatabaseMetrics,
+    pub requests: RequestMetrics,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
-pub struct ErrorLog {
-    pub id: String,
-    pub error_type: String,
-    pub message: String,
-    pub is_resolved: bool,
-    pub created_at: String,
+#[derive(serde::Serialize)]
+pub struct LiveKitMetrics {
+    pub connected: bool,
+    pub active_rooms: i32,
+    pub total_participants: i32,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
-pub struct ServiceStatusData {
-    pub status: String,
-    pub timestamp: String,
-    pub services: HashMap<String, ServiceStatus>,
-    pub latency_ms: u64,
+#[derive(serde::Serialize)]
+pub struct DatabaseMetrics {
+    pub connected: bool,
+    pub active_connections: Option<i32>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
-pub struct ServiceStatus {
-    pub status: String,
-    pub latency_ms: u64,
-    pub details: Option<String>,
-    pub error: Option<String>,
-    pub rooms: Option<u32>,
+#[derive(serde::Serialize)]
+pub struct RequestMetrics {
+    pub total_requests: u64,
+    pub requests_per_second: f64,
+    pub average_latency_ms: f64,
+    pub error_rate: f64,
 }
 
-#[derive(Debug, Deserialize)]
-pub struct MetricsQuery {
-    pub hours: Option<u32>,
-}
-
-#[derive(Debug, Deserialize)]
-pub struct ErrorLogsQuery {
-    pub unresolved_only: Option<bool>,
-}
-
-pub async fn get_metrics_summary(
+/// Prometheus-compatible metrics endpoint
+pub async fn prometheus_metrics(
     State(state): State<AppState>,
-    axum::extract::Extension(claims): axum::extract::Extension<Claims>,
-) -> Result<Json<MetricsSummary>, StatusCode> {
-    if !claims.is_admin {
-        return Err(StatusCode::FORBIDDEN);
-    }
-
-    // Get real-time data from LiveKit instead of Prometheus
-    let rooms = state.lk_service.list_rooms().await
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    
-    let total_rooms = rooms.len() as i64;
-    let total_participants = rooms.iter().map(|r| r.num_participants as i64).sum();
-    
-    // Get egress and ingress counts
-    let egress_list = state.lk_service.list_egress(None).await
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    let active_egress = egress_list.len() as i64;
-    
-    let ingress_list = state.lk_service.list_ingress(None).await
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    let active_ingress = ingress_list.len() as i64;
-
-    Ok(Json(MetricsSummary {
-        total_rooms,
-        total_participants,
-        active_egress,
-        active_ingress,
-    }))
-}
-
-pub async fn get_recent_metrics(
-    State(state): State<AppState>,
-    axum::extract::Extension(claims): axum::extract::Extension<Claims>,
-) -> Result<Json<Vec<MetricResponse>>, StatusCode> {
-    if !claims.is_admin {
-        return Err(StatusCode::FORBIDDEN);
-    }
-
-    let metrics = Metrics::find().all(&state.db).await
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-
-    let response = metrics.into_iter().map(|m| MetricResponse {
-        name: m.metric_name,
-        value: m.metric_value.map(|v| v.to_string().parse().unwrap_or(0.0)),
-        labels: m.labels,
-        timestamp: m.timestamp.to_string(),
-    }).collect();
-
-    Ok(Json(response))
-}
-
-/// Get system metrics for the last N hours
-pub async fn get_system_metrics(
-    State(state): State<AppState>,
-    axum::extract::Extension(_claims): axum::extract::Extension<Claims>,
-    Query(query): Query<MetricsQuery>,
-) -> Result<Json<Vec<SystemMetric>>, StatusCode> {
-    let hours = query.hours.unwrap_or(24);
-    let since = Utc::now() - Duration::hours(hours as i64);
-    
-    let mut metrics = vec![];
-    
-    // Get active sessions count
-    let active_sessions = Sessions::find()
-        .filter(sessions::Column::Status.eq("active"))
-        .count(&state.db)
-        .await
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    
-    metrics.push(SystemMetric {
-        metric_name: "active_sessions".to_string(),
-        metric_value: active_sessions as f64,
-        timestamp: Utc::now().to_rfc3339(),
-    });
-    
-    // Get total sessions in period
-    let total_sessions = Sessions::find()
-        .filter(sessions::Column::StartTime.gte(since))
-        .count(&state.db)
-        .await
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    
-    metrics.push(SystemMetric {
-        metric_name: "total_sessions".to_string(),
-        metric_value: total_sessions as f64,
-        timestamp: Utc::now().to_rfc3339(),
-    });
-    
-    // Get enabled agents count
-    let active_agents = <Agents as EntityTrait>::find()
-        .filter(agents::Column::IsEnabled.eq(true))
-        .count(&state.db)
-        .await
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    
-    metrics.push(SystemMetric {
-        metric_name: "active_agents".to_string(),
-        metric_value: active_agents as f64,
-        timestamp: Utc::now().to_rfc3339(),
-    });
-    
-    // Get error count
-    let error_count = ErrorLogs::find()
-        .filter(error_logs::Column::IsResolved.eq(false))
-        .count(&state.db)
-        .await
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    
-    metrics.push(SystemMetric {
-        metric_name: "unresolved_errors".to_string(),
-        metric_value: error_count as f64,
-        timestamp: Utc::now().to_rfc3339(),
-    });
-    
-    Ok(Json(metrics))
-}
-
-/// Get error logs
-pub async fn get_error_logs(
-    State(state): State<AppState>,
-    axum::extract::Extension(_claims): axum::extract::Extension<Claims>,
-    Query(query): Query<ErrorLogsQuery>,
-) -> Result<Json<Vec<ErrorLog>>, StatusCode> {
-    let mut db_query = ErrorLogs::find().order_by_desc(error_logs::Column::CreatedAt);
-    
-    if query.unresolved_only.unwrap_or(false) {
-        db_query = db_query.filter(error_logs::Column::IsResolved.eq(false));
-    }
-    
-    let logs = db_query.limit(100).all(&state.db).await
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    
-    let response = logs.into_iter().map(|l| ErrorLog {
-        id: l.id,
-        error_type: l.error_type,
-        message: l.message,
-        is_resolved: l.is_resolved,
-        created_at: l.created_at.map(|t| t.to_string()).unwrap_or_default(),
-    }).collect();
-    
-    Ok(Json(response))
-}
-
-/// Resolve an error
-pub async fn resolve_error(
-    State(state): State<AppState>,
-    axum::extract::Extension(_claims): axum::extract::Extension<Claims>,
-    Path(error_id): Path<String>,
-) -> Result<StatusCode, StatusCode> {
-    let error = ErrorLogs::find_by_id(error_id)
-        .one(&state.db)
-        .await
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
-        .ok_or(StatusCode::NOT_FOUND)?;
-    
-    let mut active_model: error_logs::ActiveModel = error.into();
-    active_model.is_resolved = Set(true);
-    active_model.updated_at = Set(Some(Utc::now().naive_utc()));
-    
-    active_model.update(&state.db).await
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    
-    Ok(StatusCode::OK)
-}
-
-/// Create error log (internal helper)
-pub async fn create_error_log(
-    state: &AppState,
-    error_type: &str,
-    message: &str,
-) -> Result<(), StatusCode> {
-    let new_log = error_logs::ActiveModel {
-        id: Set(Uuid::new_v4().to_string()),
-        error_type: Set(error_type.to_string()),
-        message: Set(message.to_string()),
-        is_resolved: Set(false),
-        created_at: Set(Some(Utc::now().naive_utc())),
-        updated_at: Set(Some(Utc::now().naive_utc())),
-        ..Default::default()
-    };
-    
-    ErrorLogs::insert(new_log).exec(&state.db).await
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    
-    Ok(())
-}
-
-/// Get service status
-pub async fn get_service_status(
-    State(state): State<AppState>,
-    axum::extract::Extension(_claims): axum::extract::Extension<Claims>,
-) -> Result<Json<ServiceStatusData>, StatusCode> {
-    let start = std::time::Instant::now();
-    let mut services = HashMap::new();
-    
-    // Check database connection
-    let db_start = std::time::Instant::now();
-    let db_status = match state.db.ping().await {
-        Ok(_) => ServiceStatus {
-            status: "healthy".to_string(),
-            latency_ms: db_start.elapsed().as_millis() as u64,
-            details: Some("PostgreSQL connected".to_string()),
-            error: None,
-            rooms: None,
-        },
-        Err(e) => ServiceStatus {
-            status: "error".to_string(),
-            latency_ms: db_start.elapsed().as_millis() as u64,
-            details: None,
-            error: Some(e.to_string()),
-            rooms: None,
-        },
-    };
-    services.insert("database".to_string(), db_status);
-    
-    // Check LiveKit connection
-    let lk_start = std::time::Instant::now();
-    let lk_status = match state.lk_service.check_health().await {
-        Ok(true) => {
-            // Get room count
-            let rooms = match state.lk_service.list_rooms().await {
-                Ok(r) => Some(r.len() as u32),
-                Err(_) => None,
-            };
-            ServiceStatus {
-                status: "healthy".to_string(),
-                latency_ms: lk_start.elapsed().as_millis() as u64,
-                details: Some("LiveKit server reachable".to_string()),
-                error: None,
-                rooms,
-            }
-        },
-        Ok(false) => ServiceStatus {
-            status: "unhealthy".to_string(),
-            latency_ms: lk_start.elapsed().as_millis() as u64,
-            details: Some("LiveKit health check failed".to_string()),
-            error: None,
-            rooms: None,
-        },
-        Err(e) => ServiceStatus {
-            status: "error".to_string(),
-            latency_ms: lk_start.elapsed().as_millis() as u64,
-            details: None,
-            error: Some(e.to_string()),
-            rooms: None,
-        },
-    };
-    services.insert("livekit".to_string(), lk_status);
-    
-    // Overall status
-    let overall_status = if services.values().all(|s| s.status == "healthy") {
-        "healthy"
-    } else if services.values().any(|s| s.status == "error") {
-        "degraded"
-    } else {
-        "healthy"
-    }.to_string();
-    
-    Ok(Json(ServiceStatusData {
-        status: overall_status,
-        timestamp: Utc::now().to_rfc3339(),
-        services,
-        latency_ms: start.elapsed().as_millis() as u64,
-    }))
-}
-
-/// Get Prometheus metrics (text format)
-pub async fn get_prometheus_metrics(
-    State(state): State<AppState>,
-    axum::extract::Extension(_claims): axum::extract::Extension<Claims>,
 ) -> Result<String, StatusCode> {
     let mut output = String::new();
     
-    // Active sessions gauge
-    let active_sessions = Sessions::find()
-        .filter(sessions::Column::Status.eq("active"))
-        .count(&state.db)
-        .await
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    // LiveKit metrics
+    let lk_status = match state.lk_service.check_health().await {
+        Ok(true) => 1,
+        _ => 0,
+    };
     
-    output.push_str("# HELP livekit_admin_active_sessions Number of active sessions\n");
-    output.push_str("# TYPE livekit_admin_active_sessions gauge\n");
-    output.push_str(&format!("livekit_admin_active_sessions {}\n", active_sessions));
+    output.push_str(&format!("# HELP livekit_connected LiveKit server connection status\n"));
+    output.push_str(&format!("# TYPE livekit_connected gauge\n"));
+    output.push_str(&format!("livekit_connected {}\n", lk_status));
     
-    // Active agents gauge
-    let active_agents = <Agents as EntityTrait>::find()
-        .filter(agents::Column::IsEnabled.eq(true))
-        .count(&state.db)
-        .await
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    
-    output.push_str("# HELP livekit_admin_active_agents Number of active agents\n");
-    output.push_str("# TYPE livekit_admin_active_agents gauge\n");
-    output.push_str(&format!("livekit_admin_active_agents {}\n", active_agents));
-    
-    // Total rooms from LiveKit
-    match state.lk_service.list_rooms().await {
-        Ok(rooms) => {
-            output.push_str("# HELP livekit_rooms_total Total number of rooms\n");
-            output.push_str("# TYPE livekit_rooms_total gauge\n");
-            output.push_str(&format!("livekit_rooms_total {}\n", rooms.len()));
-            
-            // Total participants
-            let total_participants: u32 = rooms.iter().map(|r| r.num_participants).sum();
-            output.push_str("# HELP livekit_participants_total Total number of participants\n");
-            output.push_str("# TYPE livekit_participants_total gauge\n");
-            output.push_str(&format!("livekit_participants_total {}\n", total_participants));
-        },
-        Err(_) => {}
+    // Try to get room stats
+    if let Ok(rooms) = state.lk_service.list_rooms().await {
+        let active_rooms = rooms.len() as i32;
+        let total_participants: i32 = rooms.iter().map(|r| r.num_participants as i32).sum();
+        
+        output.push_str(&format!("# HELP livekit_active_rooms Number of active rooms\n"));
+        output.push_str(&format!("# TYPE livekit_active_rooms gauge\n"));
+        output.push_str(&format!("livekit_active_rooms {}\n", active_rooms));
+        
+        output.push_str(&format!("# HELP livekit_total_participants Total participants across all rooms\n"));
+        output.push_str(&format!("# TYPE livekit_total_participants gauge\n"));
+        output.push_str(&format!("livekit_total_participants {}\n", total_participants));
     }
     
+    // Database metrics
+    let db_status = if state.db.ping().await.is_ok() { 1 } else { 0 };
+    output.push_str(&format!("# HELP database_connected Database connection status\n"));
+    output.push_str(&format!("# TYPE database_connected gauge\n"));
+    output.push_str(&format!("database_connected {}\n", db_status));
+    
+    // Process metrics
+    output.push_str(&format!("# HELP process_uptime_seconds Process uptime in seconds\n"));
+    output.push_str(&format!("# TYPE process_uptime_seconds counter\n"));
+    output.push_str(&format!("process_uptime_seconds {}\n", get_uptime_seconds()));
+    
     Ok(output)
+}
+
+/// Health check endpoint with detailed status
+pub async fn health_check(
+    State(state): State<AppState>,
+) -> Result<Json<serde_json::Value>, StatusCode> {
+    use std::env;
+    
+    // Check LiveKit
+    let livekit_status = match state.lk_service.check_health().await {
+        Ok(true) => "healthy",
+        _ => "unhealthy",
+    };
+    
+    // Check Database
+    let db_status = if state.db.ping().await.is_ok() { 
+        "healthy" 
+    } else { 
+        "unhealthy" 
+    };
+    
+    let overall_status = if livekit_status == "healthy" && db_status == "healthy" {
+        "healthy"
+    } else {
+        "degraded"
+    };
+    
+    // Check for dangerous settings
+    let force_migration_reset = env::var("FORCE_MIGRATION_RESET")
+        .map(|v| v.to_lowercase() == "true" || v == "1")
+        .unwrap_or(false);
+    
+    let warnings: Vec<String> = if force_migration_reset {
+        vec!["FORCE_MIGRATION_RESET is enabled - remove this after recovery!".to_string()]
+    } else {
+        vec![]
+    };
+    
+    Ok(Json(json!({
+        "status": overall_status,
+        "timestamp": Utc::now().to_rfc3339(),
+        "version": env!("CARGO_PKG_VERSION"),
+        "services": {
+            "livekit": livekit_status,
+            "database": db_status,
+        },
+        "uptime_seconds": get_uptime_seconds(),
+        "warnings": warnings,
+    })))
+}
+
+/// Detailed system metrics
+pub async fn system_metrics(
+    State(state): State<AppState>,
+    axum::extract::Extension(_claims): axum::extract::Extension<Claims>,
+) -> Result<Json<SystemMetrics>, StatusCode> {
+    // Get LiveKit stats
+    let (lk_connected, active_rooms, total_participants) = 
+        match state.lk_service.list_rooms().await {
+            Ok(rooms) => (true, rooms.len() as i32, rooms.iter().map(|r| r.num_participants as i32).sum()),
+            Err(_) => (false, 0, 0),
+        };
+    
+    // Get DB status
+    let db_connected = state.db.ping().await.is_ok();
+    
+    Ok(Json(SystemMetrics {
+        timestamp: Utc::now().to_rfc3339(),
+        uptime_seconds: get_uptime_seconds(),
+        version: env!("CARGO_PKG_VERSION").to_string(),
+        livekit: LiveKitMetrics {
+            connected: lk_connected,
+            active_rooms,
+            total_participants,
+        },
+        database: DatabaseMetrics {
+            connected: db_connected,
+            active_connections: None, // Would need pg_stat_activity query
+        },
+        requests: RequestMetrics {
+            total_requests: 0, // Would need request counter
+            requests_per_second: 0.0,
+            average_latency_ms: 0.0,
+            error_rate: 0.0,
+        },
+    }))
+}
+
+/// Get process uptime
+fn get_uptime_seconds() -> u64 {
+    // This is a placeholder - in production, you'd track actual start time
+    // For now, return 0 as we don't have persistent state
+    0
 }

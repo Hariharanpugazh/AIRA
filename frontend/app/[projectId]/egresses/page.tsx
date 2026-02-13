@@ -259,7 +259,7 @@ export default function ProjectEgressesPage(props: any) {
                   <input
                     value={formData.url}
                     onChange={e => setFormData({ ...formData, url: e.target.value })}
-                    placeholder="https://example.com"
+                    placeholder="https://website-to-record.com"
                     className="w-full bg-surface border border-border rounded-lg p-2.5 focus:border-primary/50 focus:outline-none"
                   />
                   <p className="text-xs text-muted-foreground mt-2">A custom webpage URL to record.</p>

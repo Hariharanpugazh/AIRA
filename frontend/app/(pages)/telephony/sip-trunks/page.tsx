@@ -264,7 +264,7 @@ export default function SipTrunksPage() {
                   <div>
                     <label className="block text-[11px] font-bold text-muted-foreground uppercase tracking-widest mb-2.5 px-1">Gateway Address</label>
                     <Input
-                      placeholder="sip.example.com"
+                      placeholder="sip.your-provider.com"
                       value={formData.sip_server}
                       onChange={e => setFormData({ ...formData, sip_server: e.target.value })}
                     />

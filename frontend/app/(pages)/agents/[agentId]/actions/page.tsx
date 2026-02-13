@@ -117,7 +117,7 @@ export default function ActionsPage() {
                     <div className="space-y-3">
                         <label className="text-[13px] font-bold text-foreground">Tool name</label>
                         <div className="text-[12px] text-muted-foreground">Unique name used by the LLM to identify and use the tool.</div>
-                        <Input defaultValue="get_weather" className="border-primary h-10" />
+                        <Input placeholder="tool_name" className="border-primary h-10" />
                     </div>
 
                     <div className="space-y-3">
@@ -139,7 +139,7 @@ export default function ActionsPage() {
                         </div>
                         <div className="col-span-2 space-y-3">
                             <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest px-1 flex items-center gap-1">URL <Info className="w-3 h-3" /></label>
-                            <Input placeholder="https://api.example.com/some/endpoint" className="h-10" />
+                            <Input placeholder="https://api.yourservice.com/endpoint" className="h-10" />
                         </div>
                     </div>
 
@@ -184,7 +184,7 @@ export default function ActionsPage() {
                     <div className="space-y-3">
                         <label className="text-[13px] font-bold text-foreground">Tool name</label>
                         <div className="text-[12px] text-muted-foreground">Unique name used by the LLM to identify and use the tool.</div>
-                        <Input defaultValue="get_weather" className="border-primary h-10" />
+                        <Input placeholder="tool_name" className="border-primary h-10" />
                     </div>
 
                     <div className="space-y-3">
@@ -242,12 +242,12 @@ export default function ActionsPage() {
                     <div className="space-y-3">
                         <label className="text-[13px] font-bold text-foreground">Server name</label>
                         <div className="text-[12px] text-muted-foreground">A human-readable name for this MCP server.</div>
-                        <Input defaultValue="docs_server" className="border-primary h-10" />
+                        <Input placeholder="server_name" className="border-primary h-10" />
                     </div>
 
                     <div className="space-y-3">
                         <label className="text-[13px] font-bold text-foreground flex items-center gap-1">URL <Info className="w-3 h-3" /></label>
-                        <Input placeholder="https://api.example.com/mcp" className="h-10" />
+                        <Input placeholder="https://api.yourservice.com/mcp" className="h-10" />
                     </div>
 
                     <div className="space-y-3">

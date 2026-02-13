@@ -152,7 +152,7 @@ export default function RoomDetailPage() {
       setRoomDetail(roomData);
       setError(null);
     } catch (err: any) {
-
+      console.error("[RoomDetail] Failed to load room details:", err);
       setError(err.message || "Failed to load room details");
     } finally {
       setLoading(false);
@@ -183,7 +183,7 @@ export default function RoomDetailPage() {
       await muteParticipant(roomName, participant.identity, muteAudio, audioTrack?.sid);
       await loadData();
     } catch (err) {
-
+      console.error("[RoomDetail] Failed to mute participant:", err);
       alert("Failed to mute participant");
     } finally {
       setActionLoading(false);
@@ -198,7 +198,7 @@ export default function RoomDetailPage() {
       await removeParticipant(roomName, participant.identity);
       await loadData();
     } catch (err) {
-
+      console.error("[RoomDetail] Failed to remove participant:", err);
       alert("Failed to remove participant");
     } finally {
       setActionLoading(false);
@@ -230,7 +230,7 @@ export default function RoomDetailPage() {
       setPermissionsModalOpen(false);
       await loadData();
     } catch (err) {
-
+      console.error("[RoomDetail] Failed to update permissions:", err);
       alert("Failed to update permissions");
     } finally {
       setActionLoading(false);
@@ -249,7 +249,7 @@ export default function RoomDetailPage() {
       setGeneratedToken(tokenData.token);
       setWsUrl(tokenData.ws_url);
     } catch (err) {
-
+      console.error("[RoomDetail] Failed to generate token:", err);
       alert("Failed to generate token");
     } finally {
       setActionLoading(false);
@@ -262,7 +262,7 @@ export default function RoomDetailPage() {
       await deleteRoom(roomName);
       router.push("/sessions");
     } catch (err) {
-
+      console.error("[RoomDetail] Failed to delete room:", err);
       alert("Failed to delete room");
     } finally {
       setActionLoading(false);

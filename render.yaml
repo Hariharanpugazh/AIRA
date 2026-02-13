@@ -11,15 +11,15 @@ services:
       - key: DATABASE_URL
         sync: false
       - key: LIVEKIT_URL
-        value: wss://livekit.divithselvam.in
+        sync: false  # Set via Render dashboard: wss://your-livekit-domain.com
       - key: LIVEKIT_API_URL
-        value: https://livekit.divithselvam.in
+        sync: false  # Set via Render dashboard: https://your-livekit-domain.com
       - key: LIVEKIT_INGRESS_URL
-        value: https://livekit-whip.divithselvam.in
+        sync: false  # Set via Render dashboard: https://your-ingress-domain.com
       - key: LIVEKIT_EGRESS_URL
-        value: https://livekit.divithselvam.in:8083
+        sync: false  # Set via Render dashboard: https://your-egress-domain.com
       - key: LIVEKIT_SIP_URL
-        value: https://livekit.divithselvam.in:8082
+        sync: false  # Set via Render dashboard: https://your-sip-domain.com
       - key: LIVEKIT_API_KEY
         sync: false
       - key: LIVEKIT_API_SECRET
@@ -29,11 +29,15 @@ services:
       - key: JWT_SECRET
         generateValue: true
       - key: ALLOWED_ORIGINS
-        value: https://livekit.harlee.pro,https://livekit-api.divithselvam.in
+        sync: false  # Set via Render dashboard: https://your-frontend-domain.com,https://your-api-domain.com
       - key: MAX_REQUEST_SIZE
         value: "10485760"
       - key: RUST_LOG
         value: info
+      # Uncomment the following line to fix migration checksum drift issues
+      # After successful deployment, REMOVE this environment variable!
+      # - key: FORCE_MIGRATION_RESET
+      #   value: "true"
     healthCheckPath: /health
     buildFilter:
       paths:

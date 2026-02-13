@@ -247,7 +247,7 @@ export default function ProjectIngressesPage(props: any) {
                     value={formData.url}
                     onChange={e => setFormData({ ...formData, url: e.target.value })}
                     className="w-full bg-surface border border-border rounded-lg p-2.5 focus:border-primary/50 focus:outline-none"
-                    placeholder="https://example.com/stream.m3u8"
+                    placeholder="https://your-source.com/stream.m3u8"
                   />
                   <p className="text-xs text-muted-foreground mt-1">
                     Supports HLS (.m3u8), MP4, MKV, WebM, and other media URLs

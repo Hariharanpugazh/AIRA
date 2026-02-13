@@ -32,13 +32,13 @@ export default function AdvancedPage() {
                         </div>
                         <div className="col-span-4 space-y-2">
                             <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest px-1">Name</label>
-                            <Input defaultValue="user_name" className="h-10 text-[13px]" />
+                            <Input placeholder="variable_name" className="h-10 text-[13px]" />
                         </div>
                         <div className="col-span-5 space-y-2">
                             <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest px-1 flex items-center gap-1">
                                 Preview value <Info className="w-3 h-3 text-muted-foreground/40" />
                             </label>
-                            <Input defaultValue="John Doe" className="h-10 text-[13px]" />
+                            <Input placeholder="preview value" className="h-10 text-[13px]" />
                         </div>
                         <div className="col-span-1 pb-1">
                             <Button variant="ghost" size="sm" className="h-9 w-9 p-0 hover:bg-error/10 hover:text-error text-muted-foreground/40">
@@ -74,11 +74,11 @@ export default function AdvancedPage() {
                     <div className="grid grid-cols-12 gap-4 items-end bg-surface border border-border/60 rounded-xl p-4 shadow-sm">
                         <div className="col-span-5 space-y-2">
                             <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest px-1">Key</label>
-                            <Input defaultValue="MY_API_KEY" className="h-10 text-[13px]" />
+                            <Input placeholder="SECRET_KEY_NAME" className="h-10 text-[13px]" />
                         </div>
                         <div className="col-span-6 space-y-2">
                             <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest px-1">Value</label>
-                            <Input defaultValue="********************" className="h-10 text-[13px]" />
+                            <Input type="password" placeholder="secret value" className="h-10 text-[13px]" />
                         </div>
                         <div className="col-span-1 pb-1">
                             <Button variant="ghost" size="sm" className="h-9 w-9 p-0 hover:bg-error/10 hover:text-error text-muted-foreground/40">

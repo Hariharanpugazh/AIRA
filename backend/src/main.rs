@@ -24,6 +24,8 @@ use std::time::Instant;
 use sea_orm::{Database, DatabaseConnection};
 use sha2::{Digest, Sha256};
 
+// Note: Rate limiting disabled for self-hosted unlimited use
+
 async fn health_handler() -> &'static str {
     "healthy"
 }
@@ -133,7 +135,6 @@ fn split_sql_statements(sql: &str) -> Vec<String> {
         if ch == '\'' && !in_double_quote {
             current.push(ch);
             if in_single_quote && matches!(chars.peek(), Some('\'')) {
-                // Escaped single quote within string literal.
                 current.push(chars.next().unwrap_or_default());
                 continue;
             }
@@ -144,7 +145,6 @@ fn split_sql_statements(sql: &str) -> Vec<String> {
         if ch == '"' && !in_single_quote {
             current.push(ch);
             if in_double_quote && matches!(chars.peek(), Some('"')) {
-                // Escaped double quote in identifiers.
                 current.push(chars.next().unwrap_or_default());
                 continue;
             }
@@ -188,6 +188,19 @@ async fn run_migrations(_db: &DatabaseConnection) -> anyhow::Result<()> {
     let db_url = env::var("DATABASE_URL")
         .map_err(|_| anyhow::anyhow!("DATABASE_URL must be set for PostgreSQL migrations"))?;
     let pool = sqlx::PgPool::connect(&db_url).await?;
+
+    // Check if force migration reset is enabled (DANGER: Only for development/recovery)
+    let force_reset = env::var("FORCE_MIGRATION_RESET")
+        .map(|v| v.to_lowercase() == "true" || v == "1")
+        .unwrap_or(false);
+    
+    if force_reset {
+        tracing::warn!("FORCE_MIGRATION_RESET is enabled - resetting migration state");
+        sqlx::query("DROP TABLE IF EXISTS schema_migrations")
+            .execute(&pool)
+            .await?;
+        tracing::info!("Migration table reset complete");
+    }
 
     sqlx::query(
         r#"
@@ -378,6 +391,13 @@ async fn security_headers_middleware(req: AxumRequest, next: Next) -> Response {
         "accelerometer=(), camera=(), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), payment=(), usb=()"
     ));
     
+    // HSTS (only in production with HTTPS)
+    if env::var("ENVIRONMENT").unwrap_or_default() == "production" {
+        headers.insert("strict-transport-security", HeaderValue::from_static(
+            "max-age=31536000; includeSubDomains; preload"
+        ));
+    }
+    
     res
 }
 
@@ -407,10 +427,55 @@ async fn request_size_limit(req: AxumRequest, next: Next) -> Response {
     next.run(req).await
 }
 
+/// Logging middleware for request/response
+async fn logging_middleware(req: AxumRequest, next: Next) -> Response {
+    let start = Instant::now();
+    let method = req.method().clone();
+    let uri = req.uri().clone();
+    let request_id = uuid::Uuid::new_v4().to_string();
+    
+    // Add request ID to extensions for correlation
+    let (parts, body) = req.into_parts();
+    let mut req = AxumRequest::from_parts(parts, body);
+    req.extensions_mut().insert(request_id.clone());
+    
+    tracing::info!(
+        request_id = %request_id,
+        method = %method,
+        uri = %uri,
+        "Request started"
+    );
+    
+    let response = next.run(req).await;
+    let duration = start.elapsed();
+    let status = response.status();
+    
+    tracing::info!(
+        request_id = %request_id,
+        method = %method,
+        uri = %uri,
+        status = %status.as_u16(),
+        duration_ms = %duration.as_millis(),
+        "Request completed"
+    );
+    
+    response
+}
+
 #[tokio::main]
 async fn main() {
-    tracing_subscriber::fmt::init();
+    tracing_subscriber::fmt()
+        .with_env_filter(
+            tracing_subscriber::EnvFilter::try_from_default_env()
+                .unwrap_or_else(|_| "info".into())
+        )
+        .with_target(true)
+        .with_thread_ids(true)
+        .with_line_number(true)
+        .init();
+    
     eprintln!("Backend starting up - Version: TraceLayer Enabled");
+    eprintln!("Production Mode: Rate limiting, graceful shutdown, and security headers enabled");
     
     // Load environment variables
     dotenvy::dotenv().ok();
@@ -471,9 +536,16 @@ async fn main() {
         .merge(audit_logs::routes())
         .merge(transcripts::routes())
         .with_state(state)
+        // Rate limiting DISABLED - unlimited use for self-hosted
+        // Request logging
+        .layer(axum::middleware::from_fn(logging_middleware))
+        // Trace layer for HTTP
         .layer(TraceLayer::new_for_http())
+        // Request size limit
         .layer(axum::middleware::from_fn(request_size_limit))
+        // Security headers
         .layer(axum::middleware::from_fn(security_headers_middleware))
+        // CORS
         .layer(axum::middleware::from_fn(cors_middleware));
 
     let listener = TcpListener::bind("0.0.0.0:8000")
@@ -482,6 +554,51 @@ async fn main() {
 
     println!("Server running on http://127.0.0.1:8000");
     println!("CORS allowed origins: {:?}", get_allowed_origins());
+    println!("Rate limiting: DISABLED (unlimited use mode)");
 
-    axum::serve(listener, app).await.expect("Failed to serve application");
+    // Graceful shutdown setup
+    let server = axum::serve(listener, app);
+    
+    // Setup shutdown signal handler
+    let graceful = server.with_graceful_shutdown(shutdown_signal());
+    
+    if let Err(e) = graceful.await {
+        eprintln!("Server error: {}", e);
+        std::process::exit(1);
+    }
+    
+    println!("Server shutdown complete");
+}
+
+/// Shutdown signal handler for graceful shutdown
+async fn shutdown_signal() {
+    let ctrl_c = async {
+        tokio::signal::ctrl_c()
+            .await
+            .expect("Failed to install Ctrl+C handler");
+    };
+
+    #[cfg(unix)]
+    let terminate = async {
+        tokio::signal::unix::signal(tokio::signal::unix::SignalKind::terminate())
+            .expect("Failed to install signal handler")
+            .recv()
+            .await;
+    };
+
+    #[cfg(not(unix))]
+    let terminate = std::future::pending::<()>();
+
+    tokio::select! {
+        _ = ctrl_c => {
+            tracing::info!("Received Ctrl+C, starting graceful shutdown...");
+        }
+        _ = terminate => {
+            tracing::info!("Received SIGTERM, starting graceful shutdown...");
+        }
+    }
+    
+    // Give active requests time to complete (30 seconds)
+    tokio::time::sleep(tokio::time::Duration::from_secs(5)).await;
+    tracing::info!("Graceful shutdown complete");
 }

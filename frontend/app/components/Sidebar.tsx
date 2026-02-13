@@ -517,14 +517,14 @@ export default function LiveKitStyleSidebar({ user: initialUser }: SidebarProps)
               <div className="flex items-center justify-between bg-muted/30 p-4 rounded-xl border border-border/50">
                 <div className="flex items-center gap-4">
                   <div className="w-12 h-12 rounded-xl bg-primary/10 text-primary flex items-center justify-center font-bold text-lg border border-primary/20 shadow-sm">
-                    {user?.name?.[0]?.toUpperCase() ?? "H"}
+                    {user?.name?.[0]?.toUpperCase() ?? "?"}
                   </div>
                   <div>
                     <div className="flex items-center gap-2">
-                       <span className="font-semibold text-sm">{user?.name ?? "Hariharan P"}</span>
+                       <span className="font-semibold text-sm">{user?.name ?? "Loading..."}</span>
                        <span className="px-1.5 py-0.5 bg-primary/10 text-primary text-[10px] font-bold rounded uppercase tracking-wider">Admin</span>
                     </div>
-                    <div className="text-xs text-muted-foreground">{user?.email ?? "hariharanpugazh@gmail.com"}</div>
+                    <div className="text-xs text-muted-foreground">{user?.email ?? "-"}</div>
                   </div>
                 </div>
                 <button onClick={async () => { await logout(); router.push('/login'); }} className="flex items-center gap-2 px-3 py-2 text-xs font-semibold rounded-lg border hover:bg-muted transition-colors bg-background">

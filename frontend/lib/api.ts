@@ -1,5 +1,5 @@
 // Always prefer explicit backend URL; fallback to production API host.
-export const API_BASE = (process.env.NEXT_PUBLIC_API_URL || "").trim() || "https://livekit-api.divithselvam.in";
+export const API_BASE = (process.env.NEXT_PUBLIC_API_URL || "").trim();
 
 export function getApiBaseUrl(): string {
     return API_BASE;
@@ -327,14 +327,30 @@ export async function login(email: string, password: string): Promise<User> {
     const bodyText = await response.text();
 
     if (!response.ok) {
-        throw new Error(bodyText || "Invalid credentials");
+        // Try to parse error JSON
+        try {
+            const errorJson = JSON.parse(bodyText);
+            throw new Error(errorJson.message || errorJson.error || "Invalid credentials");
+        } catch {
+            throw new Error(bodyText || "Invalid credentials");
+        }
     }
 
     let token: string = "";
+    let userData: User | null = null;
+    
     try {
         const parsed = JSON.parse(bodyText);
-        token = typeof parsed === "string" ? parsed : (parsed?.access_token || "");
+        // New API format returns { access_token, token_type, expires_in, user }
+        if (parsed.access_token) {
+            token = parsed.access_token;
+            userData = parsed.user;
+        } else {
+            // Legacy format - just a string token
+            token = typeof parsed === "string" ? parsed : "";
+        }
     } catch {
+        // Legacy format - plain text token
         token = bodyText.trim();
     }
 
@@ -342,6 +358,12 @@ export async function login(email: string, password: string): Promise<User> {
 
     setAccessToken(token);
 
+    // If user data was included in response, return it directly
+    if (userData) {
+        return userData;
+    }
+
+    // Otherwise fetch user data
     return getMe();
 }
 
