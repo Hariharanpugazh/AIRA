@@ -7,22 +7,19 @@ use serde::{Deserialize, Serialize};
 #[sea_orm(table_name = "agents")]
 pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
-    pub id: Uuid,
+    pub id: String,
     pub agent_id: String,
     pub display_name: String,
     pub image: String,
     pub entrypoint: Option<String>,
-    #[sea_orm(column_type = "Json")]
-    pub env_vars: Json,
-    #[sea_orm(column_type = "Json")]
-    pub livekit_permissions: Json,
+    pub env_vars: String,
+    pub livekit_permissions: String,
     pub default_room_behavior: String,
     pub auto_restart_policy: String,
-    #[sea_orm(column_type = "Json")]
-    pub resource_limits: Json,
+    pub resource_limits: String,
     pub is_enabled: bool,
-    pub created_at: DateTimeWithTimeZone,
-    pub updated_at: DateTimeWithTimeZone,
+    pub created_at: DateTime,
+    pub updated_at: DateTime,
     #[sea_orm(column_type = "Text", nullable)]
     pub project_id: Option<String>,
 }

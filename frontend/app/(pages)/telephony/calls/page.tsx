@@ -5,17 +5,11 @@ import { useRouter } from "next/navigation";
 // DashboardLayout removed
 import Header from "../../../components/Header";
 import { Card } from "../../../../components/ui/Card";
-import { getAccessToken, User, apiFetch } from "../../../../lib/api";
+import { getAccessToken, getSipTrunks, SipTrunk, apiFetch } from "../../../../lib/api";
 import { Phone, PhoneOutgoing, PhoneIncoming, Clock, Plus, RefreshCw, PhoneOff, Search, Filter, ChevronDown, ChevronLeft, ChevronRight, Info } from "lucide-react";
 import { Button } from "../../../../components/ui/Button";
 import { Modal } from "../../../../components/ui/Modal";
 import { cn } from "../../../../lib/utils";
-
-interface SIPTrunk {
-  id: string;
-  name: string;
-  outbound_number: string;
-}
 
 interface CallLog {
   id: string;
@@ -37,7 +31,7 @@ export default function CallsPage() {
 
   // Outbound call state
   const [isCallModalOpen, setIsCallModalOpen] = useState(false);
-  const [trunks, setTrunks] = useState<SIPTrunk[]>([]);
+  const [trunks, setTrunks] = useState<SipTrunk[]>([]);
   const [calls, setCalls] = useState<CallLog[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [calling, setCalling] = useState(false);
@@ -62,7 +56,7 @@ export default function CallsPage() {
         // Load SIP trunks and call logs
         try {
           const [trunksData, callsData] = await Promise.all([
-            apiFetch<SIPTrunk[]>('/api/telephony/sip-trunks'),
+            getSipTrunks(),
             apiFetch<CallLog[]>('/api/telephony/call-logs?limit=50'),
           ]);
           setTrunks(trunksData || []);
@@ -346,7 +340,7 @@ export default function CallsPage() {
                 >
                   {trunks.map((trunk) => (
                     <option key={trunk.id} value={trunk.id}>
-                      {trunk.name} ({trunk.outbound_number})
+                      {trunk.name} ({trunk.numbers?.[0] || trunk.sip_server || "no number"})
                     </option>
                   ))}
                 </select>

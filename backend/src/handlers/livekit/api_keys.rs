@@ -1,5 +1,5 @@
 use axum::{extract::State, http::StatusCode, Json};
-use sea_orm::{ActiveModelTrait, EntityTrait, Set};
+use sea_orm::{ActiveModelTrait, EntityTrait, Set, QueryFilter, ColumnTrait};
 use uuid::Uuid;
 
 use crate::entity::api_keys;
@@ -36,6 +36,8 @@ pub async fn create_api_key(
         id: result.id.to_string(),
         name: result.name,
         key: key.clone(),
+        key_prefix: key.chars().take(12).collect(),
+        secret_key: Some(secret),
         created_at: result.created_at.to_string(),
         is_active: result.is_active,
     }))
@@ -49,16 +51,49 @@ pub async fn list_api_keys(
         return Err(StatusCode::FORBIDDEN);
     }
 
-    let keys = api_keys::Entity::find().all(&state.db).await
+    let keys = api_keys::Entity::find()
+        .filter(api_keys::Column::IsActive.eq(true))
+        .all(&state.db)
+        .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     let response = keys.into_iter().map(|k| ApiKeyResponse {
         id: k.id.to_string(),
         name: k.name,
-        key: k.key,
+        key: k.key.clone(),
+        key_prefix: k.key.chars().take(12).collect(),
+        secret_key: None,
         created_at: k.created_at.to_string(),
         is_active: k.is_active,
     }).collect();
 
     Ok(Json(response))
+}
+
+pub async fn delete_api_key(
+    State(state): State<AppState>,
+    axum::extract::Extension(claims): axum::extract::Extension<Claims>,
+    axum::extract::Path(id): axum::extract::Path<String>,
+) -> Result<StatusCode, StatusCode> {
+    if !claims.is_admin {
+        return Err(StatusCode::FORBIDDEN);
+    }
+
+    let parsed_id = Uuid::parse_str(&id).map_err(|_| StatusCode::BAD_REQUEST)?;
+
+    let key = api_keys::Entity::find_by_id(parsed_id)
+        .one(&state.db)
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
+        .ok_or(StatusCode::NOT_FOUND)?;
+
+    if key.is_active {
+        let mut active: api_keys::ActiveModel = key.into();
+        active.is_active = Set(false);
+        active.update(&state.db)
+            .await
+            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    }
+
+    Ok(StatusCode::NO_CONTENT)
 }

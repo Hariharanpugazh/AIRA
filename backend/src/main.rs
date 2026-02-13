@@ -78,10 +78,11 @@ fn get_allowed_origins() -> Vec<String> {
 
 /// Check if origin is allowed
 fn is_origin_allowed(origin: &str, allowed: &[String]) -> bool {
-    allowed.iter().any(|allowed_origin| {
-        origin == allowed_origin || 
-        origin.ends_with(allowed_origin.trim_start_matches("http://").trim_start_matches("https://"))
-    })
+    let normalized_origin = origin.trim_end_matches('/');
+    allowed
+        .iter()
+        .map(|value| value.trim_end_matches('/'))
+        .any(|allowed_origin| normalized_origin.eq_ignore_ascii_case(allowed_origin))
 }
 
 async fn cors_middleware(req: AxumRequest, next: Next) -> Response {
@@ -199,6 +200,7 @@ async fn main() {
     eprintln!("Backend starting up - Version: TraceLayer Enabled");
     
     // Load environment variables
+    dotenvy::dotenv().ok();
     if env::var("LIVEKIT_API_KEY").is_err() {
         let parent_env = std::path::Path::new("..").join(".env");
         if parent_env.exists() {

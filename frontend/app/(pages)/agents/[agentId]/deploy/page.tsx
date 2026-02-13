@@ -1,10 +1,11 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { Copy, Check, Terminal, Cloud, Server, Cpu } from "lucide-react";
 import { Button } from "../../../../../components/ui/Button";
 import { Card } from "../../../../../components/ui/Card";
+import { deployAgent, DeployAgentResponse, getProjects } from "../../../../../lib/api";
 
 const DEPLOYMENT_METHODS = [
     {
@@ -308,6 +309,34 @@ export default function DeployAgentPage() {
     const agentId = params.agentId as string;
     const [activeTab, setActiveTab] = useState("docker");
     const [copied, setCopied] = useState<string | null>(null);
+    const [projectId, setProjectId] = useState<string>("");
+    const [deploymentType, setDeploymentType] = useState<"docker" | "process">("docker");
+    const [roomName, setRoomName] = useState("");
+    const [deploying, setDeploying] = useState(false);
+    const [deployResult, setDeployResult] = useState<DeployAgentResponse | null>(null);
+    const [deployError, setDeployError] = useState<string | null>(null);
+
+    useEffect(() => {
+        const hydrateProject = async () => {
+            const storedProjectId = localStorage.getItem("projectId") || "";
+            if (storedProjectId) {
+                setProjectId(storedProjectId);
+                return;
+            }
+            try {
+                const projects = await getProjects();
+                const fallback = projects[0]?.id || "";
+                if (fallback) {
+                    localStorage.setItem("projectId", fallback);
+                    setProjectId(fallback);
+                }
+            } catch {
+                setProjectId("");
+            }
+        };
+
+        hydrateProject();
+    }, []);
 
     const handleCopy = (text: string, id: string) => {
         navigator.clipboard.writeText(text);
@@ -325,6 +354,27 @@ export default function DeployAgentPage() {
                 return CLI_TEMPLATE;
             default:
                 return DOCKER_COMPOSE_TEMPLATE;
+        }
+    };
+
+    const handleDeployNow = async () => {
+        if (!projectId) {
+            setDeployError("Project context is missing. Select a project and try again.");
+            return;
+        }
+        setDeploying(true);
+        setDeployError(null);
+        setDeployResult(null);
+        try {
+            const result = await deployAgent(projectId, agentId, {
+                deployment_type: deploymentType,
+                room_name: roomName.trim() || undefined,
+            });
+            setDeployResult(result);
+        } catch (error) {
+            setDeployError(error instanceof Error ? error.message : "Failed to deploy agent");
+        } finally {
+            setDeploying(false);
         }
     };
 
@@ -359,6 +409,61 @@ export default function DeployAgentPage() {
                     })}
                 </div>
             </div>
+
+            <Card className="p-6 border-border/60 shadow-sm bg-background/60">
+                <h3 className="text-sm font-bold text-foreground mb-4">Deploy To Self-Hosted LiveKit</h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                        <label className="block text-xs font-bold text-muted-foreground uppercase tracking-widest mb-2">
+                            Deployment Type
+                        </label>
+                        <select
+                            value={deploymentType}
+                            onChange={(e) => setDeploymentType(e.target.value as "docker" | "process")}
+                            className="w-full bg-surface border border-border/60 rounded-lg px-3 py-2.5 text-sm"
+                        >
+                            <option value="docker">Docker</option>
+                            <option value="process">Process</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label className="block text-xs font-bold text-muted-foreground uppercase tracking-widest mb-2">
+                            Room (Optional)
+                        </label>
+                        <input
+                            value={roomName}
+                            onChange={(e) => setRoomName(e.target.value)}
+                            placeholder="support-room-01"
+                            className="w-full bg-surface border border-border/60 rounded-lg px-3 py-2.5 text-sm"
+                        />
+                    </div>
+                    <div className="flex items-end">
+                        <Button
+                            onClick={handleDeployNow}
+                            disabled={deploying || !projectId}
+                            className="w-full bg-[oklch(0.627_0.265_273.15)] hover:bg-[oklch(0.55_0.25_273.15)] text-white"
+                        >
+                            {deploying ? "Deploying..." : "Deploy Now"}
+                        </Button>
+                    </div>
+                </div>
+                {!projectId && (
+                    <p className="text-xs text-amber-500 mt-3">
+                        No active project selected. Choose a project first.
+                    </p>
+                )}
+                {deployError && (
+                    <p className="text-xs text-red-500 mt-3">{deployError}</p>
+                )}
+                {deployResult && (
+                    <div className="mt-4 p-3 rounded-lg bg-green-500/10 border border-green-500/20 text-xs">
+                        <div><strong>Status:</strong> {deployResult.status}</div>
+                        <div><strong>Instance ID:</strong> {deployResult.instance_id}</div>
+                        {deployResult.container_id && <div><strong>Container:</strong> {deployResult.container_id}</div>}
+                        {deployResult.process_pid && <div><strong>PID:</strong> {deployResult.process_pid}</div>}
+                    </div>
+                )}
+            </Card>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 <div className="space-y-4">

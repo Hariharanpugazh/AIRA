@@ -68,6 +68,7 @@ export default function SipTrunksPage() {
   };
 
   const actionButton = null;
+  const isOutbound = (trunk: any) => Boolean(trunk.sip_server);
 
   return (
     <>
@@ -96,7 +97,8 @@ export default function SipTrunksPage() {
               Total Inbound Trunks
               <Info className="w-3.5 h-3.5 opacity-40" />
             </div>
-            <div className="text-[32px] font-light text-foreground">{trunks.filter(t => t.direction !== 'outbound').length}</div>
+            <div className="text-[32px] font-light text-foreground">{trunks.filter((t) => !isOutbound(t)).length}</div>
+            <div className="hidden">{/* keep layout stable */}</div>
           </Card>
 
           <Card className="p-6 border-border/60 shadow-sm bg-background/50 backdrop-blur-sm relative">
@@ -104,7 +106,7 @@ export default function SipTrunksPage() {
               Total Outbound Trunks
               <Info className="w-3.5 h-3.5 opacity-40" />
             </div>
-            <div className="text-[32px] font-light text-foreground">{trunks.filter(t => t.direction === 'outbound').length}</div>
+            <div className="text-[32px] font-light text-foreground">{trunks.filter((t) => isOutbound(t)).length}</div>
           </Card>
 
           <Card className="p-6 border-border/60 shadow-sm bg-background/50 backdrop-blur-sm relative">
@@ -151,17 +153,17 @@ export default function SipTrunksPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {trunks.filter(t => t.direction !== 'outbound').length === 0 ? (
+                  {trunks.filter((t) => !isOutbound(t)).length === 0 ? (
                     <tr>
                       <td colSpan={4} className="px-6 py-12 text-center text-muted-foreground">No results.</td>
                     </tr>
                   ) : (
-                    trunks.filter(t => t.direction !== 'outbound').map(t => (
+                    trunks.filter((t) => !isOutbound(t)).map(t => (
                       <tr key={t.id} className="border-b border-border/40 hover:bg-muted/20 transition-colors">
                         <td className="px-6 py-4 font-mono text-muted-foreground">{t.id.substring(0, 12)}...</td>
                         <td className="px-6 py-4 font-medium">{t.name}</td>
                         <td className="px-6 py-4">{t.numbers?.join(', ') || '-'}</td>
-                        <td className="px-6 py-4 text-muted-foreground">{new Date().toLocaleDateString()}</td>
+                        <td className="px-6 py-4 text-muted-foreground">{t.created_at ? new Date(t.created_at).toLocaleDateString() : '-'}</td>
                       </tr>
                     ))
                   )}
@@ -197,18 +199,18 @@ export default function SipTrunksPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {trunks.filter(t => t.direction === 'outbound').length === 0 ? (
+                  {trunks.filter((t) => isOutbound(t)).length === 0 ? (
                     <tr>
                       <td colSpan={5} className="px-6 py-12 text-center text-muted-foreground">No results.</td>
                     </tr>
                   ) : (
-                    trunks.filter(t => t.direction === 'outbound').map(t => (
+                    trunks.filter((t) => isOutbound(t)).map(t => (
                       <tr key={t.id} className="border-b border-border/40 hover:bg-muted/20 transition-colors">
                         <td className="px-6 py-4 font-mono text-muted-foreground">{t.id.substring(0, 12)}...</td>
                         <td className="px-6 py-4 font-medium">{t.name}</td>
                         <td className="px-6 py-4">{t.numbers?.join(', ') || '-'}</td>
                         <td className="px-6 py-4 font-mono text-[10px]">{t.sip_server || '-'}</td>
-                        <td className="px-6 py-4 text-muted-foreground">{new Date().toLocaleDateString()}</td>
+                        <td className="px-6 py-4 text-muted-foreground">{t.created_at ? new Date(t.created_at).toLocaleDateString() : '-'}</td>
                       </tr>
                     ))
                   )}

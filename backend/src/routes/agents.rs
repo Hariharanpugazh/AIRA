@@ -19,6 +19,7 @@ pub fn routes() -> Router<crate::AppState> {
         .route("/api/agent-instances/:instance_id/restart", post(lifecycle::restart_agent))
 
         // Agent logs
+        .route("/api/projects/:project_id/agents/:agent_id/logs", get(logs::get_project_agent_logs))
         .route("/api/agent-instances/:instance_id/logs", get(logs::get_agent_logs))
         .route("/api/agent-instances/:instance_id/logs/stream", get(logs::stream_agent_logs))
 

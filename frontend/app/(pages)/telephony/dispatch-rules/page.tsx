@@ -8,7 +8,7 @@ import { Button } from "../../../../components/ui/Button";
 import { Card } from "../../../../components/ui/Card";
 import { Search, MoreVertical, Plus, Copy, Info, Trash2 } from "lucide-react";
 import { CreateDispatchRuleModal } from "../../../../components/modals/CreateDispatchRuleModal";
-import { getAccessToken, getDispatchRules, createDispatchRule, deleteDispatchRule, getSipTrunks, getAgents, DispatchRule, Agent, SipTrunk } from "../../../../lib/api";
+import { getAccessToken, getDispatchRules, createDispatchRule, deleteDispatchRule, getSipTrunks, getAgents, getProjects, DispatchRule, Agent, SipTrunk } from "../../../../lib/api";
 
 export default function DispatchRulesPage() {
   const router = useRouter();
@@ -26,8 +26,18 @@ export default function DispatchRulesPage() {
       if (!getAccessToken()) { router.push("/login"); return; }
       try {
         setProjectName(localStorage.getItem("projectName") || "AIRA");
+        const localProjectId = localStorage.getItem("projectId");
+        let projectId = localProjectId || "";
+        if (!projectId) {
+          const projects = await getProjects();
+          projectId = projects[0]?.id || "";
+        }
 
-        const [r, a, t] = await Promise.all([getDispatchRules(), getAgents("default"), getSipTrunks()]);
+        const [r, a, t] = await Promise.all([
+          getDispatchRules(),
+          projectId ? getAgents(projectId) : Promise.resolve([]),
+          getSipTrunks(),
+        ]);
         setRules(r);
         setAgents(a);
         setTrunks(t);

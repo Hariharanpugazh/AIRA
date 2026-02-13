@@ -12,6 +12,8 @@ services:
         sync: false
       - key: LIVEKIT_URL
         value: wss://livekit.divithselvam.in
+      - key: LIVEKIT_API_URL
+        sync: false
       - key: LIVEKIT_INGRESS_URL
         value: https://livekit-whip.divithselvam.in
       - key: LIVEKIT_EGRESS_URL

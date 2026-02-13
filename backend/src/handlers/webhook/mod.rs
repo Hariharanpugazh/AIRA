@@ -8,9 +8,9 @@ use std::collections::HashSet;
 use chrono::Utc;
 use uuid::Uuid;
 use serde::{Deserialize, Serialize};
-use std::sync::Mutex;
-use std::collections::HashMap;
 use sea_orm::{ActiveModelTrait, Set, EntityTrait, QueryFilter, ColumnTrait, prelude::Expr, QueryOrder, PaginatorTrait, QuerySelect};
+use livekit_api::access_token::TokenVerifier;
+use livekit_api::webhooks::WebhookReceiver;
 
 use crate::AppState;
 use crate::utils::jwt::Claims;
@@ -67,24 +67,12 @@ pub struct DeliveryAttempt {
 pub async fn handle_webhook(
     State(state): State<AppState>,
     headers: axum::http::HeaderMap,
-    Json(payload): Json<Value>,
+    body: String,
 ) -> Result<StatusCode, StatusCode> {
-    // Verify webhook signature
-    let signature = headers.get("x-livekit-signature")
-        .and_then(|h| h.to_str().ok())
-        .ok_or(StatusCode::BAD_REQUEST)?;
-
+    let api_key = env::var("LIVEKIT_API_KEY").map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let secret = env::var("LIVEKIT_API_SECRET").map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    let body = serde_json::to_string(&payload).map_err(|_| StatusCode::BAD_REQUEST)?;
-    
-    let mut mac = Hmac::<Sha256>::new_from_slice(secret.as_bytes()).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    mac.update(body.as_bytes());
-    let result = mac.finalize();
-    let expected_signature = format!("sha256={}", general_purpose::STANDARD.encode(result.into_bytes()));
-    
-    if !constant_time_eq(signature, &expected_signature) {
-        return Err(StatusCode::UNAUTHORIZED);
-    }
+    verify_webhook_auth(&headers, &api_key, &secret, &body)?;
+    let payload: Value = serde_json::from_str(&body).map_err(|_| StatusCode::BAD_REQUEST)?;
 
     // Store the webhook event in database
     let event_id = Uuid::new_v4().to_string();
@@ -198,6 +186,40 @@ fn constant_time_eq(a: &str, b: &str) -> bool {
         result |= a_bytes[i] ^ b_bytes[i];
     }
     result == 0
+}
+
+fn verify_webhook_auth(
+    headers: &axum::http::HeaderMap,
+    api_key: &str,
+    secret: &str,
+    body: &str,
+) -> Result<(), StatusCode> {
+    if let Some(token) = headers
+        .get("authorization")
+        .and_then(|h| h.to_str().ok())
+        .and_then(|h| h.strip_prefix("Bearer "))
+    {
+        let verifier = TokenVerifier::with_api_key(api_key, secret);
+        let receiver = WebhookReceiver::new(verifier);
+        receiver
+            .receive(body, token)
+            .map_err(|_| StatusCode::UNAUTHORIZED)?;
+        return Ok(());
+    }
+
+    if let Some(signature) = headers.get("x-livekit-signature").and_then(|h| h.to_str().ok()) {
+        let mut mac =
+            Hmac::<Sha256>::new_from_slice(secret.as_bytes()).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+        mac.update(body.as_bytes());
+        let result = mac.finalize();
+        let expected_signature = format!("sha256={}", general_purpose::STANDARD.encode(result.into_bytes()));
+        if constant_time_eq(signature, &expected_signature) {
+            return Ok(());
+        }
+        return Err(StatusCode::UNAUTHORIZED);
+    }
+
+    Err(StatusCode::UNAUTHORIZED)
 }
 
 /// List webhook events from database

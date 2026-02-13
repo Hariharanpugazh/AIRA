@@ -3,6 +3,7 @@
 import React, { createContext, useContext, ReactNode, useEffect } from 'react';
 import { useWebSocket } from '@/hooks/useWebSocket';
 import { useRealtimeStore } from '@/lib/store';
+import { getAccessToken, getApiWebSocketBaseUrl } from '@/lib/api';
 
 interface RealtimeContextValue {
   isConnected: boolean;
@@ -33,23 +34,40 @@ export function RealtimeProvider({ children, wsUrl }: RealtimeProviderProps) {
   } = useRealtimeStore();
 
   const defaultWsUrl = typeof window !== 'undefined' 
-    ? `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/api/ws/events`
+    ? `${getApiWebSocketBaseUrl()}/api/ws/events${getAccessToken() ? `?token=${encodeURIComponent(getAccessToken() || '')}` : ''}`
     : 'ws://localhost:8000/api/ws/events';
 
   const { isConnected, send, reconnect } = useWebSocket({
     url: wsUrl || defaultWsUrl,
     onMessage: (message) => {
+      const normalizeRoom = (room: Record<string, unknown>) => ({
+        sid: String(room.sid ?? ""),
+        name: String(room.name ?? ""),
+        numParticipants: Number(room.numParticipants ?? room.num_participants ?? 0),
+        numPublishers: Number(room.numPublishers ?? room.num_publishers ?? room.num_participants ?? 0),
+        maxParticipants: Number(room.maxParticipants ?? room.max_participants ?? 0),
+        creationTime: Number(room.creationTime ?? room.creation_time ?? 0),
+        turnPassword: String(room.turnPassword ?? ''),
+        enabledCodecs: Array.isArray(room.enabledCodecs)
+          ? room.enabledCodecs
+          : (Array.isArray(room.enabled_codecs) ? room.enabled_codecs : []),
+        metadata: String(room.metadata ?? ''),
+        activeRecording: Boolean(room.activeRecording ?? room.active_recording ?? false),
+      });
+
       switch (message.type) {
         case 'rooms_list':
           const roomsData = message.data as { rooms: unknown[] };
-          setRooms(roomsData.rooms as never[]);
+          setRooms(
+            (roomsData.rooms || []).map((room) => normalizeRoom(room as Record<string, unknown>)) as never[]
+          );
           break;
 
         case 'room_started':
         case 'room_updated':
           const roomData = message.data as { room: never };
           if (roomData.room) {
-            updateRoom(roomData.room);
+            updateRoom(normalizeRoom(roomData.room as unknown as Record<string, unknown>));
           }
           break;
 

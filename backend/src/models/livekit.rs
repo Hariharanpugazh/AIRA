@@ -10,6 +10,9 @@ pub struct ApiKeyResponse {
     pub id: String,
     pub name: String,
     pub key: String,
+    pub key_prefix: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub secret_key: Option<String>,
     pub created_at: String,
     pub is_active: bool,
 }

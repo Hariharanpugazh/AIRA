@@ -3,26 +3,37 @@ use std::collections::HashMap;
 
 #[derive(Serialize, Deserialize)]
 pub struct CreateAgentRequest {
-    pub display_name: String,
-    pub image: String,
+    #[serde(default, alias = "name")]
+    pub display_name: Option<String>,
+    #[serde(default)]
+    pub image: Option<String>,
     pub entrypoint: Option<String>,
+    #[serde(default, alias = "environment")]
     pub env_vars: HashMap<String, String>,
+    #[serde(default)]
     pub livekit_permissions: AgentPermissions,
-    pub default_room_behavior: String,
-    pub auto_restart_policy: String,
-    pub resource_limits: ResourceLimits,
+    #[serde(default)]
+    pub default_room_behavior: Option<String>,
+    #[serde(default)]
+    pub auto_restart_policy: Option<String>,
+    #[serde(default)]
+    pub resource_limits: Option<ResourceLimits>,
 }
 
 #[derive(Serialize, Deserialize)]
 pub struct UpdateAgentRequest {
+    #[serde(default, alias = "name")]
     pub display_name: Option<String>,
     pub image: Option<String>,
     pub entrypoint: Option<String>,
+    #[serde(default, alias = "environment")]
     pub env_vars: Option<HashMap<String, String>>,
     pub livekit_permissions: Option<AgentPermissions>,
     pub default_room_behavior: Option<String>,
     pub auto_restart_policy: Option<String>,
     pub resource_limits: Option<ResourceLimits>,
+    #[serde(default, alias = "status")]
+    pub status: Option<String>,
     pub is_enabled: Option<bool>,
 }
 
@@ -43,7 +54,7 @@ pub struct AgentResponse {
     pub updated_at: String,
 }
 
-#[derive(Serialize, Deserialize, Default)]
+#[derive(Serialize, Deserialize)]
 pub struct AgentPermissions {
     pub room_join: bool,
     pub room_create: bool,
@@ -52,6 +63,20 @@ pub struct AgentPermissions {
     pub ingress: bool,
     pub egress: bool,
     pub sip: bool,
+}
+
+impl Default for AgentPermissions {
+    fn default() -> Self {
+        Self {
+            room_join: true,
+            room_create: true,
+            room_admin: true,
+            room_record: true,
+            ingress: true,
+            egress: true,
+            sip: true,
+        }
+    }
 }
 
 #[derive(Serialize, Deserialize, Default)]
@@ -63,7 +88,9 @@ pub struct ResourceLimits {
 
 #[derive(Serialize, Deserialize)]
 pub struct DeployAgentRequest {
-    pub agent_id: String,
+    #[serde(default)]
+    pub agent_id: Option<String>,
+    #[serde(default)]
     pub deployment_type: String, // "docker" or "process"
     pub room_name: Option<String>, // Optional room to join immediately
 }

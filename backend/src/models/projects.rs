@@ -16,6 +16,8 @@ pub struct UpdateProjectRequest {
 #[derive(Serialize)]
 pub struct ProjectResponse {
     pub id: String,
+    pub short_id: Option<String>,
+    pub user_id: Option<String>,
     pub name: String,
     pub description: Option<String>,
     pub status: String,

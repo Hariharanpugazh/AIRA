@@ -29,12 +29,19 @@ export function useWebSocket({
   maxReconnectAttempts = 10,
 }: UseWebSocketOptions) {
   const wsRef = useRef<WebSocket | null>(null);
+  const reconnectFnRef = useRef<() => void>(() => {});
   const reconnectAttemptsRef = useRef(0);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const { setConnectionStatus } = useRealtimeStore();
   const [isConnected, setIsConnected] = useState(false);
 
   const connect = useCallback(() => {
+    if (!url || !url.trim()) {
+      setIsConnected(false);
+      setConnectionStatus('disconnected');
+      return;
+    }
+
     if (wsRef.current?.readyState === WebSocket.OPEN) {
       return;
     }
@@ -70,7 +77,7 @@ export function useWebSocket({
         if (reconnectAttemptsRef.current < maxReconnectAttempts) {
           reconnectAttemptsRef.current++;
           reconnectTimeoutRef.current = setTimeout(() => {
-            connect();
+            reconnectFnRef.current();
           }, reconnectInterval * Math.min(reconnectAttemptsRef.current, 5));
         }
       };
@@ -99,6 +106,10 @@ export function useWebSocket({
       wsRef.current.send(JSON.stringify(message));
     }
   }, []);
+
+  useEffect(() => {
+    reconnectFnRef.current = connect;
+  }, [connect]);
 
   useEffect(() => {
     connect();

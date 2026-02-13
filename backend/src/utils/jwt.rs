@@ -3,6 +3,7 @@ use chrono::{Utc, Duration};
 use jsonwebtoken::{encode, decode, Header, EncodingKey, DecodingKey, Validation};
 use serde::{Serialize, Deserialize};
 use std::env;
+use std::collections::HashMap;
 
 use axum::extract::Request;
 
@@ -15,11 +16,22 @@ pub async fn jwt_middleware(
         .and_then(|header| header.to_str().ok())
         .and_then(|header| header.strip_prefix("Bearer "));
 
-    let token = match auth_header {
-        Some(token) => token,
-        None => {
-            return Err(StatusCode::UNAUTHORIZED);
-        },
+    let cookie_token = req
+        .headers()
+        .get("cookie")
+        .and_then(|header| header.to_str().ok())
+        .and_then(extract_token_from_cookie_header);
+
+    let query_token = req
+        .uri()
+        .query()
+        .and_then(extract_token_from_query);
+
+    let token = auth_header.or(cookie_token.as_deref()).or(query_token.as_deref());
+
+    let token = match token {
+        Some(token) if !token.trim().is_empty() => token,
+        _ => return Err(StatusCode::UNAUTHORIZED),
     };
 
     let claims = match decode_jwt(token) {
@@ -46,6 +58,12 @@ pub struct Claims {
 pub struct LiveKitApiClaims {
     pub iss: String,
     pub exp: usize,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub sub: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub metadata: Option<String>,
     pub video: serde_json::Value,
     pub ingress: serde_json::Value,
     pub egress: serde_json::Value,
@@ -103,7 +121,15 @@ pub fn decode_jwt(token: &str) -> Option<Claims> {
     }
 }
 
-pub fn create_livekit_api_jwt(video_grants: serde_json::Value, ingress_grants: serde_json::Value, egress_grants: serde_json::Value, sip_grants: serde_json::Value) -> Result<String, jsonwebtoken::errors::Error> {
+pub fn create_livekit_api_jwt(
+    identity: Option<String>,
+    name: Option<String>,
+    metadata: Option<String>,
+    video_grants: serde_json::Value,
+    ingress_grants: serde_json::Value,
+    egress_grants: serde_json::Value,
+    sip_grants: serde_json::Value,
+) -> Result<String, jsonwebtoken::errors::Error> {
     let api_key = env::var("LIVEKIT_API_KEY").expect("LIVEKIT_API_KEY must be set");
     let expiration = Utc::now()
         .checked_add_signed(Duration::hours(1))
@@ -113,6 +139,9 @@ pub fn create_livekit_api_jwt(video_grants: serde_json::Value, ingress_grants: s
     let claims = LiveKitApiClaims {
         iss: api_key,
         exp: expiration,
+        sub: identity,
+        name,
+        metadata,
         video: video_grants,
         ingress: ingress_grants,
         egress: egress_grants,
@@ -124,6 +153,25 @@ pub fn create_livekit_api_jwt(video_grants: serde_json::Value, ingress_grants: s
         &claims,
         &EncodingKey::from_secret(livekit_api_secret().as_ref()),
     )
+}
+
+fn extract_token_from_cookie_header(cookie_header: &str) -> Option<String> {
+    cookie_header
+        .split(';')
+        .map(|part| part.trim())
+        .find_map(|cookie| {
+            let (key, value) = cookie.split_once('=')?;
+            if key != "token" {
+                return None;
+            }
+            urlencoding::decode(value).ok().map(|decoded| decoded.into_owned())
+        })
+}
+
+fn extract_token_from_query(query: &str) -> Option<String> {
+    let params: HashMap<String, String> =
+        url::form_urlencoded::parse(query.as_bytes()).into_owned().collect();
+    params.get("token").cloned()
 }
 
 pub fn create_agent_jwt(identity: String, name: String, room: Option<String>, metadata: Option<String>, video_grants: serde_json::Value) -> Result<String, jsonwebtoken::errors::Error> {

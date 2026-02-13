@@ -5,6 +5,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useWebSocket } from './useWebSocket';
 import { useRealtimeStore } from '@/lib/store';
 import { useSettingsStore } from '@/lib/store';
+import { apiFetch, getAccessToken, getApiWebSocketBaseUrl } from '@/lib/api';
 
 interface Room {
   sid: string;
@@ -31,18 +32,19 @@ interface UseLiveRoomsOptions {
 }
 
 async function fetchRooms(): Promise<Room[]> {
-  const response = await fetch('/api/livekit/rooms', {
-    headers: {
-      'Authorization': `Bearer ${localStorage.getItem('token') || ''}`,
-    },
-  });
-  
-  if (!response.ok) {
-    throw new Error(`Failed to fetch rooms: ${response.statusText}`);
-  }
-  
-  const data = await response.json();
-  return data.rooms || [];
+  const data = await apiFetch<Array<{ sid: string; name: string; num_participants: number; creation_time: number; max_participants: number }>>('/api/livekit/rooms');
+  return data.map((room) => ({
+    sid: room.sid,
+    name: room.name,
+    numParticipants: room.num_participants,
+    numPublishers: room.num_participants,
+    maxParticipants: room.max_participants || 0,
+    creationTime: room.creation_time,
+    turnPassword: '',
+    enabledCodecs: [],
+    metadata: '',
+    activeRecording: false,
+  }));
 }
 
 export function useLiveRooms({ 
@@ -78,13 +80,28 @@ export function useLiveRooms({
 
   // Handle WebSocket messages
   const handleMessage = useCallback((message: { type: string; data: unknown }) => {
+    const normalizeRoom = (room: Record<string, unknown>): Room => ({
+      sid: String(room.sid ?? ''),
+      name: String(room.name ?? ''),
+      numParticipants: Number(room.numParticipants ?? room.num_participants ?? 0),
+      numPublishers: Number(room.numPublishers ?? room.num_publishers ?? room.num_participants ?? 0),
+      maxParticipants: Number(room.maxParticipants ?? room.max_participants ?? 0),
+      creationTime: Number(room.creationTime ?? room.creation_time ?? 0),
+      turnPassword: String(room.turnPassword ?? ''),
+      enabledCodecs: Array.isArray(room.enabledCodecs)
+        ? (room.enabledCodecs as string[])
+        : (Array.isArray(room.enabled_codecs) ? (room.enabled_codecs as string[]) : []),
+      metadata: String(room.metadata ?? ''),
+      activeRecording: Boolean(room.activeRecording ?? room.active_recording ?? false),
+    });
+
     const update = message.data as RoomUpdate;
 
     switch (message.type) {
       case 'room_started':
       case 'room_created':
         if (update.room) {
-          updateRoom(update.room);
+          updateRoom(normalizeRoom(update.room as unknown as Record<string, unknown>));
           // Invalidate query to get fresh data
           queryClient.invalidateQueries({ queryKey: ['rooms'] });
         }
@@ -103,7 +120,7 @@ export function useLiveRooms({
       case 'track_published':
       case 'track_unpublished':
         if (update.room) {
-          updateRoom(update.room);
+          updateRoom(normalizeRoom(update.room as unknown as Record<string, unknown>));
         }
         break;
 
@@ -111,7 +128,11 @@ export function useLiveRooms({
         // Bulk update all rooms
         const roomsData = message.data as { rooms: Room[] };
         if (roomsData.rooms) {
-          setRooms(roomsData.rooms);
+          setRooms(
+            roomsData.rooms.map((room) =>
+              normalizeRoom(room as unknown as Record<string, unknown>)
+            )
+          );
         }
         break;
     }
@@ -119,8 +140,13 @@ export function useLiveRooms({
 
   // WebSocket connection for real-time updates
   const { isConnected, send, reconnect } = useWebSocket({
-    url: enableWebSocket 
-      ? `${typeof window !== 'undefined' ? (window.location.protocol === 'https:' ? 'wss:' : 'ws:') : 'ws:'}//${typeof window !== 'undefined' ? window.location.host : 'localhost'}/api/ws/events`
+    url: enableWebSocket
+      ? (() => {
+          if (typeof window === 'undefined') return '';
+          const token = getAccessToken();
+          const query = token ? `?token=${encodeURIComponent(token)}` : '';
+          return `${getApiWebSocketBaseUrl()}/api/ws/events${query}`;
+        })()
       : '',
     onMessage: handleMessage,
     onConnect: () => {

@@ -7,6 +7,7 @@ pub struct HealthResponse {
     pub status: String,
     pub server_url: String,
     pub ws_url: String,
+    pub api_url: String,
     pub timestamp: String,
 }
 
@@ -19,7 +20,17 @@ pub struct ApiInfoResponse {
 pub async fn check_health(
     State(state): State<AppState>,
 ) -> Result<Json<HealthResponse>, StatusCode> {
-    let server_url = std::env::var("LIVEKIT_URL").unwrap_or_else(|_| "http://localhost:7880".to_string());
+    let server_url = std::env::var("LIVEKIT_URL")
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let api_url = std::env::var("LIVEKIT_API_URL")
+        .ok()
+        .filter(|v| !v.trim().is_empty())
+        .unwrap_or_else(|| {
+            server_url
+                .replace("wss://", "http://")
+                .replace("ws://", "http://")
+                .replace("https://", "http://")
+        });
     let ws_url = server_url.replace("http://", "ws://").replace("https://", "wss://");
 
     let healthy = state.lk_service.check_health().await.map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
@@ -30,6 +41,7 @@ pub async fn check_health(
         status: status.to_string(),
         server_url,
         ws_url,
+        api_url,
         timestamp: chrono::Utc::now().to_rfc3339(),
     }))
 }

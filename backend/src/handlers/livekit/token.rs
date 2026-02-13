@@ -36,19 +36,34 @@ pub async fn generate_token(
         "roomAdmin": claims.is_admin,
         "canPublish": req.can_publish.unwrap_or(true),
         "canSubscribe": req.can_subscribe.unwrap_or(true),
+        "canPublishData": true,
         "canUpdateOwnMetadata": true,
         "ingressAdmin": claims.is_admin,
     });
 
+    let ingress_grants = json!({
+        "admin": claims.is_admin
+    });
+    let egress_grants = json!({
+        "roomRecord": claims.is_admin
+    });
+    let sip_grants = json!({
+        "admin": claims.is_admin,
+        "call": claims.is_admin
+    });
+
     let token = create_livekit_api_jwt(
+        Some(identity.clone()),
+        Some(identity.clone()),
+        None,
         video_grants,
-        json!({}),
-        json!({}),
-        json!({})
+        ingress_grants,
+        egress_grants,
+        sip_grants
     ).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     let ws_url = std::env::var("LIVEKIT_URL")
-        .unwrap_or_else(|_| "ws://localhost:7880".to_string())
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
         .replace("http://", "ws://")
         .replace("https://", "wss://");
 
@@ -83,19 +98,34 @@ pub async fn get_token(
         "roomAdmin": claims.is_admin,
         "canPublish": true,
         "canSubscribe": true,
+        "canPublishData": true,
         "canUpdateOwnMetadata": true,
         "ingressAdmin": claims.is_admin,
     });
 
+    let ingress_grants = json!({
+        "admin": claims.is_admin
+    });
+    let egress_grants = json!({
+        "roomRecord": claims.is_admin
+    });
+    let sip_grants = json!({
+        "admin": claims.is_admin,
+        "call": claims.is_admin
+    });
+
     let token = create_livekit_api_jwt(
+        Some(identity.clone()),
+        Some(identity.clone()),
+        None,
         video_grants,
-        json!({}),
-        json!({}),
-        json!({})
+        ingress_grants,
+        egress_grants,
+        sip_grants
     ).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     let ws_url = std::env::var("LIVEKIT_URL")
-        .unwrap_or_else(|_| "ws://localhost:7880".to_string())
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
         .replace("http://", "ws://")
         .replace("https://", "wss://");
 

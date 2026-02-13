@@ -60,7 +60,13 @@ export default function AgentLogsPage() {
       const transformedLogs: LogEntry[] = (data || []).map((log: any, idx: number) => ({
         id: log.id?.toString() || `log-${idx}`,
         timestamp: log.timestamp || new Date().toISOString(),
-        level: log.log_level || log.level || "info",
+        level: (() => {
+          const raw = String(log.log_level || log.level || "info").toLowerCase();
+          if (raw === "warning") return "warn";
+          if (raw === "error") return "error";
+          if (raw === "debug") return "debug";
+          return "info";
+        })(),
         message: log.message || log.details || JSON.stringify(log),
         metadata: log.metadata || (log.deployment_type ? { deployment_type: log.deployment_type } : undefined),
       }));

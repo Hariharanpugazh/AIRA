@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { RefreshCw, Download, Trash2, Search, Pause, Play, Filter } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { apiFetch, getAccessToken } from "@/lib/api";
 
 interface LogEntry {
   timestamp: string;
@@ -21,6 +22,7 @@ const levelColors: Record<string, string> = {
 export default function AgentLogsPage() {
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [loading, setLoading] = useState(true);
+  const [instanceId, setInstanceId] = useState("");
   const [autoScroll, setAutoScroll] = useState(true);
   const [paused, setPaused] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
@@ -33,33 +35,36 @@ export default function AgentLogsPage() {
     if (paused) return;
 
     try {
-      const response = await fetch(`/api/agents/logs?lines=${lineCount}`);
-      if (!response.ok) throw new Error("Failed to fetch logs");
+      if (!getAccessToken()) {
+        setLogs([]);
+        return;
+      }
 
-      const data = await response.json();
-      const logLines = data.logs?.split("\n").filter(Boolean) || [];
-
-      const parsedLogs: LogEntry[] = logLines.map((line: string, idx: number) => {
-        // Try to parse structured log format
-        const match = line.match(/^(\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}:\d{2}[.,]?\d*Z?)\s*-?\s*(INFO|DEBUG|WARNING|ERROR|WARN)?\s*-?\s*(.*)$/i);
-
-        if (match) {
-          return {
-            timestamp: match[1],
-            level: (match[2]?.toUpperCase() || "INFO") as LogEntry["level"],
-            message: match[3] || line,
-          };
+      let selectedInstanceId = instanceId;
+      if (!selectedInstanceId) {
+        const instances = await apiFetch<Array<{ instance_id: string }>>("/api/agent-instances");
+        selectedInstanceId = instances?.[0]?.instance_id || "";
+        if (!selectedInstanceId) {
+          setLogs([]);
+          return;
         }
+        setInstanceId(selectedInstanceId);
+      }
 
-        // Fallback for unstructured logs
-        return {
-          timestamp: new Date().toISOString(),
-          level: line.toLowerCase().includes("error") ? "ERROR" :
-            line.toLowerCase().includes("warn") ? "WARNING" :
-              line.toLowerCase().includes("debug") ? "DEBUG" : "INFO",
-          message: line,
-        };
-      });
+      const data = await apiFetch<Array<{ timestamp: string; log_level: string; message: string }>>(
+        `/api/agent-instances/${encodeURIComponent(selectedInstanceId)}/logs?limit=${lineCount}`
+      );
+      const parsedLogs: LogEntry[] = (data || []).map((line) => ({
+        timestamp: line.timestamp || new Date().toISOString(),
+        level: (() => {
+          const raw = String(line.log_level || "INFO").toUpperCase();
+          if (raw === "WARN") return "WARNING";
+          if (raw === "ERROR") return "ERROR";
+          if (raw === "DEBUG") return "DEBUG";
+          return "INFO";
+        })(),
+        message: line.message || "",
+      }));
 
       setLogs(parsedLogs);
     } catch (error) {
@@ -67,7 +72,7 @@ export default function AgentLogsPage() {
     } finally {
       setLoading(false);
     }
-  }, [lineCount, paused]);
+  }, [instanceId, lineCount, paused]);
 
   useEffect(() => {
     fetchLogs();

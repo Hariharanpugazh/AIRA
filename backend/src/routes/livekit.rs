@@ -7,6 +7,7 @@ pub fn routes() -> Router<crate::AppState> {
         .route("/api/livekit", get(health::api_info))
         .route("/api/livekit/api-keys", post(api_keys::create_api_key))
         .route("/api/livekit/api-keys", get(api_keys::list_api_keys))
+        .route("/api/livekit/api-keys/:id", delete(api_keys::delete_api_key))
         .route("/api/livekit/health", get(health::check_health))
         // Room management
         .route("/api/livekit/rooms", post(rooms::create_room))
@@ -16,7 +17,8 @@ pub fn routes() -> Router<crate::AppState> {
         .route("/api/livekit/rooms/:room_name/participants", get(rooms::list_participants))
         .route("/api/livekit/rooms/:room_name/participants/:identity", delete(rooms::remove_participant))
         .route("/api/livekit/rooms/:room_name/participants/:identity/mute", post(rooms::mute_participant))
-        .route("/api/livekit/rooms/:room_name/participants/:identity/update", post(rooms::update_participant))
+        .route("/api/livekit/rooms/:room_name/participants/:identity/update", post(rooms::update_participant).put(rooms::update_participant))
+        .route("/api/livekit/rooms/:room_name/participants/:identity/permissions", axum::routing::put(rooms::update_participant))
         // Stats and tokens
         .route("/api/livekit/stats", get(rooms::get_livekit_stats))
         .route("/api/livekit/token", get(token::get_token))

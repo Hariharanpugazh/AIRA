@@ -227,10 +227,35 @@ pub async fn mute_participant(
 }
 
 #[derive(serde::Deserialize)]
+pub struct ParticipantPermissionPayload {
+    #[serde(default)]
+    pub can_publish: bool,
+    #[serde(default)]
+    pub can_subscribe: bool,
+    #[serde(default)]
+    pub can_publish_data: bool,
+    #[serde(default)]
+    pub hidden: bool,
+    #[serde(default)]
+    pub can_update_metadata: bool,
+    #[serde(default)]
+    pub can_subscribe_metrics: bool,
+    #[serde(default)]
+    pub can_manage_agent_session: bool,
+}
+
+#[derive(serde::Deserialize)]
 pub struct UpdateParticipantRequest {
     pub name: Option<String>,
     pub metadata: Option<String>,
-    pub permission: Option<serde_json::Value>,
+    pub permission: Option<ParticipantPermissionPayload>,
+    pub can_publish: Option<bool>,
+    pub can_subscribe: Option<bool>,
+    pub can_publish_data: Option<bool>,
+    pub hidden: Option<bool>,
+    pub can_update_metadata: Option<bool>,
+    pub can_subscribe_metrics: Option<bool>,
+    pub can_manage_agent_session: Option<bool>,
 }
 
 pub async fn update_participant(
@@ -245,10 +270,42 @@ pub async fn update_participant(
 
     // Update participant using LiveKit SDK
     // Build options based on what was provided
+    let permission_payload = req.permission.or_else(|| {
+        if req.can_publish.is_some()
+            || req.can_subscribe.is_some()
+            || req.can_publish_data.is_some()
+            || req.hidden.is_some()
+            || req.can_update_metadata.is_some()
+            || req.can_subscribe_metrics.is_some()
+            || req.can_manage_agent_session.is_some()
+        {
+            Some(ParticipantPermissionPayload {
+                can_publish: req.can_publish.unwrap_or(false),
+                can_subscribe: req.can_subscribe.unwrap_or(false),
+                can_publish_data: req.can_publish_data.unwrap_or(false),
+                hidden: req.hidden.unwrap_or(false),
+                can_update_metadata: req.can_update_metadata.unwrap_or(false),
+                can_subscribe_metrics: req.can_subscribe_metrics.unwrap_or(false),
+                can_manage_agent_session: req.can_manage_agent_session.unwrap_or(false),
+            })
+        } else {
+            None
+        }
+    });
+
     let options = livekit_api::services::room::UpdateParticipantOptions {
         name: req.name.unwrap_or_default(),
         metadata: req.metadata.unwrap_or_default(),
-        // Permission updates would require more complex mapping
+        permission: permission_payload.map(|permission| livekit_protocol::ParticipantPermission {
+            can_publish: permission.can_publish,
+            can_subscribe: permission.can_subscribe,
+            can_publish_data: permission.can_publish_data,
+            hidden: permission.hidden,
+            can_update_metadata: permission.can_update_metadata,
+            can_subscribe_metrics: permission.can_subscribe_metrics,
+            can_manage_agent_session: permission.can_manage_agent_session,
+            ..Default::default()
+        }),
         ..Default::default()
     };
 

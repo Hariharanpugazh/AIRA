@@ -217,11 +217,13 @@ export default function RoomDetailPage() {
         {
           method: "PUT",
           body: JSON.stringify({
-            can_publish: permissions.canPublish,
-            can_subscribe: permissions.canSubscribe,
-            can_publish_data: permissions.canPublishData,
-            hidden: permissions.hidden,
-            can_update_metadata: permissions.canUpdateMetadata,
+            permission: {
+              can_publish: permissions.canPublish,
+              can_subscribe: permissions.canSubscribe,
+              can_publish_data: permissions.canPublishData,
+              hidden: permissions.hidden,
+              can_update_metadata: permissions.canUpdateMetadata,
+            },
           }),
         }
       );

@@ -1,12 +1,57 @@
-use axum::{extract::{State, Path, self as ax_extract}, http::StatusCode, Json};
-use std::env;
+use axum::{extract::{State, Path, Query, self as ax_extract}, http::StatusCode, Json};
+use std::collections::HashMap;
+use once_cell::sync::Lazy;
+use tokio::sync::RwLock;
+use chrono::Utc;
+use uuid::Uuid;
 use crate::models::sip::*;
 use crate::utils::jwt::Claims;
 use crate::AppState;
 
-#[allow(dead_code)]
-fn get_livekit_url() -> String {
-    env::var("LIVEKIT_URL").unwrap_or_else(|_| "http://localhost:7880".to_string())
+static CALL_LOGS: Lazy<RwLock<Vec<CallLogResponse>>> = Lazy::new(|| RwLock::new(Vec::new()));
+
+fn map_sip_error_status(message: &str) -> StatusCode {
+    let msg = message.to_ascii_lowercase();
+    if msg.contains("already exists") {
+        StatusCode::CONFLICT
+    } else if msg.contains("invalid_argument") {
+        StatusCode::BAD_REQUEST
+    } else if msg.contains("not_found") {
+        StatusCode::NOT_FOUND
+    } else if msg.contains("permission_denied") || msg.contains("unauthenticated") {
+        StatusCode::FORBIDDEN
+    } else {
+        StatusCode::INTERNAL_SERVER_ERROR
+    }
+}
+
+#[derive(serde::Deserialize)]
+pub struct OutboundCallRequest {
+    pub trunk_id: String,
+    pub to_number: String,
+    pub room_name: Option<String>,
+    pub participant_identity: Option<String>,
+}
+
+#[derive(serde::Deserialize)]
+pub struct CallLogsQuery {
+    pub limit: Option<usize>,
+}
+
+#[derive(serde::Serialize, Clone)]
+pub struct CallLogResponse {
+    pub id: String,
+    pub call_id: String,
+    pub from_number: String,
+    pub to_number: String,
+    pub direction: String,
+    pub started_at: String,
+    pub ended_at: Option<String>,
+    pub duration_seconds: Option<i64>,
+    pub status: String,
+    pub trunk_id: Option<String>,
+    pub room_name: Option<String>,
+    pub participant_identity: Option<String>,
 }
 
 pub async fn list_sip_trunks(
@@ -17,17 +62,46 @@ pub async fn list_sip_trunks(
         return Err(StatusCode::FORBIDDEN);
     }
 
-    let trunks = state.lk_service.list_sip_trunk().await
+    let inbound_trunks = state.lk_service.list_sip_trunk().await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let outbound_trunks = state
+        .lk_service
+        .list_sip_outbound_trunk()
+        .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let response = trunks.into_iter().map(|t| SipTrunkResponse {
+    let mut response: Vec<SipTrunkResponse> = inbound_trunks
+        .into_iter()
+        .map(|t| SipTrunkResponse {
+            id: t.sip_trunk_id.clone(),
+            sip_trunk_id: t.sip_trunk_id,
+            name: Some(t.name),
+            metadata: Some(t.metadata),
+            inbound_addresses: t.allowed_addresses,
+            inbound_numbers_regex: t.numbers,
+            outbound_address: None,
+            sip_server: None,
+            username: None,
+            created_at: None,
+        })
+        .collect();
+
+    response.extend(outbound_trunks.into_iter().map(|t| SipTrunkResponse {
+        id: t.sip_trunk_id.clone(),
         sip_trunk_id: t.sip_trunk_id,
         name: Some(t.name),
         metadata: Some(t.metadata),
-        inbound_addresses: t.allowed_addresses,
-        inbound_numbers_regex: vec![], // Simplified to empty vec
-        outbound_address: None,
-    }).collect();
+        inbound_addresses: vec![],
+        inbound_numbers_regex: t.numbers,
+        outbound_address: Some(t.address.clone()),
+        sip_server: Some(t.address),
+        username: if t.auth_username.is_empty() {
+            None
+        } else {
+            Some(t.auth_username)
+        },
+        created_at: None,
+    }));
 
     Ok(Json(response))
 }
@@ -41,31 +115,89 @@ pub async fn create_sip_trunk(
         return Err(StatusCode::FORBIDDEN);
     }
 
-    let inbound_numbers = req.inbound_numbers_regex.clone().unwrap_or_default();
+    let inbound_numbers = req
+        .inbound_numbers_regex
+        .clone()
+        .or(req.numbers.clone())
+        .unwrap_or_default();
+
+    let outbound_address = req.outbound_address.clone().or(req.sip_server.clone());
+    if let Some(address) = outbound_address.filter(|a| !a.trim().is_empty()) {
+        let out_opts = livekit_api::services::sip::CreateSIPOutboundTrunkOptions {
+            transport: livekit_protocol::SipTransport::Auto,
+            metadata: req.metadata.clone().unwrap_or_default(),
+            auth_username: req.outbound_username.clone().or(req.username.clone()).unwrap_or_default(),
+            auth_password: req.outbound_password.clone().or(req.password.clone()).unwrap_or_default(),
+            ..Default::default()
+        };
+
+        let t = state
+            .lk_service
+            .sip_client
+            .create_sip_outbound_trunk(
+                req.name.clone().unwrap_or_else(|| "default-outbound-trunk".to_string()),
+                address.clone(),
+                inbound_numbers,
+                out_opts,
+            )
+            .await
+            .map_err(|e| {
+                eprintln!("Failed to create outbound SIP trunk: {:?}", e);
+                map_sip_error_status(&format!("{:?}", e))
+            })?;
+
+        return Ok(Json(SipTrunkResponse {
+            id: t.sip_trunk_id.clone(),
+            sip_trunk_id: t.sip_trunk_id,
+            name: Some(t.name),
+            metadata: Some(t.metadata),
+            inbound_addresses: vec![],
+            inbound_numbers_regex: t.numbers,
+            outbound_address: Some(address.clone()),
+            sip_server: Some(address),
+            username: if t.auth_username.is_empty() {
+                None
+            } else {
+                Some(t.auth_username)
+            },
+            created_at: Some(chrono::Utc::now().to_rfc3339()),
+        }));
+    }
 
     let lk_req = livekit_api::services::sip::CreateSIPInboundTrunkOptions {
-        metadata: req.metadata,
-        allowed_addresses: req.inbound_addresses,
-        allowed_numbers: req.inbound_numbers_regex,
-        auth_username: req.inbound_username,
-        auth_password: req.inbound_password,
-        ..Default::default() // Use defaults for other fields
+        metadata: req.metadata.clone(),
+        allowed_addresses: req.inbound_addresses.clone(),
+        allowed_numbers: req.inbound_numbers_regex.clone().or(req.numbers.clone()),
+        auth_username: req.inbound_username.clone().or(req.username.clone()),
+        auth_password: req.inbound_password.clone().or(req.password.clone()),
+        ..Default::default()
     };
 
-    let t = state.lk_service.sip_client.create_sip_inbound_trunk(
-        req.name.unwrap_or_else(|| "default-trunk".to_string()),
-        inbound_numbers,
-        lk_req
-    ).await
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let t = state
+        .lk_service
+        .sip_client
+        .create_sip_inbound_trunk(
+            req.name.unwrap_or_else(|| "default-trunk".to_string()),
+            inbound_numbers,
+            lk_req,
+        )
+        .await
+        .map_err(|e| {
+            eprintln!("Failed to create inbound SIP trunk: {:?}", e);
+            map_sip_error_status(&format!("{:?}", e))
+        })?;
 
     Ok(Json(SipTrunkResponse {
+        id: t.sip_trunk_id.clone(),
         sip_trunk_id: t.sip_trunk_id,
         name: Some(t.name),
         metadata: Some(t.metadata),
         inbound_addresses: t.allowed_addresses,
-        inbound_numbers_regex: vec![],
+        inbound_numbers_regex: t.numbers,
         outbound_address: None,
+        sip_server: None,
+        username: req.inbound_username.clone().or(req.username.clone()),
+        created_at: Some(chrono::Utc::now().to_rfc3339()),
     }))
 }
 
@@ -78,8 +210,14 @@ pub async fn delete_sip_trunk(
         return Err(StatusCode::FORBIDDEN);
     }
 
-    state.lk_service.delete_sip_trunk(&id).await
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    state
+        .lk_service
+        .delete_sip_trunk(&id)
+        .await
+        .map_err(|e| {
+            eprintln!("Failed to delete SIP trunk {}: {:?}", id, e);
+            map_sip_error_status(&format!("{:?}", e))
+        })?;
 
     Ok(StatusCode::OK)
 }
@@ -95,14 +233,53 @@ pub async fn list_sip_dispatch_rules(
     let rules = state.lk_service.list_sip_dispatch_rule().await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let response = rules.into_iter().map(|r| SipDispatchRuleResponse {
-        sip_dispatch_rule_id: r.sip_dispatch_rule_id,
-        name: Some(r.name),
-        metadata: Some(r.metadata),
-        rule: None, // Simplified mapping
-        trunk_ids: r.trunk_ids,
-        hide_phone_number: r.hide_phone_number,
-    }).collect();
+    let response = rules
+        .into_iter()
+        .map(|r| {
+            let (rule_type, mapped_rule) = if let Some(rule) = r.rule {
+                match rule.rule {
+                    Some(livekit_protocol::sip_dispatch_rule::Rule::DispatchRuleDirect(direct)) => (
+                        Some("direct".to_string()),
+                        Some(SipDispatchRule {
+                            dispatch_rule: Some(DispatchRuleType::Recursive(RecursiveRule {
+                                room_name: direct.room_name,
+                                pin: if direct.pin.is_empty() { None } else { Some(direct.pin) },
+                            })),
+                        }),
+                    ),
+                    Some(livekit_protocol::sip_dispatch_rule::Rule::DispatchRuleIndividual(individual)) => (
+                        Some("individual".to_string()),
+                        Some(SipDispatchRule {
+                            dispatch_rule: Some(DispatchRuleType::Individual(IndividualRule {
+                                room_name_prefix: individual.room_prefix,
+                                pin: if individual.pin.is_empty() {
+                                    None
+                                } else {
+                                    Some(individual.pin)
+                                },
+                            })),
+                        }),
+                    ),
+                    _ => (None, None),
+                }
+            } else {
+                (None, None)
+            };
+
+            SipDispatchRuleResponse {
+                id: r.sip_dispatch_rule_id.clone(),
+                sip_dispatch_rule_id: r.sip_dispatch_rule_id,
+                name: Some(r.name),
+                metadata: Some(r.metadata),
+                rule: mapped_rule,
+                trunk_ids: r.trunk_ids.clone(),
+                hide_phone_number: r.hide_phone_number,
+                rule_type,
+                agent_id: None,
+                trunk_id: r.trunk_ids.first().cloned(),
+            }
+        })
+        .collect();
 
     Ok(Json(response))
 }
@@ -116,61 +293,80 @@ pub async fn create_sip_dispatch_rule(
         return Err(StatusCode::FORBIDDEN);
     }
 
-    // Create the dispatch rule based on the request type
-    let rule = if let Some(room_name) = &req.room_name {
-        // Direct room assignment rule
-        livekit_protocol::sip_dispatch_rule::Rule::DispatchRuleDirect(
-            livekit_protocol::SipDispatchRuleDirect {
-                room_name: room_name.clone(),
-                pin: req.pin.clone().unwrap_or_default(),
+    let rule_type = req
+        .rule_type
+        .clone()
+        .unwrap_or_else(|| {
+            if req.room_prefix.is_some() {
+                "individual".to_string()
+            } else {
+                "direct".to_string()
             }
-        )
-    } else if let Some(room_prefix) = &req.room_prefix {
-        // Room prefix rule
+        })
+        .to_ascii_lowercase();
+
+    let rule = if rule_type == "individual" || req.room_prefix.is_some() {
+        let room_prefix = req
+            .room_prefix
+            .clone()
+            .unwrap_or_else(|| "inbound-".to_string());
         livekit_protocol::sip_dispatch_rule::Rule::DispatchRuleIndividual(
             livekit_protocol::SipDispatchRuleIndividual {
-                room_prefix: room_prefix.clone(),
+                room_prefix,
                 pin: req.pin.clone().unwrap_or_default(),
             }
         )
     } else {
-        // Default to direct rule with a generic room
+        let room_name = req
+            .room_name
+            .clone()
+            .unwrap_or_else(|| "default-sip-room".to_string());
         livekit_protocol::sip_dispatch_rule::Rule::DispatchRuleDirect(
             livekit_protocol::SipDispatchRuleDirect {
-                room_name: "default-sip-room".to_string(),
+                room_name,
                 pin: req.pin.clone().unwrap_or_default(),
             }
         )
     };
+
+    let mut attributes = HashMap::new();
+    if let Some(agent_id) = req.agent_id.clone() {
+        attributes.insert("agent_id".to_string(), agent_id);
+    }
+
+    let trunk_ids = req
+        .trunk_ids
+        .clone()
+        .or_else(|| req.trunk_id.clone().map(|id| vec![id]))
+        .unwrap_or_default();
 
     let r = state.lk_service.sip_client.create_sip_dispatch_rule(
         rule,
         livekit_api::services::sip::CreateSIPDispatchRuleOptions {
             name: req.name.unwrap_or_default(),
             metadata: req.metadata.unwrap_or_default(),
-            trunk_ids: req.trunk_ids.unwrap_or_default(),
+            trunk_ids: trunk_ids.clone(),
             hide_phone_number: req.hide_phone_number.unwrap_or_default(),
-            attributes: Default::default(),
-            allowed_numbers: req.inbound_numbers.unwrap_or_default(),
+            attributes,
+            allowed_numbers: req.inbound_numbers.clone().unwrap_or_default(),
         }
     ).await
         .map_err(|e| {
             eprintln!("Failed to create SIP dispatch rule: {:?}", e);
-            StatusCode::INTERNAL_SERVER_ERROR
+            map_sip_error_status(&format!("{:?}", e))
         })?;
 
     Ok(Json(SipDispatchRuleResponse {
+        id: r.sip_dispatch_rule_id.clone(),
         sip_dispatch_rule_id: r.sip_dispatch_rule_id,
         name: Some(r.name),
         metadata: Some(r.metadata),
-        rule: Some(SipDispatchRule {
-            dispatch_rule: Some(crate::models::sip::DispatchRuleType::Individual(crate::models::sip::IndividualRule {
-                room_name_prefix: "default".to_string(),
-                pin: None,
-            })),
-        }),
-        trunk_ids: r.trunk_ids,
+        rule: req.rule,
+        trunk_ids: r.trunk_ids.clone(),
         hide_phone_number: r.hide_phone_number,
+        rule_type: Some(rule_type),
+        agent_id: req.agent_id,
+        trunk_id: trunk_ids.first().cloned(),
     }))
 }
 
@@ -183,8 +379,126 @@ pub async fn delete_sip_dispatch_rule(
         return Err(StatusCode::FORBIDDEN);
     }
 
-    state.lk_service.delete_sip_dispatch_rule(&id).await
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    state
+        .lk_service
+        .delete_sip_dispatch_rule(&id)
+        .await
+        .map_err(|e| {
+            eprintln!("Failed to delete SIP dispatch rule {}: {:?}", id, e);
+            map_sip_error_status(&format!("{:?}", e))
+        })?;
 
     Ok(StatusCode::OK)
+}
+
+pub async fn create_outbound_call(
+    State(state): State<AppState>,
+    axum::extract::Extension(claims): axum::extract::Extension<Claims>,
+    Json(req): Json<OutboundCallRequest>,
+) -> Result<Json<CallLogResponse>, StatusCode> {
+    if !claims.is_admin {
+        return Err(StatusCode::FORBIDDEN);
+    }
+
+    if req.trunk_id.trim().is_empty() || req.to_number.trim().is_empty() {
+        return Err(StatusCode::BAD_REQUEST);
+    }
+
+    let room_name = req
+        .room_name
+        .clone()
+        .unwrap_or_else(|| format!("sip-{}", Uuid::new_v4().simple()));
+    let participant_identity = req
+        .participant_identity
+        .clone()
+        .unwrap_or_else(|| format!("sip-caller-{}", Uuid::new_v4().simple()));
+
+    let participant = state
+        .lk_service
+        .sip_client
+        .create_sip_participant(
+            req.trunk_id.clone(),
+            req.to_number.clone(),
+            room_name.clone(),
+            livekit_api::services::sip::CreateSIPParticipantOptions {
+                participant_identity: participant_identity.clone(),
+                participant_name: Some(participant_identity.clone()),
+                ..Default::default()
+            },
+            None,
+        )
+        .await
+        .map_err(|e| {
+            eprintln!("Failed to create SIP participant/outbound call: {:?}", e);
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?;
+
+    let call_log = CallLogResponse {
+        id: Uuid::new_v4().to_string(),
+        call_id: participant.sip_call_id,
+        from_number: String::new(),
+        to_number: req.to_number,
+        direction: "outbound".to_string(),
+        started_at: Utc::now().to_rfc3339(),
+        ended_at: None,
+        duration_seconds: None,
+        status: "ringing".to_string(),
+        trunk_id: Some(req.trunk_id),
+        room_name: Some(room_name),
+        participant_identity: Some(participant_identity),
+    };
+
+    let mut logs = CALL_LOGS.write().await;
+    logs.insert(0, call_log.clone());
+
+    Ok(Json(call_log))
+}
+
+pub async fn list_call_logs(
+    axum::extract::Extension(claims): axum::extract::Extension<Claims>,
+    Query(query): Query<CallLogsQuery>,
+) -> Result<Json<Vec<CallLogResponse>>, StatusCode> {
+    if !claims.is_admin {
+        return Err(StatusCode::FORBIDDEN);
+    }
+
+    let limit = query.limit.unwrap_or(50);
+    let logs = CALL_LOGS.read().await;
+    let items = logs.iter().take(limit).cloned().collect::<Vec<_>>();
+
+    Ok(Json(items))
+}
+
+pub async fn end_call(
+    State(state): State<AppState>,
+    axum::extract::Extension(claims): axum::extract::Extension<Claims>,
+    Path(call_id): Path<String>,
+) -> Result<StatusCode, StatusCode> {
+    if !claims.is_admin {
+        return Err(StatusCode::FORBIDDEN);
+    }
+
+    let mut logs = CALL_LOGS.write().await;
+    if let Some(item) = logs
+        .iter_mut()
+        .find(|c| c.call_id == call_id || c.id == call_id)
+    {
+        if let (Some(room_name), Some(identity)) = (item.room_name.clone(), item.participant_identity.clone()) {
+            let _ = state
+                .lk_service
+                .room_client
+                .remove_participant(&room_name, &identity)
+                .await;
+        }
+
+        item.status = "ended".to_string();
+        let ended_at = Utc::now();
+        item.ended_at = Some(ended_at.to_rfc3339());
+        if let Ok(started) = chrono::DateTime::parse_from_rfc3339(&item.started_at) {
+            item.duration_seconds = Some((ended_at.timestamp() - started.timestamp()).max(0));
+        }
+        return Ok(StatusCode::OK);
+    }
+
+    Err(StatusCode::NOT_FOUND)
 }

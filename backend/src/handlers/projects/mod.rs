@@ -11,6 +11,8 @@ use crate::AppState;
 fn map_project_to_response(project: projects::Model) -> ProjectResponse {
     ProjectResponse {
         id: project.id,
+        short_id: Some(project.short_id),
+        user_id: Some(project.user_id),
         name: project.name,
         description: project.description,
         status: project.status,

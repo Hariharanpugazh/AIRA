@@ -11,7 +11,6 @@ import { Plus, Trash2, Play, Pause, ChevronDown, Terminal, Globe, MoreVertical, 
 import { getAccessToken, getProjects, getAgents, createAgent, deleteAgent, updateAgent, User, Agent, Project, apiFetch } from "../../../lib/api";
 import { AgentStatCard, AgentSessionsChart } from "../../../components/AgentsCharts";
 import { useClickOutside } from "../../../hooks/useClickOutside";
-import { DeployAgentModal } from "../../../components/modals/DeployAgentModal";
 import { CreateAgentModal } from "../../../components/modals/CreateAgentModal";
 import { cn } from "../../../lib/utils";
 
@@ -28,8 +27,6 @@ export default function AgentsPage() {
   const dropdownRef = useRef<HTMLDivElement>(null);
   useClickOutside(dropdownRef as React.RefObject<HTMLElement>, () => setIsDropdownOpen(false));
 
-  // Modal State
-  const [showDeploy, setShowDeploy] = useState(false);
   const [creating, setCreating] = useState(false);
 
   // Agent stats state
@@ -38,11 +35,6 @@ export default function AgentsPage() {
     totalMinutes: 0,
     quotaMinutes: 1000,
   });
-
-  // Derive project URL (simplified for self-host)
-  const projectUrl = typeof window !== 'undefined'
-    ? window.location.protocol.replace('http', 'ws') + '//' + window.location.host
-    : 'ws://localhost:7880';
 
   const loadData = React.useCallback(async () => {
     const token = getAccessToken();
@@ -121,6 +113,23 @@ export default function AgentsPage() {
       router.push(`/agents/${agent.id}/instructions`);
     } catch (error) {
       console.error("Failed to create agent:", error);
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  const handleStartInCode = async () => {
+    if (!currentProject) return;
+    setCreating(true);
+    try {
+      const agent = await createAgent(currentProject.id, {
+        name: "New Agent",
+      });
+      setAgents([agent, ...agents]);
+      router.push(`/agents/${agent.id}/deploy`);
+    } catch (error) {
+      console.error("Failed to create agent:", error);
+      alert("Failed to create agent. Please try again.");
     } finally {
       setCreating(false);
     }
@@ -215,7 +224,8 @@ export default function AgentsPage() {
                     </div>
                     </button>
                     <button
-                    onClick={() => { setShowDeploy(true); setIsDropdownOpen(false); }}
+                    onClick={() => { setIsDropdownOpen(false); handleStartInCode(); }}
+                    disabled={creating}
                     className="w-full text-left p-2.5 hover:bg-muted/50 rounded-lg transition-all flex items-start gap-3 group"
                     >
                     <div className="mt-0.5 p-1.5 rounded-lg bg-muted text-muted-foreground group-hover:bg-muted group-hover:text-foreground">
@@ -386,7 +396,8 @@ export default function AgentsPage() {
 
               {/* Card 2: Code */}
               <button
-                onClick={() => setShowDeploy(true)}
+                onClick={handleStartInCode}
+                disabled={creating}
                 className="group flex flex-col text-left bg-card border border-border/60 rounded-[32px] overflow-hidden hover:border-primary/40 hover:shadow-[0_20px_50px_rgba(0,0,0,0.05)] transition-all duration-500"
               >
                 <div className="p-8 bg-muted aspect-[16/10] flex items-center justify-center border-b border-border/40 relative overflow-hidden">
@@ -428,13 +439,6 @@ export default function AgentsPage() {
             </div>
           </div>
         )}
-
-
-        <DeployAgentModal
-          isOpen={showDeploy}
-          onClose={() => setShowDeploy(false)}
-          projectUrl={projectUrl}
-        />
       </div>
     </>
   );

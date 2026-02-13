@@ -1,6 +1,20 @@
-// Use relative paths in production (nginx proxies /api to backend)
-// In development, set NEXT_PUBLIC_API_URL=http://localhost:8000
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+// Always prefer explicit backend URL; fallback to production API host.
+export const API_BASE = (process.env.NEXT_PUBLIC_API_URL || "").trim() || "https://livekit-api.divithselvam.in";
+
+export function getApiBaseUrl(): string {
+    return API_BASE;
+}
+
+export function getApiWebSocketBaseUrl(): string {
+    const normalized = API_BASE.replace(/\/+$/, "");
+    if (normalized.startsWith("https://")) {
+        return normalized.replace("https://", "wss://");
+    }
+    if (normalized.startsWith("http://")) {
+        return normalized.replace("http://", "ws://");
+    }
+    return normalized;
+}
 
 let accessToken: string | null = null;
 
@@ -18,11 +32,17 @@ export function setAccessToken(token: string | null) {
     if (token) {
         const clean = sanitize(token);
         accessToken = clean;
+        if (typeof window !== "undefined") {
+            localStorage.setItem("token", clean);
+        }
         if (typeof document !== "undefined") {
             document.cookie = `token=${encodeURIComponent(clean)}; path=/; max-age=${24 * 60 * 60}; samesite=strict${secureFlag}`;
         }
     } else {
         accessToken = null;
+        if (typeof window !== "undefined") {
+            localStorage.removeItem("token");
+        }
         if (typeof document !== "undefined") {
             document.cookie = `token=; path=/; max-age=0${secureFlag}`;
         }
@@ -31,11 +51,21 @@ export function setAccessToken(token: string | null) {
 
 export function getAccessToken(): string | null {
     if (accessToken) return accessToken;
+    if (typeof window !== "undefined") {
+        const stored = localStorage.getItem("token");
+        if (stored && stored.trim()) {
+            accessToken = stored.replace(/\uFEFF/g, "").trim().replace(/[^\x00-\xFF]/g, "");
+            return accessToken;
+        }
+    }
     if (typeof document !== "undefined") {
         const match = document.cookie.match(/(?:^|; )token=([^;]*)/);
         if (match && match[1]) {
             const raw = decodeURIComponent(match[1]);
             accessToken = raw.replace(/\uFEFF/g, "").trim().replace(/[^\x00-\xFF]/g, "");
+            if (typeof window !== "undefined") {
+                localStorage.setItem("token", accessToken);
+            }
         } else {
             accessToken = null;
         }
@@ -390,40 +420,141 @@ export async function updateAIConfig(projectId: string, config: Partial<AIConfig
 export interface Agent {
     id: string;
     name: string;
+    backend_id?: string;
     description?: string;
     instructions?: string;
-    voice: string;
-    model: string;
+    voice?: string;
+    model?: string;
     status: string;
     created_at: string;
     welcome_message?: string;
     allow_interruption?: boolean;
+    image?: string;
+    entrypoint?: string | null;
+    env_vars?: Record<string, string>;
+    livekit_permissions?: Record<string, boolean>;
+    default_room_behavior?: string;
+    auto_restart_policy?: string;
+    resource_limits?: {
+        cpu_cores?: number;
+        memory_mb?: number;
+        max_instances?: number;
+    };
+    is_enabled?: boolean;
+}
+
+interface BackendAgent {
+    id: string;
+    agent_id: string;
+    display_name: string;
+    image: string;
+    entrypoint?: string | null;
+    env_vars?: Record<string, string>;
+    livekit_permissions?: Record<string, boolean>;
+    default_room_behavior?: string;
+    auto_restart_policy?: string;
+    resource_limits?: {
+        cpu_cores?: number;
+        memory_mb?: number;
+        max_instances?: number;
+    };
+    is_enabled: boolean;
+    created_at: string;
+    updated_at: string;
+}
+
+function mapBackendAgent(agent: BackendAgent): Agent {
+    return {
+        id: agent.agent_id || agent.id,
+        backend_id: agent.id,
+        name: agent.display_name || agent.agent_id,
+        status: agent.is_enabled ? "active" : "paused",
+        created_at: agent.created_at,
+        voice: "alloy",
+        model: "gpt-4o-mini",
+        image: agent.image,
+        entrypoint: agent.entrypoint ?? undefined,
+        env_vars: agent.env_vars || {},
+        livekit_permissions: agent.livekit_permissions || {},
+        default_room_behavior: agent.default_room_behavior,
+        auto_restart_policy: agent.auto_restart_policy,
+        resource_limits: agent.resource_limits || {},
+        is_enabled: agent.is_enabled,
+    };
+}
+
+function toBackendAgentPayload(agent: Partial<Agent>): Record<string, unknown> {
+    const payload: Record<string, unknown> = {};
+
+    if (agent.name !== undefined) payload.name = agent.name;
+    if (agent.image !== undefined) payload.image = agent.image;
+    if (agent.entrypoint !== undefined) payload.entrypoint = agent.entrypoint;
+    if (agent.env_vars !== undefined) payload.environment = agent.env_vars;
+    if (agent.livekit_permissions !== undefined) payload.livekit_permissions = agent.livekit_permissions;
+    if (agent.default_room_behavior !== undefined) payload.default_room_behavior = agent.default_room_behavior;
+    if (agent.auto_restart_policy !== undefined) payload.auto_restart_policy = agent.auto_restart_policy;
+    if (agent.resource_limits !== undefined) payload.resource_limits = agent.resource_limits;
+    if (agent.is_enabled !== undefined) payload.is_enabled = agent.is_enabled;
+    if (agent.status !== undefined) payload.status = agent.status;
+
+    // Forward optional UX fields for future backend support.
+    if (agent.description !== undefined) payload.description = agent.description;
+    if (agent.instructions !== undefined) payload.instructions = agent.instructions;
+    if (agent.welcome_message !== undefined) payload.welcome_message = agent.welcome_message;
+    if (agent.allow_interruption !== undefined) payload.allow_interruption = agent.allow_interruption;
+
+    return payload;
 }
 
 export async function getAgents(projectId: string): Promise<Agent[]> {
-    return await apiFetch<Agent[]>(`/api/projects/${projectId}/agents`);
+    const agents = await apiFetch<BackendAgent[]>(`/api/projects/${projectId}/agents`);
+    return agents.map(mapBackendAgent);
 }
 
 export async function getAgent(projectId: string, agentId: string): Promise<Agent> {
-    return apiFetch<Agent>(`/api/projects/${projectId}/agents/${agentId}`);
+    const agent = await apiFetch<BackendAgent>(`/api/projects/${projectId}/agents/${agentId}`);
+    return mapBackendAgent(agent);
 }
 
 export async function createAgent(projectId: string, agent: Partial<Agent>): Promise<Agent> {
-    return await apiFetch<Agent>(`/api/projects/${projectId}/agents`, {
+    const created = await apiFetch<BackendAgent>(`/api/projects/${projectId}/agents`, {
         method: "POST",
-        body: JSON.stringify(agent),
+        body: JSON.stringify(toBackendAgentPayload(agent)),
     });
+    return mapBackendAgent(created);
 }
 
 export async function updateAgent(projectId: string, agentId: string, agent: Partial<Agent>): Promise<Agent> {
-    return apiFetch<Agent>(`/api/projects/${projectId}/agents/${agentId}`, {
+    const updated = await apiFetch<BackendAgent>(`/api/projects/${projectId}/agents/${agentId}`, {
         method: "PUT",
-        body: JSON.stringify(agent),
+        body: JSON.stringify(toBackendAgentPayload(agent)),
     });
+    return mapBackendAgent(updated);
 }
 
 export async function deleteAgent(projectId: string, agentId: string): Promise<void> {
     await apiFetch(`/api/projects/${projectId}/agents/${agentId}`, { method: "DELETE" });
+}
+
+export interface DeployAgentResponse {
+    instance_id: string;
+    status: string;
+    container_id?: string;
+    process_pid?: number;
+}
+
+export async function deployAgent(
+    projectId: string,
+    agentId: string,
+    options: { deployment_type?: "docker" | "process"; room_name?: string } = {},
+): Promise<DeployAgentResponse> {
+    return apiFetch<DeployAgentResponse>(`/api/projects/${projectId}/agents/${agentId}/deploy`, {
+        method: "POST",
+        body: JSON.stringify({
+            deployment_type: options.deployment_type || "docker",
+            room_name: options.room_name,
+        }),
+    });
 }
 
 
@@ -449,15 +580,60 @@ export interface DispatchRule {
     created_at: string;
 }
 
+interface BackendSipTrunk {
+    id: string;
+    sip_trunk_id: string;
+    name?: string;
+    inbound_numbers_regex?: string[];
+    outbound_address?: string;
+    sip_server?: string;
+    username?: string;
+    created_at?: string;
+}
+
+function mapBackendSipTrunk(trunk: BackendSipTrunk): SipTrunk {
+    const sipServer = trunk.sip_server || trunk.outbound_address;
+    return {
+        id: trunk.id || trunk.sip_trunk_id,
+        name: trunk.name || trunk.id || trunk.sip_trunk_id,
+        numbers: trunk.inbound_numbers_regex || [],
+        sip_server: sipServer,
+        sip_uri: sipServer ? `sip:${sipServer}` : undefined,
+        username: trunk.username,
+        created_at: trunk.created_at || new Date().toISOString(),
+    };
+}
+
+interface BackendDispatchRule {
+    id: string;
+    name?: string;
+    rule_type?: string;
+    agent_id?: string;
+    trunk_id?: string;
+}
+
+function mapBackendDispatchRule(rule: BackendDispatchRule): DispatchRule {
+    return {
+        id: rule.id,
+        name: rule.name || rule.id,
+        rule_type: rule.rule_type || "direct",
+        agent_id: rule.agent_id,
+        trunk_id: rule.trunk_id,
+        created_at: new Date().toISOString(),
+    };
+}
+
 export async function getSipTrunks(): Promise<SipTrunk[]> {
-    return apiFetch<SipTrunk[]>("/api/telephony/sip-trunks");
+    const trunks = await apiFetch<BackendSipTrunk[]>("/api/telephony/sip-trunks");
+    return trunks.map(mapBackendSipTrunk);
 }
 
 export async function createSipTrunk(trunk: Partial<SipTrunk>): Promise<SipTrunk> {
-    return apiFetch<SipTrunk>("/api/telephony/sip-trunks", {
+    const created = await apiFetch<BackendSipTrunk>("/api/telephony/sip-trunks", {
         method: "POST",
         body: JSON.stringify(trunk),
     });
+    return mapBackendSipTrunk(created);
 }
 
 export async function deleteSipTrunk(id: string): Promise<void> {
@@ -465,14 +641,16 @@ export async function deleteSipTrunk(id: string): Promise<void> {
 }
 
 export async function getDispatchRules(): Promise<DispatchRule[]> {
-    return apiFetch<DispatchRule[]>("/api/telephony/dispatch-rules");
+    const rules = await apiFetch<BackendDispatchRule[]>("/api/telephony/dispatch-rules");
+    return rules.map(mapBackendDispatchRule);
 }
 
 export async function createDispatchRule(rule: Partial<DispatchRule>): Promise<DispatchRule> {
-    return apiFetch<DispatchRule>("/api/telephony/dispatch-rules", {
+    const created = await apiFetch<BackendDispatchRule>("/api/telephony/dispatch-rules", {
         method: "POST",
         body: JSON.stringify(rule),
     });
+    return mapBackendDispatchRule(created);
 }
 
 export async function deleteDispatchRule(id: string): Promise<void> {
@@ -585,9 +763,11 @@ export interface Egress {
 }
 
 export async function getEgresses(): Promise<Egress[]> {
-    // Backend returns direct array, not wrapped object
     const data = await apiFetch<Egress[]>("/api/livekit/egresses");
-    return data;
+    return data.map((item) => ({
+        ...item,
+        status: item.status.toLowerCase().replace("egress_", ""),
+    }));
 }
 
 export async function startRoomEgress(roomName: string): Promise<Egress> {
@@ -597,10 +777,10 @@ export async function startRoomEgress(roomName: string): Promise<Egress> {
     });
 }
 
-export async function startParticipantEgress(roomName: string, participantIdentity: string, outputType: string = "file"): Promise<{ ok: boolean; jobs: any[] }> {
-    return apiFetch<{ ok: boolean; jobs: any[] }>("/api/livekit/egress/participant", {
+export async function startParticipantEgress(roomName: string, participantIdentity: string, outputType: string = "file"): Promise<Egress> {
+    return apiFetch<Egress>("/api/livekit/egress/participant", {
         method: "POST",
-        body: JSON.stringify({ room_name: roomName, participant_identity: participantIdentity, output_type: outputType }),
+        body: JSON.stringify({ room_name: roomName, identity: participantIdentity, output_type: outputType }),
     });
 }
 
@@ -856,7 +1036,16 @@ export async function resolveError(errorId: string): Promise<void> {
 }
 
 export async function getPrometheusMetrics(): Promise<string> {
-    return apiFetch<string>("/api/monitoring/prometheus");
+    const token = getAccessToken();
+    const headers: Record<string, string> = {};
+    if (token) {
+        headers["Authorization"] = `Bearer ${token}`;
+    }
+    const response = await fetch(`${API_BASE}/api/monitoring/prometheus`, { headers });
+    if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+    }
+    return response.text();
 }
 
 
@@ -913,7 +1102,9 @@ export interface AuditLogEntry {
 }
 
 export async function getAuditLog(limit: number = 100, offset: number = 0): Promise<{ logs: AuditLogEntry[]; total: number }> {
-    return apiFetch(`/api/audit-log?limit=${limit}&offset=${offset}`);
+    const page = Math.floor(offset / Math.max(limit, 1)) + 1;
+    const logs = await apiFetch<AuditLogEntry[]>(`/api/audit-logs?limit=${limit}&page=${page}`);
+    return { logs, total: logs.length };
 }
 
 // API KEYS & WEBHOOKS

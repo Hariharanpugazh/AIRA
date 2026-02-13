@@ -3,17 +3,17 @@
 use sea_orm::entity::prelude::*;
 use serde::{Deserialize, Serialize};
 
-#[derive(Clone, Debug, PartialEq, DeriveEntityModel, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, DeriveEntityModel, Serialize, Deserialize)]
 #[sea_orm(table_name = "agent_metrics")]
 pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
-    pub id: Uuid,
-    pub agent_id: Uuid,
-    pub instance_id: Uuid,
+    pub id: String,
+    pub agent_id: String,
+    pub instance_id: String,
     pub metric_name: String,
-    pub metric_value: Option<Decimal>,
+    pub metric_value: Option<f32>,
     pub unit: Option<String>,
-    pub timestamp: DateTimeWithTimeZone,
+    pub timestamp: Option<DateTime>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

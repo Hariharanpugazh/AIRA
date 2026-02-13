@@ -103,7 +103,7 @@ export default function ProjectSettingsPage() {
           <h2 className="text-lg font-semibold text-foreground">General</h2>
           <Card className="p-6 bg-white dark:bg-surface/30 border-border/60">
             <p className="text-sm text-muted-foreground mb-6">
-              Set the name that will be used to identify your project in the LiveKit Cloud dashboard and the LiveKit CLI.
+              Set the display name used across your self-hosted LiveKit admin dashboard and tooling.
             </p>
             <div className="grid grid-cols-2 gap-6">
               <div>
@@ -139,7 +139,7 @@ export default function ProjectSettingsPage() {
               <div className="relative">
                 <input
                   type="text"
-                  value={displayProjectId ? `sip://[${displayProjectId}].sip.livekit.cloud` : ""}
+                  value={displayProjectId ? `sip://${displayProjectId}@your-sip-gateway` : ""}
                   disabled
                   className="w-full px-3 py-2 rounded-md bg-gray-100 dark:bg-muted/20 border border-border text-sm text-muted-foreground cursor-not-allowed pr-10"
                 />
@@ -294,7 +294,7 @@ export default function ProjectSettingsPage() {
           <h2 className="text-lg font-semibold text-foreground">Connection limits</h2>
           <Card className="p-6 bg-white dark:bg-surface/30 border-border/60">
             <p className="text-sm text-muted-foreground mb-6">
-              In order to the stability of our network and to prevent abuse, LiveKit Cloud projects have limitations on the number of concurrent connections. <a href="#" className="text-primary hover:underline">See the docs</a> for more concurrent connections and custom limits.
+              Self-hosted deployments do not enforce artificial product limits. Capacity depends only on your infrastructure sizing and LiveKit node resources.
             </p>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
@@ -308,37 +308,37 @@ export default function ProjectSettingsPage() {
                 <tbody>
                   <tr className="border-b border-border/40 hover:bg-gray-50 dark:hover:bg-muted/10">
                     <td className="px-4 py-3 text-foreground">Concurrent participants</td>
-                    <td className="px-4 py-3 text-foreground">100</td>
+                    <td className="px-4 py-3 text-foreground">Unlimited (infra-bound)</td>
                     <td className="px-4 py-3 text-foreground">0</td>
                   </tr>
                   <tr className="border-b border-border/40 hover:bg-gray-50 dark:hover:bg-muted/10">
                     <td className="px-4 py-3 text-foreground">Concurrent room sessions</td>
-                    <td className="px-4 py-3 text-foreground">2</td>
+                    <td className="px-4 py-3 text-foreground">Unlimited (infra-bound)</td>
                     <td className="px-4 py-3 text-foreground">0</td>
                   </tr>
                   <tr className="border-b border-border/40 hover:bg-gray-50 dark:hover:bg-muted/10">
                     <td className="px-4 py-3 text-foreground">Concurrent ingress requests</td>
-                    <td className="px-4 py-3 text-foreground">2</td>
+                    <td className="px-4 py-3 text-foreground">Unlimited (infra-bound)</td>
                     <td className="px-4 py-3 text-foreground">0</td>
                   </tr>
                   <tr className="border-b border-border/40 hover:bg-gray-50 dark:hover:bg-muted/10">
                     <td className="px-4 py-3 text-foreground">Concurrent SIP sessions</td>
-                    <td className="px-4 py-3 text-foreground">5</td>
+                    <td className="px-4 py-3 text-foreground">Unlimited (infra-bound)</td>
                     <td className="px-4 py-3 text-foreground">0</td>
                   </tr>
                   <tr className="border-b border-border/40 hover:bg-gray-50 dark:hover:bg-muted/10">
                     <td className="px-4 py-3 text-foreground">Concurrent TTS</td>
-                    <td className="px-4 py-3 text-foreground">10</td>
+                    <td className="px-4 py-3 text-foreground">Unlimited (infra-bound)</td>
                     <td className="px-4 py-3 text-foreground">0</td>
                   </tr>
                   <tr className="border-b border-border/40 hover:bg-gray-50 dark:hover:bg-muted/10">
                     <td className="px-4 py-3 text-foreground">LLM Requests per minute</td>
-                    <td className="px-4 py-3 text-foreground">100</td>
+                    <td className="px-4 py-3 text-foreground">Unlimited (infra-bound)</td>
                     <td className="px-4 py-3 text-foreground">0</td>
                   </tr>
                   <tr className="hover:bg-gray-50 dark:hover:bg-muted/10">
                     <td className="px-4 py-3 text-foreground">LLM tokens per minute</td>
-                    <td className="px-4 py-3 text-foreground font-medium">400000</td>
+                    <td className="px-4 py-3 text-foreground font-medium">Unlimited (infra-bound)</td>
                     <td className="px-4 py-3 text-foreground">0</td>
                   </tr>
                 </tbody>

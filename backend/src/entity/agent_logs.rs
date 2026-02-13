@@ -7,12 +7,12 @@ use serde::{Deserialize, Serialize};
 #[sea_orm(table_name = "agent_logs")]
 pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
-    pub id: Uuid,
-    pub agent_id: Uuid,
-    pub instance_id: Uuid,
+    pub id: String,
+    pub agent_id: String,
+    pub instance_id: String,
     pub log_level: String,
     pub message: String,
-    pub timestamp: DateTimeWithTimeZone,
+    pub timestamp: Option<DateTime>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

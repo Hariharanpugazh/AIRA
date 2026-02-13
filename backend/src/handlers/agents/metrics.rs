@@ -1,7 +1,6 @@
 use axum::{extract::State, http::StatusCode, Json};
 use sea_orm::{EntityTrait, QueryFilter, ColumnTrait, QueryOrder, PaginatorTrait};
 use tokio::process::Command;
-use rust_decimal;
 
 use crate::entity::{agent_metrics, agent_instances};
 use crate::models::agents::AgentMetricResponse;
@@ -35,13 +34,13 @@ pub async fn get_agent_metrics(
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     let response: Vec<AgentMetricResponse> = metrics.into_iter().map(|metric| AgentMetricResponse {
-        id: metric.id.to_string(),
-        agent_id: metric.agent_id.to_string(),
-        instance_id: metric.instance_id.to_string(),
+        id: metric.id,
+        agent_id: metric.agent_id,
+        instance_id: metric.instance_id,
         metric_name: metric.metric_name,
-        metric_value: metric.metric_value.map(|d| d.to_string().parse().unwrap_or(0.0)),
+        metric_value: metric.metric_value.map(|v| v as f64),
         unit: metric.unit,
-        timestamp: metric.timestamp.to_string(),
+        timestamp: metric.timestamp.map(|ts| ts.to_string()).unwrap_or_default(),
     }).collect();
 
     Ok(Json(response))
@@ -76,11 +75,11 @@ pub async fn collect_agent_metrics(
     // Store metrics in database
     for metric in &metrics {
         let metric_model = agent_metrics::ActiveModel {
-            id: sea_orm::ActiveValue::Set(uuid::Uuid::new_v4()),
-            agent_id: sea_orm::ActiveValue::Set(instance.agent_id),
-            instance_id: sea_orm::ActiveValue::Set(instance.id),
+            id: sea_orm::ActiveValue::Set(uuid::Uuid::new_v4().to_string()),
+            agent_id: sea_orm::ActiveValue::Set(instance.agent_id.clone()),
+            instance_id: sea_orm::ActiveValue::Set(instance.id.clone()),
             metric_name: sea_orm::ActiveValue::Set(metric.metric_name.clone()),
-            metric_value: sea_orm::ActiveValue::Set(metric.metric_value.map(|v| rust_decimal::Decimal::try_from(v).unwrap_or(rust_decimal::Decimal::ZERO))),
+            metric_value: sea_orm::ActiveValue::Set(metric.metric_value.map(|v| v as f32)),
             unit: sea_orm::ActiveValue::Set(metric.unit.clone()),
             ..Default::default()
         };
@@ -225,7 +224,7 @@ pub async fn get_project_agent_stats(
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     
-    let agent_ids: Vec<uuid::Uuid> = agents_list.iter().map(|a| a.id).collect();
+    let agent_ids: Vec<String> = agents_list.iter().map(|a| a.id.clone()).collect();
 
     // Count active instances for these agents
     let active_sessions = agent_instances::Entity::find()

@@ -1,5 +1,6 @@
 use axum::{extract::State, http::StatusCode, Json};
 use sea_orm::{ActiveModelTrait, EntityTrait, Set, QueryFilter, ColumnTrait};
+use serde::de::DeserializeOwned;
 use serde_json::json;
 use std::env;
 use std::process::Stdio;
@@ -26,6 +27,16 @@ async fn verify_project_access(
     Ok(project.user_id == user_id)
 }
 
+fn parse_json_or_default<T>(raw: &str) -> T
+where
+    T: DeserializeOwned + Default,
+{
+    if raw.trim().is_empty() {
+        return T::default();
+    }
+    serde_json::from_str(raw).unwrap_or_default()
+}
+
 pub async fn create_agent(
     State(state): State<AppState>,
     axum::extract::Extension(claims): axum::extract::Extension<Claims>,
@@ -42,37 +53,60 @@ pub async fn create_agent(
     }
 
     let agent_id = format!("agent_{}", Uuid::new_v4().simple());
+    let display_name = req
+        .display_name
+        .unwrap_or_else(|| "New Agent".to_string());
+    let image = req
+        .image
+        .unwrap_or_else(|| "livekit/agent:latest".to_string());
+    let default_room_behavior = req
+        .default_room_behavior
+        .unwrap_or_else(|| "auto".to_string());
+    let auto_restart_policy = req
+        .auto_restart_policy
+        .unwrap_or_else(|| "always".to_string());
+    let resource_limits = req.resource_limits.unwrap_or_default();
 
     let agent_model = agents::ActiveModel {
-        id: Set(Uuid::new_v4()),
+        id: Set(Uuid::new_v4().to_string()),
         agent_id: Set(agent_id.clone()),
-        display_name: Set(req.display_name),
-        image: Set(req.image),
+        display_name: Set(display_name),
+        image: Set(image),
         entrypoint: Set(req.entrypoint),
-        env_vars: Set(json!(req.env_vars)),
-        livekit_permissions: Set(json!(req.livekit_permissions)),
-        default_room_behavior: Set(req.default_room_behavior),
-        auto_restart_policy: Set(req.auto_restart_policy),
-        resource_limits: Set(json!(req.resource_limits)),
+        env_vars: Set(serde_json::to_string(&req.env_vars).unwrap_or_else(|_| "{}".to_string())),
+        livekit_permissions: Set(
+            serde_json::to_string(&req.livekit_permissions).unwrap_or_else(|_| "{}".to_string())
+        ),
+        default_room_behavior: Set(default_room_behavior),
+        auto_restart_policy: Set(auto_restart_policy),
+        resource_limits: Set(serde_json::to_string(&resource_limits).unwrap_or_else(|_| "{}".to_string())),
         is_enabled: Set(true),
-        project_id: Set(Some(project_id)),
+        project_id: Set(Some(project_id.clone())),
         ..Default::default()
     };
 
-    let result = agent_model.insert(&state.db).await
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let result = agent_model
+        .insert(&state.db)
+        .await
+        .map_err(|e| {
+            eprintln!(
+                "Failed to create agent in project {} for user {}: {:?}",
+                project_id, claims.sub, e
+            );
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?;
 
     Ok(Json(AgentResponse {
-        id: result.id.to_string(),
+        id: result.id,
         agent_id: result.agent_id,
         display_name: result.display_name,
         image: result.image,
         entrypoint: result.entrypoint,
-        env_vars: serde_json::from_value(result.env_vars).unwrap_or_default(),
-        livekit_permissions: serde_json::from_value(result.livekit_permissions).unwrap_or_default(),
+        env_vars: parse_json_or_default(&result.env_vars),
+        livekit_permissions: parse_json_or_default(&result.livekit_permissions),
         default_room_behavior: result.default_room_behavior,
         auto_restart_policy: result.auto_restart_policy,
-        resource_limits: serde_json::from_value(result.resource_limits).unwrap_or_default(),
+        resource_limits: parse_json_or_default(&result.resource_limits),
         is_enabled: result.is_enabled,
         created_at: result.created_at.to_string(),
         updated_at: result.updated_at.to_string(),
@@ -114,10 +148,11 @@ pub async fn update_agent(
         agent.entrypoint = Set(Some(entrypoint));
     }
     if let Some(env_vars) = req.env_vars {
-        agent.env_vars = Set(json!(env_vars));
+        agent.env_vars = Set(serde_json::to_string(&env_vars).unwrap_or_else(|_| "{}".to_string()));
     }
     if let Some(permissions) = req.livekit_permissions {
-        agent.livekit_permissions = Set(json!(permissions));
+        agent.livekit_permissions =
+            Set(serde_json::to_string(&permissions).unwrap_or_else(|_| "{}".to_string()));
     }
     if let Some(behavior) = req.default_room_behavior {
         agent.default_room_behavior = Set(behavior);
@@ -126,26 +161,34 @@ pub async fn update_agent(
         agent.auto_restart_policy = Set(policy);
     }
     if let Some(limits) = req.resource_limits {
-        agent.resource_limits = Set(json!(limits));
+        agent.resource_limits = Set(serde_json::to_string(&limits).unwrap_or_else(|_| "{}".to_string()));
     }
     if let Some(enabled) = req.is_enabled {
         agent.is_enabled = Set(enabled);
+    }
+    if let Some(status) = req.status {
+        let normalized = status.trim().to_ascii_lowercase();
+        if normalized == "active" || normalized == "running" || normalized == "enabled" {
+            agent.is_enabled = Set(true);
+        } else if normalized == "paused" || normalized == "inactive" || normalized == "disabled" {
+            agent.is_enabled = Set(false);
+        }
     }
 
     let result = agent.update(&state.db).await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     Ok(Json(AgentResponse {
-        id: result.id.to_string(),
+        id: result.id,
         agent_id: result.agent_id,
         display_name: result.display_name,
         image: result.image,
         entrypoint: result.entrypoint,
-        env_vars: serde_json::from_value(result.env_vars).unwrap_or_default(),
-        livekit_permissions: serde_json::from_value(result.livekit_permissions).unwrap_or_default(),
+        env_vars: parse_json_or_default(&result.env_vars),
+        livekit_permissions: parse_json_or_default(&result.livekit_permissions),
         default_room_behavior: result.default_room_behavior,
         auto_restart_policy: result.auto_restart_policy,
-        resource_limits: serde_json::from_value(result.resource_limits).unwrap_or_default(),
+        resource_limits: parse_json_or_default(&result.resource_limits),
         is_enabled: result.is_enabled,
         created_at: result.created_at.to_string(),
         updated_at: result.updated_at.to_string(),
@@ -173,16 +216,16 @@ pub async fn list_agents(
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     let response: Vec<AgentResponse> = agents.into_iter().map(|agent| AgentResponse {
-        id: agent.id.to_string(),
+        id: agent.id,
         agent_id: agent.agent_id,
         display_name: agent.display_name,
         image: agent.image,
         entrypoint: agent.entrypoint,
-        env_vars: serde_json::from_value(agent.env_vars).unwrap_or_default(),
-        livekit_permissions: serde_json::from_value(agent.livekit_permissions).unwrap_or_default(),
+        env_vars: parse_json_or_default(&agent.env_vars),
+        livekit_permissions: parse_json_or_default(&agent.livekit_permissions),
         default_room_behavior: agent.default_room_behavior,
         auto_restart_policy: agent.auto_restart_policy,
-        resource_limits: serde_json::from_value(agent.resource_limits).unwrap_or_default(),
+        resource_limits: parse_json_or_default(&agent.resource_limits),
         is_enabled: agent.is_enabled,
         created_at: agent.created_at.to_string(),
         updated_at: agent.updated_at.to_string(),
@@ -221,7 +264,13 @@ pub async fn deploy_agent(
 
     let instance_id = format!("inst_{}", Uuid::new_v4().simple());
 
-    match req.deployment_type.as_str() {
+    let deployment_type = if req.deployment_type.trim().is_empty() {
+        "docker".to_string()
+    } else {
+        req.deployment_type.trim().to_ascii_lowercase()
+    };
+
+    match deployment_type.as_str() {
         "docker" => deploy_docker_agent(&state, &agent, &instance_id, req.room_name).await,
         "process" => deploy_process_agent(&state, &agent, &instance_id, req.room_name).await,
         _ => Err(StatusCode::BAD_REQUEST),
@@ -236,18 +285,23 @@ async fn deploy_docker_agent(
 ) -> Result<Json<DeployAgentResponse>, StatusCode> {
     // Generate LiveKit agent token
     let agent_token = generate_agent_token(agent).await?;
+    let livekit_url = env::var("LIVEKIT_URL").map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let livekit_api_key = env::var("LIVEKIT_API_KEY").map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let livekit_api_secret = env::var("LIVEKIT_API_SECRET").map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     // Prepare environment variables
     let mut env_vars = vec![
-        format!("LIVEKIT_URL={}", env::var("LIVEKIT_URL").unwrap_or_else(|_| "ws://localhost:7880".to_string())),
-        format!("LIVEKIT_API_KEY={}", env::var("LIVEKIT_API_KEY").unwrap_or_default()),
-        format!("LIVEKIT_API_SECRET={}", env::var("LIVEKIT_API_SECRET").unwrap_or_default()),
+        format!("LIVEKIT_URL={}", livekit_url),
+        format!("LIVEKIT_API_KEY={}", livekit_api_key),
+        format!("LIVEKIT_API_SECRET={}", livekit_api_secret),
         format!("LIVEKIT_AGENT_TOKEN={}", agent_token),
         format!("AGENT_INSTANCE_ID={}", instance_id),
     ];
 
     // Add custom env vars
-    if let Ok(custom_env) = serde_json::from_value::<std::collections::HashMap<String, String>>(agent.env_vars.clone()) {
+    if let Ok(custom_env) =
+        serde_json::from_str::<std::collections::HashMap<String, String>>(&agent.env_vars)
+    {
         for (key, value) in custom_env {
             env_vars.push(format!("{}={}", key, value));
         }
@@ -259,12 +313,15 @@ async fn deploy_docker_agent(
 
     // Build Docker run command
     let mut cmd = Command::new("docker");
+    let docker_network = env::var("AGENT_DOCKER_NETWORK")
+        .unwrap_or_else(|_| "livekit-core_livekit-network".to_string());
+
     cmd.arg("run")
         .arg("-d")
         .arg("--name")
         .arg(format!("livekit-agent-{}", instance_id))
         .arg("--network")
-        .arg("livekit-core_livekit-network");
+        .arg(docker_network);
 
     // Add environment variables
     for env_var in env_vars {
@@ -272,7 +329,9 @@ async fn deploy_docker_agent(
     }
 
     // Add resource limits if specified
-    if let Ok(limits) = serde_json::from_value::<crate::models::agents::ResourceLimits>(agent.resource_limits.clone()) {
+    if let Ok(limits) =
+        serde_json::from_str::<crate::models::agents::ResourceLimits>(&agent.resource_limits)
+    {
         if let Some(cpu) = limits.cpu_cores {
             cmd.arg("--cpus").arg(cpu.to_string());
         }
@@ -294,6 +353,15 @@ async fn deploy_docker_agent(
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     if !output.status.success() {
+        let stdout = String::from_utf8_lossy(&output.stdout);
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        eprintln!(
+            "docker run failed for agent {} instance {}. stdout={} stderr={}",
+            agent.agent_id,
+            instance_id,
+            stdout,
+            stderr
+        );
         return Err(StatusCode::INTERNAL_SERVER_ERROR);
     }
 
@@ -301,12 +369,12 @@ async fn deploy_docker_agent(
 
     // Create instance record
     let instance_model = agent_instances::ActiveModel {
-        id: Set(Uuid::new_v4()),
-        agent_id: Set(agent.id),
+        id: Set(Uuid::new_v4().to_string()),
+        agent_id: Set(agent.id.clone()),
         instance_id: Set(instance_id.to_string()),
         container_id: Set(Some(container_id.clone())),
         status: Set("running".to_string()),
-        started_at: Set(Some(chrono::Utc::now().into())),
+        started_at: Set(Some(chrono::Utc::now().naive_utc())),
         ..Default::default()
     };
 
@@ -329,17 +397,22 @@ pub async fn deploy_process_agent(
 ) -> Result<Json<DeployAgentResponse>, StatusCode> {
     // Generate LiveKit agent token
     let agent_token = generate_agent_token(agent).await?;
+    let livekit_url = env::var("LIVEKIT_URL").map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let livekit_api_key = env::var("LIVEKIT_API_KEY").map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let livekit_api_secret = env::var("LIVEKIT_API_SECRET").map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     // Prepare environment variables
     let mut env_vars = std::collections::HashMap::new();
-    env_vars.insert("LIVEKIT_URL".to_string(), env::var("LIVEKIT_URL").unwrap_or_else(|_| "ws://localhost:7880".to_string()));
-    env_vars.insert("LIVEKIT_API_KEY".to_string(), env::var("LIVEKIT_API_KEY").unwrap_or_default());
-    env_vars.insert("LIVEKIT_API_SECRET".to_string(), env::var("LIVEKIT_API_SECRET").unwrap_or_default());
+    env_vars.insert("LIVEKIT_URL".to_string(), livekit_url);
+    env_vars.insert("LIVEKIT_API_KEY".to_string(), livekit_api_key);
+    env_vars.insert("LIVEKIT_API_SECRET".to_string(), livekit_api_secret);
     env_vars.insert("LIVEKIT_AGENT_TOKEN".to_string(), agent_token);
     env_vars.insert("AGENT_INSTANCE_ID".to_string(), instance_id.to_string());
 
     // Add custom env vars
-    if let Ok(custom_env) = serde_json::from_value::<std::collections::HashMap<String, String>>(agent.env_vars.clone()) {
+    if let Ok(custom_env) =
+        serde_json::from_str::<std::collections::HashMap<String, String>>(&agent.env_vars)
+    {
         env_vars.extend(custom_env);
     }
 
@@ -364,12 +437,12 @@ pub async fn deploy_process_agent(
 
     // Create instance record
     let instance_model = agent_instances::ActiveModel {
-        id: Set(Uuid::new_v4()),
-        agent_id: Set(agent.id),
+        id: Set(Uuid::new_v4().to_string()),
+        agent_id: Set(agent.id.clone()),
         instance_id: Set(instance_id.to_string()),
         process_pid: Set(Some(pid as i32)),
         status: Set("running".to_string()),
-        started_at: Set(Some(chrono::Utc::now().into())),
+        started_at: Set(Some(chrono::Utc::now().naive_utc())),
         ..Default::default()
     };
 
@@ -379,7 +452,7 @@ pub async fn deploy_process_agent(
     // Spawn a task to manage the process and log its output
     let db = state.db.clone();
     let instance_db_id = instance_db.id;
-    let agent_id_clone = agent.id;
+    let agent_id_clone = agent.id.clone();
     let stdout = child.stdout.take().unwrap();
     let stderr = child.stderr.take().unwrap();
 
@@ -392,12 +465,24 @@ pub async fn deploy_process_agent(
             tokio::select! {
                 line = stdout_reader.next_line() => {
                     if let Ok(Some(line)) = line {
-                        let _ = crate::handlers::agents::logs::store_agent_log_by_id(&db, agent_id_clone, instance_db_id, "INFO", &line).await;
+                        let _ = crate::handlers::agents::logs::store_agent_log_by_id(
+                            &db,
+                            agent_id_clone.clone(),
+                            instance_db_id.clone(),
+                            "INFO",
+                            &line
+                        ).await;
                     } else { break; }
                 }
                 line = stderr_reader.next_line() => {
                     if let Ok(Some(line)) = line {
-                        let _ = crate::handlers::agents::logs::store_agent_log_by_id(&db, agent_id_clone, instance_db_id, "ERROR", &line).await;
+                        let _ = crate::handlers::agents::logs::store_agent_log_by_id(
+                            &db,
+                            agent_id_clone.clone(),
+                            instance_db_id.clone(),
+                            "ERROR",
+                            &line
+                        ).await;
                     } else { break; }
                 }
             }
@@ -414,7 +499,8 @@ pub async fn deploy_process_agent(
 
 async fn generate_agent_token(agent: &agents::Model) -> Result<String, StatusCode> {
     // Generate a JWT token for the agent with appropriate permissions
-    let permissions = serde_json::from_value::<crate::models::agents::AgentPermissions>(agent.livekit_permissions.clone())
+    let permissions =
+        serde_json::from_str::<crate::models::agents::AgentPermissions>(&agent.livekit_permissions)
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     let video_grants = json!({
@@ -458,16 +544,16 @@ pub async fn get_agent(
         .ok_or(StatusCode::NOT_FOUND)?;
 
     Ok(Json(AgentResponse {
-        id: agent.id.to_string(),
+        id: agent.id,
         agent_id: agent.agent_id,
         display_name: agent.display_name,
         image: agent.image,
         entrypoint: agent.entrypoint,
-        env_vars: serde_json::from_value(agent.env_vars).unwrap_or_default(),
-        livekit_permissions: serde_json::from_value(agent.livekit_permissions).unwrap_or_default(),
+        env_vars: parse_json_or_default(&agent.env_vars),
+        livekit_permissions: parse_json_or_default(&agent.livekit_permissions),
         default_room_behavior: agent.default_room_behavior,
         auto_restart_policy: agent.auto_restart_policy,
-        resource_limits: serde_json::from_value(agent.resource_limits).unwrap_or_default(),
+        resource_limits: parse_json_or_default(&agent.resource_limits),
         is_enabled: agent.is_enabled,
         created_at: agent.created_at.to_string(),
         updated_at: agent.updated_at.to_string(),

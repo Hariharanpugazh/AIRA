@@ -6,7 +6,7 @@ use livekit_protocol::{
     Room, ParticipantInfo, TrackInfo,
     IngressInfo, IngressInput,
     EgressInfo,
-    SipTrunkInfo, SipInboundTrunkInfo, SipDispatchRuleInfo
+    SipTrunkInfo, SipInboundTrunkInfo, SipOutboundTrunkInfo, SipDispatchRuleInfo
 };
 use std::env;
 use anyhow::Result;
@@ -26,14 +26,28 @@ impl LiveKitService {
         let api_key = env::var("LIVEKIT_API_KEY").map_err(|_| anyhow::anyhow!("LIVEKIT_API_KEY must be set"))?;
         let api_secret = env::var("LIVEKIT_API_SECRET").map_err(|_| anyhow::anyhow!("LIVEKIT_API_SECRET must be set"))?;
 
-        println!("Initializing LiveKit Service with Host: {}", host);
+        // Twirp API endpoint for LiveKit management calls.
+        // Prefer explicit API URL; fallback to converting LIVEKIT_URL to plain HTTP.
+        let http_host = env::var("LIVEKIT_API_URL")
+            .ok()
+            .filter(|v| !v.trim().is_empty())
+            .unwrap_or_else(|| {
+                host.replace("wss://", "http://")
+                    .replace("ws://", "http://")
+                    .replace("https://", "http://")
+            });
+
+        println!(
+            "Initializing LiveKit Service with WS Host: {} and API Host: {}",
+            host, http_host
+        );
         println!("API Key provided: {}", if !api_key.is_empty() { "YES" } else { "NO" });
 
         Ok(Self {
-            room_client: RoomClient::with_api_key(&host, &api_key, &api_secret),
-            egress_client: EgressClient::with_api_key(&host, &api_key, &api_secret),
-            ingress_client: IngressClient::with_api_key(&host, &api_key, &api_secret),
-            sip_client: SIPClient::with_api_key(&host, &api_key, &api_secret),
+            room_client: RoomClient::with_api_key(&http_host, &api_key, &api_secret),
+            egress_client: EgressClient::with_api_key(&http_host, &api_key, &api_secret),
+            ingress_client: IngressClient::with_api_key(&http_host, &api_key, &api_secret),
+            sip_client: SIPClient::with_api_key(&http_host, &api_key, &api_secret),
             http_client: Client::new(),
         })
     }
@@ -72,10 +86,15 @@ impl LiveKitService {
     }
 
     pub async fn check_health(&self) -> Result<bool> {
-        let host = env::var("LIVEKIT_URL").map_err(|_| anyhow::anyhow!("LIVEKIT_URL must be set"))?;
-        let url = format!("{}/healthz", host);
-        let response = self.http_client.get(&url).send().await?;
-        Ok(response.status().is_success())
+        // For self-hosted LiveKit, use list_rooms as a health check
+        // instead of /healthz endpoint which doesn't exist in self-hosted
+        match self.room_client.list_rooms(vec![]).await {
+            Ok(_) => Ok(true),
+            Err(e) => {
+                println!("LiveKit health check failed: {:?}", e);
+                Ok(false)
+            }
+        }
     }
 
     pub async fn mute_published_track(&self, room: &str, identity: &str, track_sid: &str, muted: bool) -> Result<TrackInfo> {
@@ -177,6 +196,14 @@ impl LiveKitService {
     pub async fn list_sip_trunk(&self) -> Result<Vec<SipInboundTrunkInfo>> {
         // ListSIPInboundTrunkFilter::All is usually the way to go
         let res = self.sip_client.list_sip_inbound_trunk(livekit_api::services::sip::ListSIPInboundTrunkFilter::All).await?;
+        Ok(res)
+    }
+
+    pub async fn list_sip_outbound_trunk(&self) -> Result<Vec<SipOutboundTrunkInfo>> {
+        let res = self
+            .sip_client
+            .list_sip_outbound_trunk(livekit_api::services::sip::ListSIPOutboundTrunkFilter::All)
+            .await?;
         Ok(res)
     }
 

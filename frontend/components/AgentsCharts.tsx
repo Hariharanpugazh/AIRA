@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { Card } from './ui/Card';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { BarChart as BarChartIcon } from 'lucide-react';
+import { apiFetch } from '@/lib/api';
 
 interface AgentStatCardProps {
     title: string;
@@ -40,29 +41,44 @@ export function AgentSessionsChart() {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
+        const createEmptyTimeline = (): ChartDataPoint[] => {
+            const emptyData: ChartDataPoint[] = [];
+            for (let i = 7; i >= 0; i--) {
+                const date = new Date();
+                date.setDate(date.getDate() - i);
+                emptyData.push({
+                    name: date.toLocaleDateString('en-US', { day: 'numeric', month: 'short' }),
+                    errors: 0,
+                    sessions: 0,
+                });
+            }
+            return emptyData;
+        };
+
         const fetchSessionData = async () => {
             try {
-                const response = await fetch('/api/analytics/sessions?days=8');
-                if (response.ok) {
-                    const data = await response.json();
-                    setChartData(data.sessions || []);
+                const points = await apiFetch<Array<{ timestamp: string; active_rooms?: number }>>(
+                    '/api/analytics/timeseries?range=7d'
+                );
+                const normalized = (points || [])
+                    .slice(0, 8)
+                    .reverse()
+                    .map((point) => ({
+                        name: new Date(point.timestamp).toLocaleDateString('en-US', {
+                            day: 'numeric',
+                            month: 'short',
+                        }),
+                        errors: 0,
+                        sessions: point.active_rooms || 0,
+                    }));
+
+                if (normalized.length > 0) {
+                    setChartData(normalized);
                 } else {
-                    // Generate empty data for last 8 days if API fails
-                    const emptyData: ChartDataPoint[] = [];
-                    for (let i = 7; i >= 0; i--) {
-                        const date = new Date();
-                        date.setDate(date.getDate() - i);
-                        emptyData.push({
-                            name: date.toLocaleDateString('en-US', { day: 'numeric', month: 'short' }),
-                            errors: 0,
-                            sessions: 0
-                        });
-                    }
-                    setChartData(emptyData);
+                    setChartData(createEmptyTimeline());
                 }
-            } catch (error) {
-                
-                setChartData([]);
+            } catch (_error) {
+                setChartData(createEmptyTimeline());
             } finally {
                 setLoading(false);
             }

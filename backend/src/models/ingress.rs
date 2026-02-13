@@ -3,10 +3,16 @@ use serde::{Deserialize, Serialize};
 #[derive(Serialize, Deserialize)]
 pub struct CreateIngressRequest {
     pub name: String,
-    pub room_name: String,
-    pub participant_identity: String,
-    pub participant_name: String,
-    pub input_type: i32, // RTMP = 0, WHIP = 1
+    #[serde(default)]
+    pub room_name: Option<String>,
+    #[serde(default)]
+    pub participant_identity: Option<String>,
+    #[serde(default)]
+    pub participant_name: Option<String>,
+    #[serde(default)]
+    pub input_type: Option<i32>, // RTMP = 0, WHIP = 1, URL = 2
+    #[serde(default)]
+    pub ingress_type: Option<String>, // "rtmp" | "whip" | "url"
 }
 
 #[derive(Serialize, Deserialize)]
@@ -25,6 +31,8 @@ pub struct IngressResponse {
     pub ingress_id: String,
     pub name: String,
     pub input_type: i32,
+    pub ingress_type: String,
+    pub status: String,
     pub room_name: String,
     pub stream_key: String,
     pub url: String,

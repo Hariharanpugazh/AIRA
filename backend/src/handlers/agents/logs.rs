@@ -4,10 +4,24 @@ use std::process::Stdio;
 use tokio::process::Command;
 use tokio::io::{AsyncBufReadExt, BufReader};
 
-use crate::entity::{agent_logs, agent_instances};
+use crate::entity::{agent_logs, agent_instances, agents, projects};
 use crate::models::agents::AgentLogResponse;
 use crate::utils::jwt::Claims;
 use crate::AppState;
+
+async fn verify_project_access(
+    state: &AppState,
+    project_id: &str,
+    user_id: &str,
+) -> Result<bool, StatusCode> {
+    let project = projects::Entity::find_by_id(project_id)
+        .one(&state.db)
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
+        .ok_or(StatusCode::NOT_FOUND)?;
+
+    Ok(project.user_id == user_id)
+}
 
 pub async fn get_agent_logs(
     State(state): State<AppState>,
@@ -40,12 +54,12 @@ pub async fn get_agent_logs(
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     let response: Vec<AgentLogResponse> = logs.into_iter().map(|log| AgentLogResponse {
-        id: log.id.to_string(),
-        agent_id: log.agent_id.to_string(),
-        instance_id: log.instance_id.to_string(),
+        id: log.id,
+        agent_id: log.agent_id,
+        instance_id: log.instance_id,
         log_level: log.log_level,
         message: log.message,
-        timestamp: log.timestamp.to_string(),
+        timestamp: log.timestamp.map(|ts| ts.to_string()).unwrap_or_default(),
     }).collect();
 
     Ok(Json(response))
@@ -83,7 +97,12 @@ pub async fn stream_agent_logs(
 
         let formatted_logs: Vec<String> = logs.into_iter()
             .rev()
-            .map(|l| format!("[{}] [{}] {}", l.timestamp, l.log_level, l.message))
+            .map(|l| format!(
+                "[{}] [{}] {}",
+                l.timestamp.map(|ts| ts.to_string()).unwrap_or_default(),
+                l.log_level,
+                l.message
+            ))
             .collect();
 
         Ok(formatted_logs.join("\n"))
@@ -159,13 +178,13 @@ pub async fn store_agent_log(
 
 pub async fn store_agent_log_by_id(
     db: &sea_orm::DatabaseConnection,
-    agent_id: uuid::Uuid,
-    instance_db_id: uuid::Uuid,
+    agent_id: String,
+    instance_db_id: String,
     level: &str,
     message: &str,
 ) -> Result<(), StatusCode> {
     let log_model = agent_logs::ActiveModel {
-        id: sea_orm::ActiveValue::Set(uuid::Uuid::new_v4()),
+        id: sea_orm::ActiveValue::Set(uuid::Uuid::new_v4().to_string()),
         agent_id: sea_orm::ActiveValue::Set(agent_id),
         instance_id: sea_orm::ActiveValue::Set(instance_db_id),
         log_level: sea_orm::ActiveValue::Set(level.to_string()),
@@ -177,4 +196,54 @@ pub async fn store_agent_log_by_id(
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     Ok(())
+}
+
+pub async fn get_project_agent_logs(
+    State(state): State<AppState>,
+    axum::extract::Extension(claims): axum::extract::Extension<Claims>,
+    axum::extract::Path((project_id, agent_id)): axum::extract::Path<(String, String)>,
+    axum::extract::Query(params): axum::extract::Query<std::collections::HashMap<String, String>>,
+) -> Result<Json<Vec<AgentLogResponse>>, StatusCode> {
+    if !claims.is_admin {
+        return Err(StatusCode::FORBIDDEN);
+    }
+
+    if !verify_project_access(&state, &project_id, &claims.sub).await? {
+        return Err(StatusCode::FORBIDDEN);
+    }
+
+    let agent = agents::Entity::find()
+        .filter(agents::Column::AgentId.eq(&agent_id))
+        .filter(agents::Column::ProjectId.eq(&project_id))
+        .one(&state.db)
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
+        .ok_or(StatusCode::NOT_FOUND)?;
+
+    let limit = params.get("limit").and_then(|s| s.parse::<u64>().ok()).unwrap_or(100);
+    let offset = params.get("offset").and_then(|s| s.parse::<u64>().ok()).unwrap_or(0);
+
+    let paginator = agent_logs::Entity::find()
+        .filter(agent_logs::Column::AgentId.eq(agent.id))
+        .order_by_desc(agent_logs::Column::Timestamp)
+        .paginate(&state.db, limit);
+
+    let logs = paginator
+        .fetch_page(offset / limit)
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    let response: Vec<AgentLogResponse> = logs
+        .into_iter()
+        .map(|log| AgentLogResponse {
+            id: log.id,
+            agent_id: log.agent_id,
+            instance_id: log.instance_id,
+            log_level: log.log_level,
+            message: log.message,
+            timestamp: log.timestamp.map(|ts| ts.to_string()).unwrap_or_default(),
+        })
+        .collect();
+
+    Ok(Json(response))
 }

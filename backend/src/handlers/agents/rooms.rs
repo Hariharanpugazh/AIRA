@@ -64,10 +64,11 @@ pub async fn assign_agent_to_room(
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
         .ok_or(StatusCode::NOT_FOUND)?;
+    let agent_db_id = agent.id.clone();
 
     // Check if assignment already exists
     let existing = agent_rooms::Entity::find()
-        .filter(agent_rooms::Column::AgentId.eq(agent.id))
+        .filter(agent_rooms::Column::AgentId.eq(agent_db_id.clone()))
         .filter(agent_rooms::Column::RoomName.eq(&req.room_name))
         .filter(agent_rooms::Column::LeftAt.is_null())
         .one(&state.db)
@@ -80,11 +81,11 @@ pub async fn assign_agent_to_room(
 
     // Create assignment
     let assignment_model = agent_rooms::ActiveModel {
-        id: Set(uuid::Uuid::new_v4()),
-        agent_id: Set(agent.id),
-        instance_id: Set(req.instance_id.map(|id| uuid::Uuid::parse_str(&id).unwrap())),
+        id: Set(uuid::Uuid::new_v4().to_string()),
+        agent_id: Set(agent_db_id),
+        instance_id: Set(req.instance_id),
         room_name: Set(req.room_name),
-        joined_at: Set(Some(chrono::Utc::now().into())),
+        joined_at: Set(Some(chrono::Utc::now().naive_utc())),
         ..Default::default()
     };
 
@@ -129,7 +130,7 @@ pub async fn remove_agent_from_room(
 
     // Update assignment
     let mut assignment: agent_rooms::ActiveModel = assignment.into();
-    assignment.left_at = Set(Some(chrono::Utc::now().into()));
+    assignment.left_at = Set(Some(chrono::Utc::now().naive_utc()));
 
     assignment.update(&state.db).await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
@@ -170,7 +171,7 @@ pub async fn get_agent_room_assignments(
     let response: Vec<AgentRoomAssignment> = assignments.into_iter().map(|assignment| AgentRoomAssignment {
         agent_id: agent.agent_id.clone(),
         room_name: assignment.room_name,
-        instance_id: assignment.instance_id.map(|id| id.to_string()),
+        instance_id: assignment.instance_id,
     }).collect();
 
     Ok(Json(response))
@@ -202,7 +203,7 @@ pub async fn get_room_agents(
             agent.map(|a| AgentRoomAssignment {
                 agent_id: a.agent_id,
                 room_name: assignment.room_name,
-                instance_id: assignment.instance_id.map(|id| id.to_string()),
+                instance_id: assignment.instance_id,
             })
         })
         .collect();

@@ -44,7 +44,7 @@ pub async fn start_agent(
     // Update instance status
     let mut instance: agent_instances::ActiveModel = instance.into();
     instance.status = Set("running".to_string());
-    instance.started_at = Set(Some(chrono::Utc::now().into()));
+    instance.started_at = Set(Some(chrono::Utc::now().naive_utc()));
     instance.stopped_at = Set(None);
     instance.exit_code = Set(None);
     instance.crash_reason = Set(None);
@@ -53,9 +53,9 @@ pub async fn start_agent(
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     Ok(Json(AgentInstanceResponse {
-        id: result.id.to_string(),
+        id: result.id,
         instance_id: result.instance_id,
-        agent_id: result.agent_id.to_string(),
+        agent_id: result.agent_id,
         status: result.status,
         container_id: result.container_id,
         process_pid: result.process_pid,
@@ -103,15 +103,15 @@ pub async fn stop_agent(
     // Update instance status
     let mut instance: agent_instances::ActiveModel = instance.into();
     instance.status = Set("stopped".to_string());
-    instance.stopped_at = Set(Some(chrono::Utc::now().into()));
+    instance.stopped_at = Set(Some(chrono::Utc::now().naive_utc()));
 
     let result = instance.update(&state.db).await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     Ok(Json(AgentInstanceResponse {
-        id: result.id.to_string(),
+        id: result.id,
         instance_id: result.instance_id,
-        agent_id: result.agent_id.to_string(),
+        agent_id: result.agent_id,
         status: result.status,
         container_id: result.container_id,
         process_pid: result.process_pid,
@@ -168,7 +168,7 @@ pub async fn restart_agent(
     // Update instance status
     let mut instance: agent_instances::ActiveModel = instance.into();
     instance.status = Set("running".to_string());
-    instance.started_at = Set(Some(chrono::Utc::now().into()));
+    instance.started_at = Set(Some(chrono::Utc::now().naive_utc()));
     instance.stopped_at = Set(None);
     instance.exit_code = Set(None);
     instance.crash_reason = Set(None);
@@ -177,9 +177,9 @@ pub async fn restart_agent(
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     Ok(Json(AgentInstanceResponse {
-        id: result.id.to_string(),
+        id: result.id,
         instance_id: result.instance_id,
-        agent_id: result.agent_id.to_string(),
+        agent_id: result.agent_id,
         status: result.status,
         container_id: result.container_id,
         process_pid: result.process_pid,
@@ -205,9 +205,9 @@ pub async fn list_agent_instances(
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     let response: Vec<AgentInstanceResponse> = instances.into_iter().map(|instance| AgentInstanceResponse {
-        id: instance.id.to_string(),
+        id: instance.id,
         instance_id: instance.instance_id,
-        agent_id: instance.agent_id.to_string(),
+        agent_id: instance.agent_id,
         status: instance.status,
         container_id: instance.container_id,
         process_pid: instance.process_pid,
@@ -271,7 +271,7 @@ async fn stop_process(pid: i32) -> Result<(), StatusCode> {
 
 async fn restart_process(state: &AppState, instance: &agent_instances::Model) -> Result<(), StatusCode> {
     // Find the agent definition
-    let agent = agents::Entity::find_by_id(instance.agent_id)
+    let agent = agents::Entity::find_by_id(instance.agent_id.clone())
         .one(&state.db)
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
