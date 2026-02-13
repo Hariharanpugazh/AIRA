@@ -265,10 +265,31 @@ pub async fn deploy_agent(
     let instance_id = format!("inst_{}", Uuid::new_v4().simple());
 
     let deployment_type = if req.deployment_type.trim().is_empty() {
-        "docker".to_string()
+        env::var("AGENT_DEFAULT_DEPLOYMENT")
+            .unwrap_or_else(|_| "docker".to_string())
+            .trim()
+            .to_ascii_lowercase()
     } else {
         req.deployment_type.trim().to_ascii_lowercase()
     };
+
+    if deployment_type == "docker" {
+        let docker_ready = Command::new("docker")
+            .arg("--version")
+            .stdout(Stdio::null())
+            .stderr(Stdio::null())
+            .status()
+            .await
+            .map(|s| s.success())
+            .unwrap_or(false);
+        if !docker_ready {
+            eprintln!(
+                "Docker deployment requested for agent {}, but docker CLI/daemon is unavailable in backend runtime.",
+                agent.agent_id
+            );
+            return Err(StatusCode::FAILED_DEPENDENCY);
+        }
+    }
 
     match deployment_type.as_str() {
         "docker" => deploy_docker_agent(&state, &agent, &instance_id, req.room_name).await,
@@ -350,7 +371,13 @@ async fn deploy_docker_agent(
 
     // Execute Docker command
     let output = cmd.output().await
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+        .map_err(|e| {
+            eprintln!(
+                "Failed to execute docker run for agent {} instance {}: {:?}",
+                agent.agent_id, instance_id, e
+            );
+            StatusCode::FAILED_DEPENDENCY
+        })?;
 
     if !output.status.success() {
         let stdout = String::from_utf8_lossy(&output.stdout);
@@ -521,6 +548,62 @@ async fn generate_agent_token(agent: &agents::Model) -> Result<String, StatusCod
     Ok(token)
 }
 
+async fn force_remove_container(container_id: &str) {
+    match Command::new("docker")
+        .arg("rm")
+        .arg("-f")
+        .arg(container_id)
+        .output()
+        .await
+    {
+        Ok(output) if output.status.success() => {}
+        Ok(output) => {
+            let stderr = String::from_utf8_lossy(&output.stderr);
+            eprintln!(
+                "Failed to remove container {} during agent cleanup: {}",
+                container_id, stderr
+            );
+        }
+        Err(err) => {
+            eprintln!(
+                "Failed to execute docker rm for container {} during agent cleanup: {:?}",
+                container_id, err
+            );
+        }
+    }
+}
+
+async fn terminate_process(pid: i32) {
+    if cfg!(windows) {
+        let _ = Command::new("taskkill")
+            .arg("/PID")
+            .arg(pid.to_string())
+            .arg("/T")
+            .arg("/F")
+            .output()
+            .await;
+        return;
+    }
+
+    let pid_str = pid.to_string();
+    let term = Command::new("kill")
+        .arg("-TERM")
+        .arg(&pid_str)
+        .output()
+        .await;
+    if let Ok(output) = term {
+        if output.status.success() {
+            return;
+        }
+    }
+
+    let _ = Command::new("kill")
+        .arg("-KILL")
+        .arg(&pid_str)
+        .output()
+        .await;
+}
+
 pub async fn get_agent(
     State(state): State<AppState>,
     axum::extract::Extension(claims): axum::extract::Extension<Claims>,
@@ -581,6 +664,22 @@ pub async fn delete_agent(
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
         .ok_or(StatusCode::NOT_FOUND)?;
+
+    let active_instances = agent_instances::Entity::find()
+        .filter(agent_instances::Column::AgentId.eq(agent.id.clone()))
+        .all(&state.db)
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    for instance in active_instances {
+        if let Some(container_id) = instance.container_id {
+            force_remove_container(&container_id).await;
+            continue;
+        }
+        if let Some(pid) = instance.process_pid {
+            terminate_process(pid).await;
+        }
+    }
 
     let active_model: agents::ActiveModel = agent.into();
     active_model.delete(&state.db).await

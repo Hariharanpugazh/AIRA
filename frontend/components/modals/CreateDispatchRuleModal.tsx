@@ -9,7 +9,14 @@ import { Agent, SipTrunk } from "../../lib/api";
 interface CreateDispatchRuleModalProps {
     isOpen: boolean;
     onClose: () => void;
-    onSubmit: (data: any) => Promise<void>;
+    onSubmit: (data: {
+        name: string;
+        rule_type: "individual" | "direct" | "callee";
+        room_prefix?: string;
+        trunk_id?: string;
+        agent_id?: string;
+        randomize?: boolean;
+    }) => Promise<void>;
     agents: Agent[];
     trunks: SipTrunk[];
 }
@@ -26,13 +33,17 @@ export function CreateDispatchRuleModal({ isOpen, onClose, onSubmit, agents, tru
     const [loading, setLoading] = useState(false);
 
     const handleSubmit = async () => {
+        const normalizedRuleType = formData.type.toLowerCase() as "individual" | "direct" | "callee";
+        const shouldSendRoomPrefix = normalizedRuleType === "individual" || normalizedRuleType === "callee";
         setLoading(true);
         try {
             await onSubmit({
                 name: formData.name,
-                rule_type: formData.type.toLowerCase(),
+                rule_type: normalizedRuleType,
+                room_prefix: shouldSendRoomPrefix ? formData.roomPrefix : undefined,
                 trunk_id: formData.inboundTrunkId || undefined,
-                agent_id: formData.agentId || undefined
+                agent_id: formData.agentId || undefined,
+                randomize: normalizedRuleType === "callee" ? true : undefined,
             });
             onClose();
         } catch (err) {
@@ -191,7 +202,8 @@ export function CreateDispatchRuleModal({ isOpen, onClose, onSubmit, agents, tru
                             {JSON.stringify({
                                 name: formData.name,
                                 rule_type: formData.type.toLowerCase(),
-                                room_prefix: formData.roomPrefix,
+                                room_prefix: ["individual", "callee"].includes(formData.type.toLowerCase()) ? formData.roomPrefix : null,
+                                randomize: formData.type.toLowerCase() === "callee" ? true : null,
                                 trunk_id: formData.inboundTrunkId || null,
                                 agent_id: formData.agentId || null
                             }, null, 2)}

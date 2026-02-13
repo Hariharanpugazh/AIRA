@@ -20,7 +20,9 @@ use axum::body::Body as AxBody;
 use axum::http::HeaderValue;
 use std::sync::Arc;
 use std::env;
+use std::time::Instant;
 use sea_orm::{Database, DatabaseConnection};
+use sha2::{Digest, Sha256};
 
 async fn health_handler() -> &'static str {
     "healthy"
@@ -33,35 +35,246 @@ pub struct AppState {
     pub lk_service: Arc<LiveKitService>,
 }
 
-async fn run_migrations(_db: &DatabaseConnection) {
-    let db_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set for PostgreSQL migrations");
-    let pool = sqlx::PgPool::connect(&db_url).await.expect("Failed to connect to database");
+struct EmbeddedMigration {
+    version: &'static str,
+    sql: &'static str,
+}
 
-    let migrations = vec![
-        include_str!("../migrations/20260204092336_create_users_table.sql"),
-        include_str!("../migrations/20260209100000_create_livekit_tables.sql"),
-        include_str!("../migrations/20260209110000_create_agents_tables.sql"),
-        include_str!("../migrations/20260210000000_create_comprehensive_schema.sql"),
-        include_str!("../migrations/20260210000001_add_project_id_to_agents.sql"),
-        include_str!("../migrations/20260210000002_create_audit_logs.sql"),
-        include_str!("../migrations/20260210000003_create_transcripts.sql"),
-        include_str!("../migrations/20260210000004_seed_roles.sql"),
-        include_str!("../migrations/20260210000005_seed_admin_user.sql"),
-        include_str!("../migrations/20260212000000_add_phone_to_users.sql"),
-        include_str!("../migrations/20260212010000_add_userid_shortid_to_projects.sql"),
-        include_str!("../migrations/20260213000000_create_webhook_and_error_tables.sql"),
-    ];
+const MIGRATIONS: &[EmbeddedMigration] = &[
+    EmbeddedMigration {
+        version: "20260204092336_create_users_table.sql",
+        sql: include_str!("../migrations/20260204092336_create_users_table.sql"),
+    },
+    EmbeddedMigration {
+        version: "20260209100000_create_livekit_tables.sql",
+        sql: include_str!("../migrations/20260209100000_create_livekit_tables.sql"),
+    },
+    EmbeddedMigration {
+        version: "20260209110000_create_agents_tables.sql",
+        sql: include_str!("../migrations/20260209110000_create_agents_tables.sql"),
+    },
+    EmbeddedMigration {
+        version: "20260210000000_create_comprehensive_schema.sql",
+        sql: include_str!("../migrations/20260210000000_create_comprehensive_schema.sql"),
+    },
+    EmbeddedMigration {
+        version: "20260210000001_add_project_id_to_agents.sql",
+        sql: include_str!("../migrations/20260210000001_add_project_id_to_agents.sql"),
+    },
+    EmbeddedMigration {
+        version: "20260210000002_create_audit_logs.sql",
+        sql: include_str!("../migrations/20260210000002_create_audit_logs.sql"),
+    },
+    EmbeddedMigration {
+        version: "20260210000003_create_transcripts.sql",
+        sql: include_str!("../migrations/20260210000003_create_transcripts.sql"),
+    },
+    EmbeddedMigration {
+        version: "20260210000004_seed_roles.sql",
+        sql: include_str!("../migrations/20260210000004_seed_roles.sql"),
+    },
+    EmbeddedMigration {
+        version: "20260210000005_seed_admin_user.sql",
+        sql: include_str!("../migrations/20260210000005_seed_admin_user.sql"),
+    },
+    EmbeddedMigration {
+        version: "20260212000000_add_phone_to_users.sql",
+        sql: include_str!("../migrations/20260212000000_add_phone_to_users.sql"),
+    },
+    EmbeddedMigration {
+        version: "20260212010000_add_userid_shortid_to_projects.sql",
+        sql: include_str!("../migrations/20260212010000_add_userid_shortid_to_projects.sql"),
+    },
+    EmbeddedMigration {
+        version: "20260213000000_create_webhook_and_error_tables.sql",
+        sql: include_str!("../migrations/20260213000000_create_webhook_and_error_tables.sql"),
+    },
+];
 
-    for migration in migrations {
-        for statement in migration.split(';') {
-            let trimmed = statement.trim();
-            if trimmed.is_empty() { continue; }
-            if let Err(e) = sqlx::query(trimmed).execute(&pool).await {
-                println!("Migration error (may be OK): {}", e);
+fn split_sql_statements(sql: &str) -> Vec<String> {
+    let mut statements = Vec::new();
+    let mut current = String::new();
+    let mut chars = sql.chars().peekable();
+    let mut in_single_quote = false;
+    let mut in_double_quote = false;
+    let mut in_line_comment = false;
+    let mut in_block_comment = false;
+
+    while let Some(ch) = chars.next() {
+        if in_line_comment {
+            if ch == '\n' {
+                in_line_comment = false;
+                current.push('\n');
+            }
+            continue;
+        }
+
+        if in_block_comment {
+            if ch == '*' && matches!(chars.peek(), Some('/')) {
+                chars.next();
+                in_block_comment = false;
+            }
+            continue;
+        }
+
+        if !in_single_quote && !in_double_quote {
+            if ch == '-' && matches!(chars.peek(), Some('-')) {
+                chars.next();
+                in_line_comment = true;
+                continue;
+            }
+            if ch == '/' && matches!(chars.peek(), Some('*')) {
+                chars.next();
+                in_block_comment = true;
+                continue;
             }
         }
+
+        if ch == '\'' && !in_double_quote {
+            current.push(ch);
+            if in_single_quote && matches!(chars.peek(), Some('\'')) {
+                // Escaped single quote within string literal.
+                current.push(chars.next().unwrap_or_default());
+                continue;
+            }
+            in_single_quote = !in_single_quote;
+            continue;
+        }
+
+        if ch == '"' && !in_single_quote {
+            current.push(ch);
+            if in_double_quote && matches!(chars.peek(), Some('"')) {
+                // Escaped double quote in identifiers.
+                current.push(chars.next().unwrap_or_default());
+                continue;
+            }
+            in_double_quote = !in_double_quote;
+            continue;
+        }
+
+        if ch == ';' && !in_single_quote && !in_double_quote {
+            let trimmed = current.trim();
+            if !trimmed.is_empty() {
+                statements.push(trimmed.to_string());
+            }
+            current.clear();
+            continue;
+        }
+
+        current.push(ch);
     }
-    println!("Migrations completed");
+
+    let trailing = current.trim();
+    if !trailing.is_empty() {
+        statements.push(trailing.to_string());
+    }
+
+    statements
+}
+
+fn is_idempotent_migration_error(err: &sqlx::Error) -> bool {
+    let msg = err.to_string().to_ascii_lowercase();
+    msg.contains("already exists")
+        || msg.contains("duplicate column")
+        || msg.contains("duplicate object")
+}
+
+fn statement_preview(statement: &str) -> String {
+    let compact = statement.split_whitespace().collect::<Vec<_>>().join(" ");
+    compact.chars().take(200).collect()
+}
+
+async fn run_migrations(_db: &DatabaseConnection) -> anyhow::Result<()> {
+    let db_url = env::var("DATABASE_URL")
+        .map_err(|_| anyhow::anyhow!("DATABASE_URL must be set for PostgreSQL migrations"))?;
+    let pool = sqlx::PgPool::connect(&db_url).await?;
+
+    sqlx::query(
+        r#"
+        CREATE TABLE IF NOT EXISTS schema_migrations (
+            version TEXT PRIMARY KEY,
+            checksum TEXT NOT NULL,
+            execution_ms BIGINT NOT NULL DEFAULT 0,
+            applied_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+        )
+        "#,
+    )
+    .execute(&pool)
+    .await?;
+
+    for migration in MIGRATIONS {
+        let checksum = format!("{:x}", Sha256::digest(migration.sql.as_bytes()));
+        let applied_checksum = sqlx::query_scalar::<_, String>(
+            "SELECT checksum FROM schema_migrations WHERE version = $1",
+        )
+        .bind(migration.version)
+        .fetch_optional(&pool)
+        .await?;
+
+        if let Some(existing) = applied_checksum {
+            if existing != checksum {
+                return Err(anyhow::anyhow!(
+                    "Migration checksum drift detected for '{}'. Existing checksum does not match bundled migration.",
+                    migration.version
+                ));
+            }
+            println!("Migration {} already applied; skipping", migration.version);
+            continue;
+        }
+
+        let started = Instant::now();
+        let statements = split_sql_statements(migration.sql);
+        let mut tolerated_errors = 0usize;
+
+        for statement in statements {
+            let mut tx = pool.begin().await?;
+            match sqlx::query(&statement).execute(&mut *tx).await {
+                Ok(_) => {
+                    tx.commit().await?;
+                }
+                Err(err) => {
+                    tx.rollback().await.ok();
+                    if is_idempotent_migration_error(&err) {
+                        tolerated_errors += 1;
+                        println!(
+                            "Migration {} tolerated idempotent statement error: {}",
+                            migration.version, err
+                        );
+                        continue;
+                    }
+
+                    return Err(anyhow::anyhow!(
+                        "Migration '{}' failed: {}\nStatement: {}",
+                        migration.version,
+                        err,
+                        statement_preview(&statement)
+                    ));
+                }
+            }
+        }
+
+        let elapsed = started.elapsed().as_millis() as i64;
+        sqlx::query(
+            "INSERT INTO schema_migrations (version, checksum, execution_ms) VALUES ($1, $2, $3)",
+        )
+        .bind(migration.version)
+        .bind(&checksum)
+        .bind(elapsed)
+        .execute(&pool)
+        .await?;
+
+        if tolerated_errors > 0 {
+            println!(
+                "Migration {} marked applied with {} idempotent statements already present",
+                migration.version, tolerated_errors
+            );
+        } else {
+            println!("Migration {} applied in {}ms", migration.version, elapsed);
+        }
+    }
+
+    println!("Migrations completed successfully");
+    Ok(())
 }
 
 use tower_http::trace::TraceLayer;
@@ -220,7 +433,10 @@ async fn main() {
         .expect("DB connection failed");
 
     // Run migrations
-    run_migrations(&db).await;
+    if let Err(err) = run_migrations(&db).await {
+        eprintln!("Critical: migration failed: {:#}", err);
+        std::process::exit(1);
+    }
 
     let http_client = reqwest::Client::new();
     let lk_service = match LiveKitService::new() {

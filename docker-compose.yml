@@ -13,18 +13,20 @@ services:
     environment:
       - DATABASE_URL=${DATABASE_URL}
       - LIVEKIT_URL=${LIVEKIT_URL}
-      - LIVEKIT_API_URL=${LIVEKIT_API_URL}
+      - LIVEKIT_API_URL=${LIVEKIT_API_URL:-http://livekit-server:7880}
       - LIVEKIT_INGRESS_URL=${LIVEKIT_INGRESS_URL}
       - LIVEKIT_EGRESS_URL=${LIVEKIT_EGRESS_URL}
       - LIVEKIT_SIP_URL=${LIVEKIT_SIP_URL}
       - LIVEKIT_API_KEY=${LIVEKIT_API_KEY}
       - LIVEKIT_API_SECRET=${LIVEKIT_API_SECRET}
+      - AGENT_DEFAULT_DEPLOYMENT=${AGENT_DEFAULT_DEPLOYMENT:-docker}
       - JWT_SECRET=${JWT_SECRET}
       - ALLOWED_ORIGINS=${ALLOWED_ORIGINS}
       - MAX_REQUEST_SIZE=${MAX_REQUEST_SIZE:-10485760}
       - RUST_LOG=${RUST_LOG:-info}
     volumes:
       - backend_data:/app/data
+      - /var/run/docker.sock:/var/run/docker.sock
     ports:
       - "8000:8000"
     networks:

@@ -49,15 +49,24 @@ export default function DispatchRulesPage() {
     loadData();
   }, [router]);
 
-  const handleCreate = async (data: any) => {
+  const handleCreate = async (data: {
+    name: string;
+    rule_type: "individual" | "direct" | "callee";
+    room_prefix?: string;
+    trunk_id?: string;
+    agent_id?: string;
+    randomize?: boolean;
+  }) => {
     try {
       const newRule = await createDispatchRule({
         name: data.name,
         rule_type: data.rule_type,
+        room_prefix: data.room_prefix,
         trunk_id: data.trunk_id,
-        agent_id: data.agent_id
+        agent_id: data.agent_id,
+        randomize: data.randomize,
       });
-      setRules([newRule, ...rules]);
+      setRules((prev) => [newRule, ...prev]);
     } catch (e) {
       throw e;
     }
@@ -67,7 +76,7 @@ export default function DispatchRulesPage() {
     if (!confirm("Delete rule?")) return;
     try {
       await deleteDispatchRule(id);
-      setRules(rules.filter(r => r.id !== id));
+      setRules((prev) => prev.filter(r => r.id !== id));
     } catch (e) {
     }
   };

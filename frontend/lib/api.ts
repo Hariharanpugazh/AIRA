@@ -573,11 +573,28 @@ export interface DispatchRule {
     id: string;
     name: string;
     rule_type: string;
+    room_prefix?: string;
+    randomize?: boolean;
     agent_id?: string;
     trunk_id?: string;
     agent_name?: string;
     trunk_name?: string;
     created_at: string;
+}
+
+export interface CreateDispatchRulePayload {
+    name: string;
+    rule_type: "individual" | "direct" | "callee";
+    room_prefix?: string;
+    randomize?: boolean;
+    pin?: string;
+    room_name?: string;
+    trunk_ids?: string[];
+    trunk_id?: string;
+    agent_id?: string;
+    inbound_numbers?: string[];
+    hide_phone_number?: boolean;
+    metadata?: string;
 }
 
 interface BackendSipTrunk {
@@ -608,6 +625,8 @@ interface BackendDispatchRule {
     id: string;
     name?: string;
     rule_type?: string;
+    room_prefix?: string;
+    randomize?: boolean;
     agent_id?: string;
     trunk_id?: string;
 }
@@ -617,6 +636,8 @@ function mapBackendDispatchRule(rule: BackendDispatchRule): DispatchRule {
         id: rule.id,
         name: rule.name || rule.id,
         rule_type: rule.rule_type || "direct",
+        room_prefix: rule.room_prefix,
+        randomize: rule.randomize,
         agent_id: rule.agent_id,
         trunk_id: rule.trunk_id,
         created_at: new Date().toISOString(),
@@ -645,7 +666,7 @@ export async function getDispatchRules(): Promise<DispatchRule[]> {
     return rules.map(mapBackendDispatchRule);
 }
 
-export async function createDispatchRule(rule: Partial<DispatchRule>): Promise<DispatchRule> {
+export async function createDispatchRule(rule: CreateDispatchRulePayload): Promise<DispatchRule> {
     const created = await apiFetch<BackendDispatchRule>("/api/telephony/dispatch-rules", {
         method: "POST",
         body: JSON.stringify(rule),

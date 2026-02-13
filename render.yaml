@@ -13,7 +13,7 @@ services:
       - key: LIVEKIT_URL
         value: wss://livekit.divithselvam.in
       - key: LIVEKIT_API_URL
-        sync: false
+        value: https://livekit.divithselvam.in
       - key: LIVEKIT_INGRESS_URL
         value: https://livekit-whip.divithselvam.in
       - key: LIVEKIT_EGRESS_URL
@@ -24,6 +24,8 @@ services:
         sync: false
       - key: LIVEKIT_API_SECRET
         sync: false
+      - key: AGENT_DEFAULT_DEPLOYMENT
+        value: process
       - key: JWT_SECRET
         generateValue: true
       - key: ALLOWED_ORIGINS

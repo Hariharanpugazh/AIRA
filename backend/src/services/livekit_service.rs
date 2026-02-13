@@ -11,6 +11,7 @@ use livekit_protocol::{
 use std::env;
 use anyhow::Result;
 use reqwest::Client;
+use url::Url;
 
 pub struct LiveKitService {
     pub room_client: RoomClient,
@@ -20,22 +21,100 @@ pub struct LiveKitService {
     pub http_client: Client,
 }
 
+fn trim_trailing_slash(input: &str) -> String {
+    input.trim().trim_end_matches('/').to_string()
+}
+
+fn normalize_host_for_api(input: &str) -> Result<String> {
+    let parsed = Url::parse(input)
+        .map_err(|e| anyhow::anyhow!("Invalid URL '{}': {}", input, e))?;
+    let scheme = parsed.scheme();
+    let mapped_scheme = match scheme {
+        "http" | "https" => scheme.to_string(),
+        "ws" => "http".to_string(),
+        "wss" => "https".to_string(),
+        _ => {
+            return Err(anyhow::anyhow!(
+                "Unsupported URL scheme '{}' for '{}'. Allowed schemes: http, https, ws, wss.",
+                scheme,
+                input
+            ));
+        }
+    };
+
+    let host = parsed
+        .host_str()
+        .ok_or_else(|| anyhow::anyhow!("URL '{}' is missing a host", input))?;
+    let mut normalized = format!("{mapped_scheme}://{host}");
+    if let Some(port) = parsed.port() {
+        normalized.push_str(&format!(":{port}"));
+    }
+    if !parsed.path().is_empty() && parsed.path() != "/" {
+        normalized.push_str(parsed.path().trim_end_matches('/'));
+    }
+    Ok(normalized)
+}
+
+fn is_private_or_local_host(host: &str) -> bool {
+    let lower = host.to_ascii_lowercase();
+    if lower == "localhost" || lower == "127.0.0.1" || lower == "::1" || lower.ends_with(".local") {
+        return true;
+    }
+
+    // Most Docker/k8s internal service names are dotless hostnames.
+    if !lower.contains('.') {
+        return true;
+    }
+
+    if let Ok(ip) = lower.parse::<std::net::Ipv4Addr>() {
+        let octets = ip.octets();
+        return octets[0] == 10
+            || (octets[0] == 172 && (16..=31).contains(&octets[1]))
+            || (octets[0] == 192 && octets[1] == 168)
+            || octets[0] == 127;
+    }
+
+    false
+}
+
+fn resolve_livekit_api_host(livekit_ws_url: &str, explicit_api_url: Option<String>) -> Result<String> {
+    let explicit = explicit_api_url
+        .as_deref()
+        .map(str::trim)
+        .filter(|v| !v.is_empty())
+        .map(normalize_host_for_api)
+        .transpose()?;
+
+    let derived = normalize_host_for_api(livekit_ws_url)?;
+    let selected = explicit.unwrap_or(derived);
+    let parsed = Url::parse(&selected)
+        .map_err(|e| anyhow::anyhow!("Resolved LIVEKIT API URL '{}' is invalid: {}", selected, e))?;
+    let host = parsed
+        .host_str()
+        .ok_or_else(|| anyhow::anyhow!("Resolved LIVEKIT API URL '{}' has no host", selected))?;
+
+    if parsed.scheme() == "http" && !is_private_or_local_host(host) {
+        return Err(anyhow::anyhow!(
+            "LIVEKIT API URL '{}' is insecure for non-local host '{}'. Use HTTPS (or local/internal HTTP only).",
+            selected,
+            host
+        ));
+    }
+
+    Ok(trim_trailing_slash(&selected))
+}
+
 impl LiveKitService {
     pub fn new() -> Result<Self> {
-        let host = env::var("LIVEKIT_URL").map_err(|_| anyhow::anyhow!("LIVEKIT_URL must be set"))?;
+        let host = env::var("LIVEKIT_URL")
+            .map_err(|_| anyhow::anyhow!("LIVEKIT_URL must be set"))?;
+        let host = trim_trailing_slash(&host);
         let api_key = env::var("LIVEKIT_API_KEY").map_err(|_| anyhow::anyhow!("LIVEKIT_API_KEY must be set"))?;
         let api_secret = env::var("LIVEKIT_API_SECRET").map_err(|_| anyhow::anyhow!("LIVEKIT_API_SECRET must be set"))?;
 
-        // Twirp API endpoint for LiveKit management calls.
-        // Prefer explicit API URL; fallback to converting LIVEKIT_URL to plain HTTP.
-        let http_host = env::var("LIVEKIT_API_URL")
-            .ok()
-            .filter(|v| !v.trim().is_empty())
-            .unwrap_or_else(|| {
-                host.replace("wss://", "http://")
-                    .replace("ws://", "http://")
-                    .replace("https://", "http://")
-            });
+        // Twirp/Admin API endpoint for LiveKit management calls.
+        // Prefer explicit LIVEKIT_API_URL; otherwise derive from LIVEKIT_URL.
+        let http_host = resolve_livekit_api_host(&host, env::var("LIVEKIT_API_URL").ok())?;
 
         println!(
             "Initializing LiveKit Service with WS Host: {} and API Host: {}",

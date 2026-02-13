@@ -73,6 +73,8 @@ pub struct CreateSipDispatchRuleRequest {
     #[serde(default)]
     pub room_prefix: Option<String>,
     #[serde(default)]
+    pub randomize: Option<bool>,
+    #[serde(default)]
     pub pin: Option<String>,
     #[serde(default)]
     pub rule_type: Option<String>,
@@ -107,6 +109,7 @@ pub struct SipDispatchRule {
 pub enum DispatchRuleType {
     Individual(IndividualRule),
     Recursive(RecursiveRule),
+    Callee(CalleeRule),
 }
 
 #[derive(Serialize, Deserialize)]
@@ -119,6 +122,13 @@ pub struct IndividualRule {
 pub struct RecursiveRule {
     pub room_name: String,
     pub pin: Option<String>,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct CalleeRule {
+    pub room_name_prefix: String,
+    pub pin: Option<String>,
+    pub randomize: Option<bool>,
 }
 
 #[derive(Serialize, Deserialize)]
