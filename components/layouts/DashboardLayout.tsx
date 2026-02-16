@@ -28,14 +28,18 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
         <div className="min-h-screen bg-background text-foreground flex relative">
 
             <div className="md:hidden fixed top-0 left-0 right-0 h-16 bg-background/80 backdrop-blur-xl border-b border-border/50 flex items-center px-4 z-40 justify-between">
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 h-full">
                     <button
                         onClick={() => setIsSidebarOpen(true)}
                         className="p-2 -ml-2 text-muted-foreground hover:text-foreground rounded-lg hover:bg-muted/50"
                     >
                         <Menu className="w-6 h-6" />
                     </button>
-                    <span className="font-semibold text-lg tracking-tight">AIRA</span>
+                    <div className="flex items-center h-full py-2">
+                        <div className="h-full hover:scale-110 transition-transform">
+                            <img src="/aira-logo.svg" alt="AIRA" className="h-full w-auto object-contain filter brightness-75 contrast-125 dark:invert dark:brightness-125 dark:contrast-125" />
+                        </div>
+                    </div>
                 </div>
                 <div className="flex items-center gap-4">
                     <ThemeToggle />

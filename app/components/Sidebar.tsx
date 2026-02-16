@@ -58,6 +58,7 @@ export default function LiveKitStyleSidebar({ user: initialUser }: SidebarProps)
   const [createProjectError, setCreateProjectError] = useState<string | null>(null);
   const [newProjectName, setNewProjectName] = useState("");
   const [projectsList, setProjectsList] = useState<any[]>([]);
+  const [projectsLoaded, setProjectsLoaded] = useState(false);
   const [requireProjectCreation, setRequireProjectCreation] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -146,6 +147,9 @@ export default function LiveKitStyleSidebar({ user: initialUser }: SidebarProps)
       setProjectsList(list || []);
     } catch (e) {
       console.error("Failed to load projects", e);
+      setProjectsList([]);
+    } finally {
+      setProjectsLoaded(true);
     }
   };
 
@@ -172,17 +176,22 @@ export default function LiveKitStyleSidebar({ user: initialUser }: SidebarProps)
     loadProjects();
   }, []);
 
-  // Only show create project dialog if user truly has zero projects
+  // Only show create project dialog if user truly has zero projects.
+  // Guard with `projectsLoaded` and add a short debounce to avoid flashes
+  // when the list is temporarily empty during navigation/switches.
   useEffect(() => {
-    if (!mounted || !auth?.user) return;
+    if (!mounted || !auth?.user || !projectsLoaded) return;
     if (Array.isArray(projectsList) && projectsList.length === 0) {
-      setCreateProjectOpen(true);
-      setRequireProjectCreation(true);
+      const t = setTimeout(() => {
+        setCreateProjectOpen(true);
+        setRequireProjectCreation(true);
+      }, 250);
+      return () => clearTimeout(t);
     } else {
       setCreateProjectOpen(false);
       setRequireProjectCreation(false);
     }
-  }, [mounted, auth?.user, projectsList]);
+  }, [mounted, auth?.user, projectsLoaded, projectsList.length]);
 
   // derive current project preferring localStorage selection, otherwise fall back to pathname
   const pathParts = (pathname || "").split("/").filter(Boolean);
@@ -290,12 +299,13 @@ export default function LiveKitStyleSidebar({ user: initialUser }: SidebarProps)
     <>
       <aside className="h-screen flex flex-col bg-background sticky top-0 font-sans text-foreground transition-all duration-300 ease-in-out w-64">
         {/* Header */}
-        <div className="px-6 py-5 flex items-center justify-between">
-          <div className="flex items-center gap-2.5 overflow-hidden">
-            <div className="w-10 h-7 flex items-center justify-center shrink-0">
-              <img src="/aira-logo.svg" alt="AIRA" className="w-full h-full object-contain" />
-            </div>
-            <span className="font-bold text-[15px] tracking-tight animate-in fade-in slide-in-from-left-2 transition-all">AIRA</span>
+        <div className="px-6 py-6 flex items-center">
+          <div className="w-14 h-14 flex items-center justify-center shrink-0">
+            <img 
+              src="/aira-logo.svg" 
+              alt="AIRA" 
+              className="w-full h-full object-contain filter brightness-75 contrast-125 dark:invert dark:brightness-125 dark:contrast-125 scale-125 transition-transform hover:scale-150 duration-300" 
+            />
           </div>
         </div>
 
