@@ -1,5 +1,7 @@
 import { randomUUID } from "node:crypto";
-import { spawn } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
+import { access } from "node:fs/promises";
+import { constants as fsConstants } from "node:fs";
 import { NextResponse, type NextRequest } from "next/server";
 import { safeParseJsonObject } from "@/lib/server/agent-utils";
 import { query } from "@/lib/server/db";
@@ -99,6 +101,42 @@ export async function POST(request: NextRequest, context: RouteContext) {
   const execPath = agent.image.trim();
   if (!execPath) {
     return NextResponse.json({ error: "Agent executable path is empty" }, { status: 400 });
+  }
+
+  // Reject obvious container-image strings for process deploys and validate host executables.
+  const looksLikeContainerImage = execPath.includes(":") && execPath.includes("/");
+  if (looksLikeContainerImage) {
+    return NextResponse.json(
+      {
+        error: "Invalid agent.image for process deployment",
+        message:
+          `Looks like a container image ('${execPath}'). Process deployment expects a host executable/command — set a host executable or use a different deploy approach.`,
+      },
+      { status: 400 },
+    );
+  }
+
+  async function isExecutableOnHost(path: string) {
+    // path-like => check file and exec bit
+    if (path.includes("/") || path.includes("\\") || path.startsWith(".")) {
+      try {
+        await access(path, fsConstants.X_OK);
+        return true;
+      } catch {
+        return false;
+      }
+    }
+
+    // bare command => check PATH (which/where)
+    const finder = process.platform === "win32" ? "where" : "which";
+    return spawnSync(finder, [path], { stdio: "ignore" }).status === 0;
+  }
+
+  if (!(await isExecutableOnHost(execPath))) {
+    return NextResponse.json(
+      { error: "Agent executable not found", message: `Executable '${execPath}' not found on host PATH or is not executable.` },
+      { status: 400 },
+    );
   }
 
   const args = agent.entrypoint ? [agent.entrypoint] : [];

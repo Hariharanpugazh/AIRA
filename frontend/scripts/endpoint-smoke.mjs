@@ -233,6 +233,23 @@ async function main() {
       },
     });
 
+    // Agents: invalid image should be rejected on deploy (server-side validation)
+    const createAgentRes = await request("agents.create.invalid_image", {
+      method: "POST",
+      path: `/api/projects/${encodeURIComponent(projectId)}/agents`,
+      expected: [201],
+      body: { display_name: `audit-agent-${tag}`, image: "nonexistent-command-xyz" },
+    });
+    agentId = createAgentRes.data?.agent_id || null;
+    if (agentId) {
+      await request("agents.deploy.invalid_image", {
+        method: "POST",
+        path: `/api/projects/${encodeURIComponent(projectId)}/agents/${encodeURIComponent(agentId)}/deploy`,
+        expected: [400],
+        body: { deployment_type: "process" },
+      });
+    }
+
     await request("sessions.list.global", {
       path: `/api/sessions/list?page=1&limit=20&project_id=${encodeURIComponent(projectId)}`,
       expected: [200],
