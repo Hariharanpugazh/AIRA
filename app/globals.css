@@ -1,7 +1,7 @@
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@100;200;300;400;500;600;700;800;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@100..900&display=swap');
 @import "tailwindcss";
 
-@theme inline {
+@theme {
   --color-background: var(--background);
   --color-surface: var(--surface);
   --color-surface-hover: var(--surface-hover);
@@ -24,9 +24,9 @@
   --color-popover: var(--popover);
   --color-popover-foreground: var(--popover-foreground);
 
-  --font-sans: 'Outfit', system-ui, sans-serif;
-  --font-display: 'Outfit', system-ui, sans-serif;
-  --font-mono: 'Outfit', monospace;
+  --font-sans: "Outfit", ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+  --font-display: "Outfit", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "Outfit", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
 
   --radius-xl: 1rem;
   --radius-lg: 0.75rem;
@@ -136,14 +136,27 @@
   --error: oklch(0.6 0.2 25);
 }
 
+html,
 body {
   background-color: var(--color-background);
   color: var(--foreground);
-  font-family: var(--font-sans);
+  font-family: var(--font-sans) !important;
   -webkit-font-smoothing: antialiased;
   background-attachment: fixed;
   min-height: 100vh;
   transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+* {
+  font-family: inherit;
+}
+
+button,
+input,
+optgroup,
+select,
+textarea {
+  font-family: inherit;
 }
 
 /* Background Gradients - Theme Aware */
