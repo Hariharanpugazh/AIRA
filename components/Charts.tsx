@@ -16,8 +16,6 @@ import {
     Area,
 } from "recharts";
 
-// Colors from AIRA Design System - Adjusted for Light/Dark visibility
-const COLORS = ["var(--color-primary)", "var(--color-accent)", "var(--color-muted)", "var(--color-secondary)"];
 
 interface DataPoint {
     timestamp: string;
@@ -86,27 +84,36 @@ export function PlatformDonutChart({ data }: { data: { name: string; value: numb
                         dataKey="value"
                         stroke="none"
                     >
-                        {data.map((entry, index) => (
-                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                        ))}
+                        {data.map((entry, index) => {
+                            const COLORS = ["var(--color-primary)", "var(--color-accent)", "var(--color-secondary)"];
+                            const color = entry.name === "No Data" ? "var(--color-border)" : COLORS[index % COLORS.length];
+                            return <Cell key={`cell-${index}`} fill={color} />;
+                        })}
                     </Pie>
-                    <Tooltip
-                        contentStyle={{ backgroundColor: "var(--surface)", borderColor: "var(--border)", borderRadius: "8px" }}
-                        itemStyle={{ color: "var(--foreground)" }}
-                    />
+                    {data.length > 0 && data[0].name !== "No Data" && (
+                        <Tooltip
+                            contentStyle={{ backgroundColor: "var(--surface)", borderColor: "var(--border)", borderRadius: "8px" }}
+                            itemStyle={{ color: "var(--foreground)" }}
+                        />
+                    )}
                 </PieChart>
             </ResponsiveContainer>
 
 
-            <div className="absolute right-0 top-0 bottom-0 flex flex-col justify-center gap-2 pr-4">
-                {data.map((entry, index) => (
-                    <div key={entry.name} className="flex items-center gap-2 text-xs">
-                        <div className="w-2 h-2 rounded-full" style={{ backgroundColor: COLORS[index % COLORS.length] }} />
-                        <span className="text-muted-foreground">{entry.name}</span>
-                        <span className="font-mono text-foreground">{entry.value}%</span>
-                    </div>
-                ))}
-            </div>
+            {data.length > 0 && data[0].name !== "No Data" && (
+                <div className="absolute right-0 top-0 bottom-0 flex flex-col justify-center gap-2 pr-4">
+                    {data.map((entry, index) => {
+                        const COLORS = ["var(--color-primary)", "var(--color-accent)", "var(--color-secondary)"];
+                        return (
+                            <div key={entry.name} className="flex items-center gap-2 text-xs">
+                                <div className="w-2 h-2 rounded-full" style={{ backgroundColor: COLORS[index % COLORS.length] }} />
+                                <span className="text-muted-foreground">{entry.name}</span>
+                                <span className="font-mono text-foreground">{entry.value}%</span>
+                            </div>
+                        );
+                    })}
+                </div>
+            )}
         </div>
     );
 }

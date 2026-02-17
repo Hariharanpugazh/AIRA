@@ -182,12 +182,26 @@ export default function DashboardPage({ projectId }: DashboardPageProps) {
 
               <AnalyticsCard title="Connection Type">
                 <div className="h-[200px] flex items-center justify-center">
-                  <div className="relative w-32 h-32 rounded-full border-8 border-primary/20 flex items-center justify-center">
-                    <div className="text-center">
-                      <div className="text-primary font-bold text-xl">{dashboardData?.overview.connection_type.udp || 0}%</div>
-                      <div className="text-[10px] text-muted-foreground">UDP</div>
+                  {(dashboardData?.overview.connection_type.udp || 0) === 0 && (dashboardData?.overview.connection_type.tcp || 0) === 0 ? (
+                    <div className="w-32 h-32 rounded-full border-8 border-muted/10 flex items-center justify-center">
+                      <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">No Data</span>
                     </div>
-                  </div>
+                  ) : (
+                    <div
+                      className="relative w-32 h-32 rounded-full flex items-center justify-center transition-all duration-1000"
+                      style={{
+                        background: `conic-gradient(var(--primary) 0% ${dashboardData?.overview.connection_type.udp || 0}%, var(--accent) ${dashboardData?.overview.connection_type.udp || 0}% ${(dashboardData?.overview.connection_type.udp || 0) + (dashboardData?.overview.connection_type.tcp || 0)}%, var(--border) 0% 100%)`,
+                      }}
+                    >
+                      {/* Inner hollow circle */}
+                      <div className="absolute inset-2 bg-background rounded-full flex items-center justify-center">
+                        <div className="text-center">
+                          <div className="text-primary font-bold text-xl">{dashboardData?.overview.connection_type.udp ?? 0}%</div>
+                          <div className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">UDP</div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
                 <div className="mt-2 text-center text-xs text-muted-foreground">
                   TCP: <span className="text-foreground">{dashboardData?.overview.connection_type.tcp || 0}%</span>
@@ -207,7 +221,7 @@ export default function DashboardPage({ projectId }: DashboardPageProps) {
                   ))}
                   {(!dashboardData?.overview.top_countries || dashboardData?.overview.top_countries.length === 0) && (
                     <div className="text-muted-foreground text-xs text-center py-8">
-                      No geolocation data available<br/>
+                      No geolocation data available<br />
                       <span className="text-[10px]">Requires client-side geolocation permissions and server-side IP geolocation service</span>
                     </div>
                   )}

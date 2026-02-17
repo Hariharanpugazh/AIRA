@@ -35,9 +35,13 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                     >
                         <Menu className="w-6 h-6" />
                     </button>
-                    <div className="flex items-center h-full py-2">
+                    <div className="flex items-center h-full py-5">
                         <div className="h-full hover:scale-110 transition-transform">
-                            <img src="/aira-logo.svg" alt="AIRA" className="h-full w-auto object-contain dark:filter dark:invert dark:brightness-150 dark:contrast-125 dark:scale-125 dark:transition-transform dark:hover:scale-150 dark:duration-300" />
+                            <img
+                                src="/aira-logo.svg"
+                                alt="AIRA"
+                                className="h-full w-auto object-contain dark:filter dark:invert dark:brightness-150 dark:contrast-125"
+                            />
                         </div>
                     </div>
                 </div>

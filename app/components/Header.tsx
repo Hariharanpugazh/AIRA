@@ -132,7 +132,6 @@ export default function Header({
               <span>{sectionName}</span>
             </>
           )}
-          <span className="opacity-40">/</span>
         </div>
         <h1 className="text-xl font-semibold tracking-tight text-foreground">{pageName}</h1>
       </div>

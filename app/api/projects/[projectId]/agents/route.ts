@@ -81,25 +81,27 @@ export async function GET(request: NextRequest, context: RouteContext) {
     is_enabled: boolean;
     created_at: string | Date;
     updated_at: string | Date;
+    active_sessions: string | number;
   }>(
     `
       SELECT
-        id,
-        agent_id,
-        display_name,
-        image,
-        entrypoint,
-        env_vars,
-        livekit_permissions,
-        default_room_behavior,
-        auto_restart_policy,
-        resource_limits,
-        is_enabled,
-        created_at,
-        updated_at
-      FROM agents
-      WHERE project_id = $1
-      ORDER BY created_at DESC
+        a.id,
+        a.agent_id,
+        a.display_name,
+        a.image,
+        a.entrypoint,
+        a.env_vars,
+        a.livekit_permissions,
+        a.default_room_behavior,
+        a.auto_restart_policy,
+        a.resource_limits,
+        a.is_enabled,
+        a.created_at,
+        a.updated_at,
+        (SELECT COUNT(*) FROM agent_rooms ar WHERE ar.agent_id = a.id AND ar.left_at IS NULL) AS active_sessions
+      FROM agents a
+      WHERE a.project_id = $1
+      ORDER BY a.created_at DESC
     `,
     [scope.projectId],
   );

@@ -207,83 +207,98 @@ export default function AgentsPage({ projectId }: AgentsPageProps) {
         actionButton={
           <div className="flex items-center gap-2">
             <div className="relative" ref={dropdownRef}>
-                <Button
+              <Button
                 size="sm"
                 onClick={() => setIsDropdownOpen(!isDropdownOpen)}
                 className="bg-primary hover:bg-primary/90 text-white font-bold h-9 px-4 rounded-lg flex items-center gap-2 shadow-sm"
-                >
+              >
                 <Plus className="w-4 h-4" />
                 Deploy new agent
                 <ChevronDown className={cn("w-4 h-4 transition-transform", isDropdownOpen && "rotate-180")} />
-                </Button>
+              </Button>
 
-                {isDropdownOpen && (
+              {isDropdownOpen && (
                 <div className="absolute right-0 top-full mt-2 w-72 bg-surface border border-border/40 rounded-xl shadow-2xl z-[100] p-1.5 animate-in fade-in slide-in-from-top-2 duration-200">
-                    <button
+                  <button
                     onClick={handleStartInBrowser}
                     disabled={creating}
                     className="w-full text-left p-2.5 hover:bg-muted/50 rounded-lg transition-all flex items-start gap-3 group disabled:opacity-60"
-                    >
+                  >
                     <div className="mt-0.5 p-1.5 rounded-lg bg-primary/5 text-primary">
-                        <Cloud className="w-3.5 h-3.5" />
+                      <Cloud className="w-3.5 h-3.5" />
                     </div>
                     <div>
-                        <div className="font-bold text-[12px] text-foreground">Build agent in browser</div>
-                        <div className="text-[10px] text-muted-foreground">Prototype agent ideas through prompts</div>
+                      <div className="font-bold text-[12px] text-foreground">Build agent in browser</div>
+                      <div className="text-[10px] text-muted-foreground">Prototype agent ideas through prompts</div>
                     </div>
-                    </button>
-                    <button
+                  </button>
+                  <button
                     onClick={() => { setIsDropdownOpen(false); setIsDeployModalOpen(true); }}
                     disabled={creating}
                     className="w-full text-left p-2.5 hover:bg-muted/50 rounded-lg transition-all flex items-start gap-3 group"
-                    >
+                  >
                     <div className="mt-0.5 p-1.5 rounded-lg bg-muted text-muted-foreground group-hover:bg-muted group-hover:text-foreground">
-                        <Code className="w-3.5 h-3.5" />
+                      <Code className="w-3.5 h-3.5" />
                     </div>
                     <div>
-                        <div className="font-bold text-[12px] text-foreground">Deploy agent with code</div>
-                        <div className="text-[10px] text-muted-foreground">Develop complex voice agent workflows</div>
+                      <div className="font-bold text-[12px] text-foreground">Deploy agent with code</div>
+                      <div className="text-[10px] text-muted-foreground">Develop complex voice agent workflows</div>
                     </div>
-                    </button>
+                  </button>
                 </div>
-                )}
+              )}
             </div>
           </div>
         }
       />
 
-        <DeployAgentModal
-          isOpen={isDeployModalOpen}
-          onClose={() => setIsDeployModalOpen(false)}
-          projectUrl={currentProject?.id || ""}
-        />
+      <DeployAgentModal
+        isOpen={isDeployModalOpen}
+        onClose={() => setIsDeployModalOpen(false)}
+        projectUrl={currentProject?.id || ""}
+      />
 
       <div className="flex-1 flex flex-col p-6 space-y-10 max-w-[1400px] mx-auto w-full animate-fade-in transition-all">
         {agents.length > 0 && (
           <>
             {/* Top Stat Cards */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <Card className="p-6 bg-card border-border/40 shadow-md flex flex-col justify-between min-h-[140px]">
+              <Card className="p-6 bg-card border-border/40 shadow-md flex flex-col justify-between min-h-[140px] relative overflow-hidden group hover:border-primary/40 transition-all duration-300">
+                <div className="relative z-10">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/50">Agents Deployed</span>
+                    <div className="w-4 h-4 rounded-full border border-border flex items-center justify-center text-[8px] text-muted-foreground font-black cursor-help hover:bg-muted transition-colors">?</div>
+                  </div>
+                  <div className="text-4xl font-black text-foreground tracking-tighter mt-4 group-hover:text-primary transition-colors">{deployedAgents}</div>
+                </div>
+                <div className="absolute -right-4 -bottom-4 w-24 h-24 bg-primary/5 rounded-full blur-3xl group-hover:bg-primary/10 transition-all duration-500" />
+              </Card>
+
+              <Card className="p-6 bg-card border-border/40 shadow-md flex flex-col justify-between min-h-[140px] relative overflow-hidden group hover:border-[oklch(0.627_0.265_273.15)]/40 transition-all duration-300">
+                <div className="relative z-10">
+                  <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                        <span className="text-[10px] font-black uppercase tracking-[0.15em] text-muted-foreground/60">Agents Deployed</span>
-                        <div className="w-3.5 h-3.5 rounded-full border border-muted-foreground/30 flex items-center justify-center text-[8px] text-muted-foreground shrink-0">i</div>
+                      <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/50">Concurrent Sessions</span>
+                      <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.4)]" />
                     </div>
-                    <div className="text-3xl font-bold text-foreground tracking-tight">{deployedAgents}</div>
-                </Card>
-                <Card className="p-6 bg-card border-border/40 shadow-md flex flex-col justify-between min-h-[140px]">
-                    <div className="flex items-center gap-2">
-                        <span className="text-[10px] font-black uppercase tracking-[0.15em] text-muted-foreground/60">Concurrent Agent Sessions</span>
-                        <div className="w-3.5 h-3.5 rounded-full border border-muted-foreground/30 flex items-center justify-center text-[8px] text-muted-foreground shrink-0">i</div>
-                    </div>
-                    <div className="text-3xl font-bold text-foreground tracking-tight">{activeSessions}</div>
-                </Card>
-                <Card className="p-6 bg-card border-border/40 shadow-md flex flex-col justify-between min-h-[140px]">
-                    <div className="flex items-center gap-2">
-                        <span className="text-[10px] font-black uppercase tracking-[0.15em] text-muted-foreground/60 whitespace-nowrap overflow-hidden text-ellipsis">Agent Session Minutes This Billing Pe...</span>
-                        <div className="w-3.5 h-3.5 rounded-full border border-muted-foreground/30 flex items-center justify-center text-[8px] text-muted-foreground shrink-0">i</div>
-                    </div>
-                    <div className="text-3xl font-bold text-foreground tracking-tight">{sessionMinutes} <span className="text-sm font-medium text-muted-foreground ml-1">sec</span></div>
-                </Card>
+                    <span className="text-[10px] font-bold text-green-500 bg-green-500/10 px-2 py-0.5 rounded-full uppercase tracking-tighter">Live</span>
+                  </div>
+                  <div className="text-4xl font-black text-foreground tracking-tighter mt-4 group-hover:text-primary transition-colors">{activeSessions}</div>
+                </div>
+              </Card>
+
+              <Card className="p-6 bg-card border-border/40 shadow-md flex flex-col justify-between min-h-[140px] relative overflow-hidden group hover:border-amber-500/40 transition-all duration-300">
+                <div className="relative z-10">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/50">Session Volume</span>
+                  </div>
+                  <div className="flex items-baseline gap-2 mt-4">
+                    <div className="text-4xl font-black text-foreground tracking-tighter group-hover:text-amber-500 transition-colors">{sessionMinutes}</div>
+                    <span className="text-sm font-black text-muted-foreground/40 uppercase tracking-widest">sec</span>
+                  </div>
+                </div>
+                <div className="absolute -right-4 -bottom-4 w-24 h-24 bg-amber-500/5 rounded-full blur-3xl group-hover:bg-amber-500/10 transition-all duration-500" />
+              </Card>
             </div>
 
             {/* Overview Section */}
@@ -291,25 +306,25 @@ export default function AgentsPage({ projectId }: AgentsPageProps) {
               <div className="flex items-center justify-between">
                 <h3 className="text-lg font-bold tracking-tight text-foreground">Overview</h3>
                 <Button variant="outline" size="sm" className="h-8 px-3 text-[11px] font-bold border-border/40 bg-card text-muted-foreground flex items-center gap-2">
-                    <Activity className="w-3.5 h-3.5" />
-                    Past 7 days
-                    <ChevronDown className="w-3 h-3 opacity-60" />
+                  <Activity className="w-3.5 h-3.5" />
+                  Past 7 days
+                  <ChevronDown className="w-3 h-3 opacity-60" />
                 </Button>
               </div>
               <AgentSessionsChart />
             </div>
 
-                {/* Your Agents Section */}
+            {/* Your Agents Section */}
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <h3 className="text-lg font-bold tracking-tight text-foreground">Your agents</h3>
                 <div className="flex items-center p-1 bg-muted/20 rounded-lg border border-border/40">
-                   <button className="p-1 px-2 rounded-md bg-card shadow-sm border border-border/20 text-primary">
-                      <LayoutGrid className="w-4 h-4" />
-                   </button>
-                   <button className="p-1 px-2 rounded-md text-muted-foreground/60 hover:text-foreground transition-colors">
-                      <MoreVertical className="w-4 h-4 rotate-90" />
-                   </button>
+                  <button className="p-1 px-2 rounded-md bg-card shadow-sm border border-border/20 text-primary">
+                    <LayoutGrid className="w-4 h-4" />
+                  </button>
+                  <button className="p-1 px-2 rounded-md text-muted-foreground/60 hover:text-foreground transition-colors">
+                    <MoreVertical className="w-4 h-4 rotate-90" />
+                  </button>
                 </div>
               </div>
 
@@ -321,10 +336,10 @@ export default function AgentsPage({ projectId }: AgentsPageProps) {
                         <div className="flex items-start justify-between gap-4 mb-6">
                           <div className="flex items-center gap-3 min-w-0">
                             <h4 className="font-bold text-[15px] tracking-tight text-foreground group-hover:text-primary transition-colors truncate">
-                                {agent.name}
+                              {agent.name}
                             </h4>
                             <div className="flex items-center gap-1.5 p-1 rounded-md bg-primary/5 text-primary">
-                                <Cloud className="w-3.5 h-3.5" />
+                              <Cloud className="w-3.5 h-3.5" />
                             </div>
                             <span className="text-[10px] font-mono text-muted-foreground/40 tracking-tight truncate shrink-0">{agent.id.slice(0, 12)}</span>
                           </div>
@@ -334,15 +349,15 @@ export default function AgentsPage({ projectId }: AgentsPageProps) {
                         </div>
 
                         <div className="space-y-1.5">
-                           <div className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60">CONCURRENT SESSIONS</div>
-                           <div className="text-xl font-mono text-foreground font-medium">0</div>
+                          <div className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60">CONCURRENT SESSIONS</div>
+                          <div className="text-xl font-mono text-foreground font-medium">{(agent as any).active_sessions || 0}</div>
                         </div>
                       </div>
 
                       <div className="px-5 py-3 bg-muted/5 border-t border-border/40 flex items-center justify-between">
                         <div className="flex items-center gap-2">
-                           <div className={cn("w-1.5 h-1.5 rounded-full", agent.status === 'active' ? "bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.4)]" : "bg-slate-400")} />
-                           <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/80">{agent.status || 'PENDING'}</span>
+                          <div className={cn("w-1.5 h-1.5 rounded-full", agent.status === 'active' ? "bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.4)]" : "bg-slate-400")} />
+                          <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/80">{agent.status || 'PENDING'}</span>
                         </div>
                         <span className="text-[10px] font-medium text-muted-foreground/40">{formatDeployedTime(agent.created_at)}</span>
                       </div>
@@ -373,31 +388,31 @@ export default function AgentsPage({ projectId }: AgentsPageProps) {
                 className="group flex flex-col text-left bg-card border border-border/60 rounded-[32px] overflow-hidden hover:border-primary/40 hover:shadow-[0_20px_50px_rgba(79,70,229,0.1)] transition-all duration-500 disabled:opacity-60"
               >
                 <div className="p-8 bg-muted aspect-[16/10] flex items-center justify-center border-b border-border/40 relative overflow-hidden">
-                   <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent" />
-                   <div className="w-full h-full p-4 flex flex-col gap-3 opacity-60 group-hover:opacity-100 transition-opacity duration-500 relative z-10">
-                      <div className="flex items-center gap-2 mb-4">
-                        <div className="w-8 h-8 rounded-lg bg-card shadow-sm border border-border/50 flex items-center justify-center">
-                            <Cloud className="w-4 h-4 text-primary" />
-                        </div>
-                        <div className="w-24 h-2 bg-foreground/10 rounded-full" />
+                  <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent" />
+                  <div className="w-full h-full p-4 flex flex-col gap-3 opacity-60 group-hover:opacity-100 transition-opacity duration-500 relative z-10">
+                    <div className="flex items-center gap-2 mb-4">
+                      <div className="w-8 h-8 rounded-lg bg-card shadow-sm border border-border/50 flex items-center justify-center">
+                        <Cloud className="w-4 h-4 text-primary" />
                       </div>
-                      <div className="w-full h-4 bg-foreground/5 rounded-md" />
-                      <div className="w-3/4 h-4 bg-foreground/5 rounded-md" />
-                      <div className="mt-auto w-full flex justify-center pb-6">
-                        <div className="flex items-end gap-1.5 h-12">
-                           {[0.4, 0.6, 0.9, 0.5, 0.8, 1, 0.6, 0.4].map((h, i) => (
-                             <div
-                                key={i}
-                                className="w-1.5 bg-primary/80 rounded-full animate-wave"
-                                style={{
-                                    height: `${h * 100}%`,
-                                    animationDelay: `${i * 0.1}s`
-                                }}
-                             />
-                           ))}
-                        </div>
+                      <div className="w-24 h-2 bg-foreground/10 rounded-full" />
+                    </div>
+                    <div className="w-full h-4 bg-foreground/5 rounded-md" />
+                    <div className="w-3/4 h-4 bg-foreground/5 rounded-md" />
+                    <div className="mt-auto w-full flex justify-center pb-6">
+                      <div className="flex items-end gap-1.5 h-12">
+                        {[0.4, 0.6, 0.9, 0.5, 0.8, 1, 0.6, 0.4].map((h, i) => (
+                          <div
+                            key={i}
+                            className="w-1.5 bg-primary/80 rounded-full animate-wave"
+                            style={{
+                              height: `${h * 100}%`,
+                              animationDelay: `${i * 0.1}s`
+                            }}
+                          />
+                        ))}
                       </div>
-                   </div>
+                    </div>
+                  </div>
                 </div>
                 <div className="p-8 space-y-3 bg-card">
                   <div className="flex items-center gap-2">
@@ -416,25 +431,25 @@ export default function AgentsPage({ projectId }: AgentsPageProps) {
                 className="group flex flex-col text-left bg-card border border-border/60 rounded-[32px] overflow-hidden hover:border-primary/40 hover:shadow-[0_20px_50px_rgba(0,0,0,0.05)] transition-all duration-500"
               >
                 <div className="p-8 bg-muted aspect-[16/10] flex items-center justify-center border-b border-border/40 relative overflow-hidden">
-                   <div className="w-full h-full p-6 flex flex-col gap-3 opacity-60 group-hover:opacity-100 transition-opacity duration-500 relative z-10">
-                      <div className="flex items-center gap-2 mb-4">
-                        <div className="w-8 h-8 rounded-lg bg-card shadow-sm border border-border/50 flex items-center justify-center">
-                            <Code className="w-4 h-4 text-slate-600 dark:text-slate-400" />
-                        </div>
-                        <div className="w-32 h-2 bg-foreground/10 rounded-full" />
+                  <div className="w-full h-full p-6 flex flex-col gap-3 opacity-60 group-hover:opacity-100 transition-opacity duration-500 relative z-10">
+                    <div className="flex items-center gap-2 mb-4">
+                      <div className="w-8 h-8 rounded-lg bg-card shadow-sm border border-border/50 flex items-center justify-center">
+                        <Code className="w-4 h-4 text-slate-600 dark:text-slate-400" />
                       </div>
-                      <div className="space-y-2">
-                        <div className="w-full h-2 bg-foreground/5 rounded-full" />
-                        <div className="w-2/3 h-2 bg-foreground/5 rounded-full" />
-                        <div className="w-4/5 h-2 bg-foreground/5 rounded-full" />
-                      </div>
-                       <div className="mt-auto p-3 bg-card rounded-xl font-mono text-[10px] text-green-400 border border-border/40 shadow-xl translate-y-2 group-hover:translate-y-0 transition-transform duration-500">
-                         <span className="text-blue-400">lk</span> agent create <span className="text-gray-500">--template</span>
-                       </div>
-                   </div>
+                      <div className="w-32 h-2 bg-foreground/10 rounded-full" />
+                    </div>
+                    <div className="space-y-2">
+                      <div className="w-full h-2 bg-foreground/5 rounded-full" />
+                      <div className="w-2/3 h-2 bg-foreground/5 rounded-full" />
+                      <div className="w-4/5 h-2 bg-foreground/5 rounded-full" />
+                    </div>
+                    <div className="mt-auto p-3 bg-card rounded-xl font-mono text-[10px] text-green-400 border border-border/40 shadow-xl translate-y-2 group-hover:translate-y-0 transition-transform duration-500">
+                      <span className="text-blue-400">lk</span> agent create <span className="text-gray-500">--template</span>
+                    </div>
+                  </div>
                 </div>
                 <div className="p-8 space-y-3 bg-card">
-                   <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2">
                     <h3 className="font-extrabold text-xl tracking-tight text-foreground">Start in code</h3>
                   </div>
                   <p className="text-[14px] text-muted-foreground leading-relaxed font-medium">
@@ -446,11 +461,11 @@ export default function AgentsPage({ projectId }: AgentsPageProps) {
 
             {/* Help/Docs Link */}
             <div className="text-center">
-                <Link href="#" className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-muted-foreground hover:text-primary transition-colors">
-                    <BookOpen className="w-4 h-4" />
-                    Read the agents documentation
-                    <ExternalLink className="w-3 h-3" />
-                </Link>
+              <Link href="#" className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-muted-foreground hover:text-primary transition-colors">
+                <BookOpen className="w-4 h-4" />
+                Read the agents documentation
+                <ExternalLink className="w-3 h-3" />
+              </Link>
             </div>
           </div>
         )}

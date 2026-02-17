@@ -5,10 +5,14 @@ import {
   parseSessionFeatures,
   resolveSessionScopeProjectIds,
 } from "@/lib/server/session-utils";
+import { syncAllResources } from "@/lib/server/resource-sync";
 
 export async function GET(request: NextRequest) {
   const auth = requireAuth(request);
   if (auth instanceof NextResponse) return auth;
+
+  // Sync DB with LiveKit server state to handle missed webhooks or server restarts
+  await syncAllResources();
 
   const page = Math.max(
     1,

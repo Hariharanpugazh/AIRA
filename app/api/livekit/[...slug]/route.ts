@@ -19,6 +19,7 @@ import {
   unscopeName,
 } from "@/lib/server/scopes";
 import { hashPassword } from "@/lib/server/auth";
+import { syncAllResources } from "@/lib/server/resource-sync";
 
 type RouteContext = {
   params: Promise<{ slug: string[] }> | { slug: string[] };
@@ -128,14 +129,14 @@ function mapIngress(
     reusable: ingress.reusable,
     state: ingress.state
       ? {
-          status: String(ingress.state.status),
-          error: ingress.state.error,
-          room_id: ingress.state.roomId,
-          started_at: toNumber(ingress.state.startedAt),
-          ended_at: toNumber(ingress.state.endedAt),
-          resource_id: ingress.state.resourceId,
-          tracks: ingress.state.tracks.map((track) => track.sid),
-        }
+        status: String(ingress.state.status),
+        error: ingress.state.error,
+        room_id: ingress.state.roomId,
+        started_at: toNumber(ingress.state.startedAt),
+        ended_at: toNumber(ingress.state.endedAt),
+        resource_id: ingress.state.resourceId,
+        tracks: ingress.state.tracks.map((track) => track.sid),
+      }
       : null,
     project_id: projectId,
   };
@@ -437,13 +438,38 @@ export async function GET(request: NextRequest, context: RouteContext) {
         { status: 400 },
       );
     }
-    const items = await livekit.ingress.listIngress({});
-    const prefix = projectPrefix(projectId);
-    const scoped = items.filter(
-      (item) =>
-        item.roomName.startsWith(prefix) || item.participantIdentity.startsWith(prefix),
+
+    await syncAllResources();
+
+    const rows = await query<{
+      id: string;
+      name: string;
+      input_type: string;
+      room_name: string | null;
+      stream_key: string | null;
+      url: string | null;
+    }>(
+      `
+        SELECT id, name, input_type, room_name, stream_key, url
+        FROM ingress
+        WHERE project_id = $1
+        ORDER BY created_at DESC
+      `,
+      [projectId],
     );
-    return NextResponse.json(scoped.map((item) => mapIngress(item, projectId)));
+
+    return NextResponse.json(
+      rows.rows.map((row) => ({
+        ingress_id: row.id,
+        name: row.name,
+        input_type: Number(row.input_type),
+        ingress_type: row.input_type === "1" ? "whip" : row.input_type === "2" ? "url" : "rtmp",
+        status: "active", // Database currently lacks the granular LiveKit state
+        room_name: unscopeName(row.room_name || "", projectId),
+        stream_key: row.stream_key,
+        url: row.url,
+      })),
+    );
   }
 
   if (slug.length === 1 && slug[0] === "egresses") {
@@ -455,13 +481,38 @@ export async function GET(request: NextRequest, context: RouteContext) {
         { status: 400 },
       );
     }
-    const prefix = projectPrefix(projectId);
-    const items = await livekit.egress.listEgress();
-    const scoped = items.filter((item) => {
-      if (item.roomName?.startsWith(prefix)) return true;
-      return egressScopeState.byEgressId.get(item.egressId) === projectId;
-    });
-    return NextResponse.json(scoped.map((item) => mapEgress(item, projectId)));
+
+    await syncAllResources();
+
+    const rows = await query<{
+      id: string;
+      room_name: string | null;
+      egress_type: string;
+      output_type: string | null;
+      output_url: string | null;
+      is_active: boolean;
+      created_at: string | Date;
+    }>(
+      `
+        SELECT id, room_name, egress_type, output_type, output_url, is_active, created_at
+        FROM egress
+        WHERE project_id = $1
+        ORDER BY created_at DESC
+      `,
+      [projectId],
+    );
+
+    return NextResponse.json(
+      rows.rows.map((row) => ({
+        egress_id: row.id,
+        room_name: unscopeName(row.room_name || "", projectId),
+        status: row.is_active ? "active" : "finished",
+        egress_type: row.egress_type,
+        output_type: row.output_type,
+        output_url: row.output_url,
+        started_at: new Date(row.created_at).getTime(),
+      })),
+    );
   }
 
   return NextResponse.json({ error: "Not Found" }, { status: 404 });
@@ -606,20 +657,20 @@ export async function POST(request: NextRequest, context: RouteContext) {
 
     const permission: Partial<ParticipantPermission> | undefined =
       payload.permission ||
-      payload.can_publish !== undefined ||
-      payload.can_subscribe !== undefined ||
-      payload.can_publish_data !== undefined ||
-      payload.hidden !== undefined ||
-      payload.can_update_metadata !== undefined ||
-      payload.can_subscribe_metrics !== undefined
+        payload.can_publish !== undefined ||
+        payload.can_subscribe !== undefined ||
+        payload.can_publish_data !== undefined ||
+        payload.hidden !== undefined ||
+        payload.can_update_metadata !== undefined ||
+        payload.can_subscribe_metrics !== undefined
         ? {
-            canPublish: Boolean(permissionPayload.can_publish),
-            canSubscribe: Boolean(permissionPayload.can_subscribe),
-            canPublishData: Boolean(permissionPayload.can_publish_data),
-            hidden: Boolean(permissionPayload.hidden),
-            canUpdateMetadata: Boolean(permissionPayload.can_update_metadata),
-            canSubscribeMetrics: Boolean(permissionPayload.can_subscribe_metrics),
-          }
+          canPublish: Boolean(permissionPayload.can_publish),
+          canSubscribe: Boolean(permissionPayload.can_subscribe),
+          canPublishData: Boolean(permissionPayload.can_publish_data),
+          hidden: Boolean(permissionPayload.hidden),
+          canUpdateMetadata: Boolean(permissionPayload.can_update_metadata),
+          canSubscribeMetrics: Boolean(permissionPayload.can_subscribe_metrics),
+        }
         : undefined;
 
     await livekit.room.updateParticipant(roomName, identity, {

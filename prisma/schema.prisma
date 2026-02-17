@@ -125,7 +125,10 @@ model Project {
   webhookEvents    WebhookEvent[]
   autoRecordRules  AutoRecordingRule[]
   roomTemplates    RoomTemplate[]
-  layoutTemplates  LayoutTemplate[]
+  layoutTemplates    LayoutTemplate[]
+  participantRecords ParticipantRecord[]
+  egresses         EgressRecord[]
+  ingresses        IngressRecord[]
 
   @@index([userId], map: "idx_projects_user_id")
   @@map("projects")
@@ -162,13 +165,34 @@ model LiveSession {
   features           String?   @db.Text
   createdAt          DateTime  @default(now()) @map("created_at") @db.Timestamp(6)
 
-  project     Project?      @relation(fields: [projectId], references: [id], onDelete: SetNull)
-  transcripts Transcript[]
+  project            Project?            @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  transcripts        Transcript[]
+  participantRecords ParticipantRecord[]
 
   @@index([projectId], map: "idx_sessions_project_id")
   @@index([roomName], map: "idx_sessions_room_name")
   @@index([startTime], map: "idx_sessions_start_time")
   @@map("sessions")
+}
+
+model ParticipantRecord {
+  id             String    @id @db.Text
+  sessionId      String    @map("session_id") @db.Text
+  identity       String    @db.Text
+  status         String    @db.Text
+  joinedAt       DateTime  @map("joined_at") @db.Timestamp(6)
+  leftAt         DateTime? @map("left_at") @db.Timestamp(6)
+  platform       String?   @db.Text
+  browser        String?   @db.Text
+  connectionType String?   @map("connection_type") @db.Text
+  projectId      String?   @map("project_id") @db.Text
+
+  session LiveSession @relation(fields: [sessionId], references: [sid], onDelete: Cascade)
+  project Project?    @relation(fields: [projectId], references: [id], onDelete: SetNull)
+
+  @@index([sessionId])
+  @@index([projectId])
+  @@map("participant_records")
 }
 
 model AnalyticsSnapshot {
@@ -440,8 +464,12 @@ model IngressRecord {
   isEnabled Boolean  @default(true) @map("is_enabled")
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamp(6)
   updatedAt DateTime @default(now()) @map("updated_at") @db.Timestamp(6)
+  projectId String?  @map("project_id") @db.Text
+
+  project Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
 
   @@index([roomName], map: "idx_ingress_room")
+  @@index([projectId], map: "idx_ingress_project")
   @@map("ingress")
 }
 
@@ -455,8 +483,12 @@ model EgressRecord {
   isActive   Boolean  @default(false) @map("is_active")
   createdAt  DateTime @default(now()) @map("created_at") @db.Timestamp(6)
   updatedAt  DateTime @default(now()) @map("updated_at") @db.Timestamp(6)
+  projectId  String?  @map("project_id") @db.Text
+
+  project Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
 
   @@index([roomName], map: "idx_egress_room")
+  @@index([projectId], map: "idx_egress_project")
   @@map("egress")
 }
 

@@ -27,6 +27,7 @@ export function mapAgentRow(row: {
   is_enabled: boolean;
   created_at: string | Date;
   updated_at: string | Date;
+  active_sessions?: string | number;
 }) {
   return {
     id: row.id,
@@ -40,6 +41,7 @@ export function mapAgentRow(row: {
     auto_restart_policy: row.auto_restart_policy || "always",
     resource_limits: safeParseJsonObject<Record<string, unknown>>(row.resource_limits),
     is_enabled: row.is_enabled,
+    active_sessions: Number(row.active_sessions || 0),
     created_at: new Date(row.created_at).toISOString(),
     updated_at: new Date(row.updated_at).toISOString(),
   };

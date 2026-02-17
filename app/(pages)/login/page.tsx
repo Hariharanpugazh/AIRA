@@ -8,17 +8,13 @@ import { login, getAccessToken, getMe } from "../../../lib/api";
 
 function Logo() {
   return (
-    <svg viewBox="0 0 48 48" className="w-14 h-14 drop-shadow-lg">
-      <defs>
-        <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#22d3ee" />
-          <stop offset="50%" stopColor="#818cf8" />
-          <stop offset="100%" stopColor="#c084fc" />
-        </linearGradient>
-      </defs>
-      <rect x="0" y="0" width="48" height="48" rx="14" fill="url(#grad)" />
-      <path d="M14 24l8 8 12-16" fill="none" stroke="white" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
+    <div className="h-10 w-auto flex items-center justify-center mb-4">
+      <img
+        src="/aira-logo.svg"
+        alt="AIRA"
+        className="h-full w-auto object-contain dark:filter dark:invert dark:brightness-150"
+      />
+    </div>
   );
 }
 

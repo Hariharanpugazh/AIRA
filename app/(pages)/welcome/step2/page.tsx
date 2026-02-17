@@ -20,27 +20,13 @@ const sources = [
 
 function AIRALogo() {
   return (
-    <svg viewBox="0 0 48 48" className="w-12 h-12 drop-shadow-lg">
-      <defs>
-        <linearGradient id="rGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#22d3ee" />
-          <stop offset="50%" stopColor="#818cf8" />
-          <stop offset="100%" stopColor="#c084fc" />
-        </linearGradient>
-      </defs>
-      <rect x="0" y="0" width="48" height="48" rx="16" fill="url(#rGrad)" className="animate-pulse-slow" />
-      <text
-        x="24"
-        y="34"
-        textAnchor="middle"
-        fill="white"
-        fontSize="32"
-        fontWeight="bold"
-        fontFamily="Outfit, sans-serif"
-      >
-        R
-      </text>
-    </svg>
+    <div className="h-10 w-auto flex items-center justify-center">
+      <img
+        src="/aira-logo.svg"
+        alt="AIRA"
+        className="h-full w-auto object-contain dark:filter dark:invert dark:brightness-150"
+      />
+    </div>
   );
 }
 
@@ -87,7 +73,7 @@ export default function Step2Page() {
       <div className="flex flex-col items-center mb-8">
         <AIRALogo />
 
-        
+
         <div className="flex items-center gap-3 mt-8">
           <div className="w-2.5 h-2.5 rounded-full bg-primary" />
           <div className="w-2.5 h-2.5 rounded-full bg-primary shadow-[0_0_10px_theme(colors.primary.DEFAULT)]" />

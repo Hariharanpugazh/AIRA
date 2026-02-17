@@ -29,7 +29,7 @@ export function DeployAgentModal({ isOpen, onClose, projectUrl }: DeployAgentMod
         },
         {
             title: "Authenticate",
-            command: "lk cloud auth",
+            command: "lk auth",
             desc: null
         },
         {
@@ -48,7 +48,7 @@ export function DeployAgentModal({ isOpen, onClose, projectUrl }: DeployAgentMod
 
     return (
         <div className="fixed inset-0 bg-background/60 backdrop-blur-[2px] flex items-center justify-center z-50 p-4 animate-in fade-in duration-300">
-            <div 
+            <div
                 className="w-full max-w-2xl bg-card border border-border/50 rounded-2xl shadow-2xl animate-in zoom-in-95 duration-300 overflow-hidden"
                 role="dialog"
                 aria-labelledby="deploy-agent-title"
@@ -56,7 +56,7 @@ export function DeployAgentModal({ isOpen, onClose, projectUrl }: DeployAgentMod
             >
                 {/* Header */}
                 <div className="flex items-center justify-between px-8 py-6 border-b border-border/40 bg-card">
-                    <h2 id="deploy-agent-title" className="text-lg font-extrabold text-foreground tracking-tight">Deploy an agent to LiveKit Cloud</h2>
+                    <h2 id="deploy-agent-title" className="text-lg font-extrabold text-foreground tracking-tight">Deploy an agent to your cluster</h2>
                     <button
                         onClick={onClose}
                         className="p-2 hover:bg-muted rounded-xl transition-all text-muted-foreground/60 hover:text-foreground"
@@ -74,8 +74,8 @@ export function DeployAgentModal({ isOpen, onClose, projectUrl }: DeployAgentMod
                             <Info className="w-4 h-4 text-amber-700 dark:text-amber-500" />
                         </div>
                         <div className="text-sm text-foreground leading-relaxed">
-                            <div className="mb-1">You must use the LiveKit CLI to deploy an agent to LiveKit Cloud.</div>
-                            <a href="#" className="text-primary font-bold underline hover:opacity-90">Learn more in the docs.</a>
+                            <div className="mb-1">Use the LiveKit CLI to deploy an agent to your self-hosted cluster.</div>
+                            <a href="#" className="text-primary font-bold underline hover:opacity-90">Review specialized deployment docs.</a>
                         </div>
                     </div>
 

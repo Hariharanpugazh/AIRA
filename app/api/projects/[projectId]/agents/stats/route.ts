@@ -35,15 +35,46 @@ export async function GET(request: NextRequest, context: RouteContext) {
     });
   }
 
+  const isTimeseries = request.nextUrl.searchParams.get("timeseries") === "true";
+  if (isTimeseries) {
+    const range = request.nextUrl.searchParams.get("range") || "7d";
+    // For simplicity, we'll return daily buckets for the past week
+    const rows = await query<{
+      bucket: string | Date;
+      sessions: number;
+    }>(
+      `
+        SELECT
+          date_trunc('day', joined_at) AS bucket,
+          COUNT(*)::int AS sessions
+        FROM agent_rooms
+        WHERE agent_id = ANY($1::text[])
+          AND joined_at >= NOW() - INTERVAL '7 days'
+        GROUP BY bucket
+        ORDER BY bucket ASC
+      `,
+      [agentIds],
+    );
+
+    return NextResponse.json(
+      rows.rows.map((row) => ({
+        timestamp: new Date(row.bucket).toISOString(),
+        sessions: row.sessions,
+        errors: 0, // Errors tracking to be implemented later
+      }))
+    );
+  }
+
   const active = await query<{ count: string }>(
     `
       SELECT COUNT(*)::text AS count
-      FROM agent_instances
-      WHERE status = 'running'
-        AND agent_id = ANY($1::text[])
+      FROM agent_rooms
+      WHERE agent_id = ANY($1::text[])
+        AND left_at IS NULL
     `,
     [agentIds],
   );
+
   const total = await query<{ total_minutes: string }>(
     `
       SELECT
@@ -51,15 +82,15 @@ export async function GET(request: NextRequest, context: RouteContext) {
           SUM(
             EXTRACT(
               EPOCH FROM (
-                COALESCE(stopped_at, started_at) - started_at
+                COALESCE(left_at, joined_at) - joined_at
               )
             ) / 60
           ),
           0
         )::text AS total_minutes
-      FROM agent_instances
+      FROM agent_rooms
       WHERE agent_id = ANY($1::text[])
-        AND started_at IS NOT NULL
+        AND joined_at IS NOT NULL
     `,
     [agentIds],
   );

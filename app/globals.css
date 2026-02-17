@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@100;200;300;400;500;600;700;800;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@100;200;300;400;500;600;700;800;900&display=swap');
 @import "tailwindcss";
 
 @theme inline {
@@ -24,8 +24,9 @@
   --color-popover: var(--popover);
   --color-popover-foreground: var(--popover-foreground);
 
-  --font-sans: 'Poppins', system-ui, sans-serif;
-  --font-display: 'Poppins', system-ui, sans-serif;
+  --font-sans: 'Outfit', system-ui, sans-serif;
+  --font-display: 'Outfit', system-ui, sans-serif;
+  --font-mono: 'Outfit', monospace;
 
   --radius-xl: 1rem;
   --radius-lg: 0.75rem;
@@ -88,7 +89,8 @@
   --surface-hover: oklch(0.95 0.02 240);
   --border: oklch(0.92 0.02 240);
 
-  --primary: oklch(0.55 0.18 250); /* Modern Indigo */
+  --primary: oklch(0.55 0.18 250);
+  /* Modern Indigo */
   --primary-foreground: oklch(1 0 0);
 
   --secondary: oklch(0.96 0.01 240);
@@ -97,7 +99,8 @@
   --muted: oklch(0.97 0.01 240);
   --muted-foreground: oklch(0.5 0.03 240);
 
-  --accent: oklch(0.6 0.18 300); /* Vivid Violet */
+  --accent: oklch(0.6 0.18 300);
+  /* Vivid Violet */
   --accent-foreground: oklch(1 0 0);
 
   --success: oklch(0.65 0.15 150);
@@ -114,7 +117,8 @@
   --surface-hover: oklch(0.19 0.03 240);
   --border: oklch(0.22 0.03 240);
 
-  --primary: oklch(0.65 0.22 255); /* Electric Indigo */
+  --primary: oklch(0.65 0.22 255);
+  /* Electric Indigo */
   --primary-foreground: oklch(1 0 0);
 
   --secondary: oklch(0.25 0.03 240);
@@ -123,7 +127,8 @@
   --muted: oklch(0.35 0.03 240);
   --muted-foreground: oklch(0.75 0.02 240);
 
-  --accent: oklch(0.7 0.2 310); /* Electric Violet */
+  --accent: oklch(0.7 0.2 310);
+  /* Electric Violet */
   --accent-foreground: oklch(1 0 0);
 
   --success: oklch(0.65 0.15 150);

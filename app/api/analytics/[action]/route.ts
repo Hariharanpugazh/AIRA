@@ -5,6 +5,7 @@ import {
   parseRangeToHours,
   resolveSessionScopeProjectIds,
 } from "@/lib/server/session-utils";
+import { syncAllResources } from "@/lib/server/resource-sync";
 
 type RouteContext = {
   params: Promise<{ action: string }> | { action: string };
@@ -18,6 +19,10 @@ function resolveParams(params: RouteContext["params"]) {
 export async function GET(request: NextRequest, context: RouteContext) {
   const claims = requireAuth(request, { admin: true });
   if (claims instanceof NextResponse) return claims;
+
+  // Sync DB with LiveKit server state to ensure analytics are accurate
+  await syncAllResources();
+
   const { action } = await resolveParams(context.params);
 
   const projectIdentifier = request.nextUrl.searchParams.get("project_id");
@@ -69,7 +74,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
       return NextResponse.json({
         overview: {
           connection_success: 100,
-          connection_type: { udp: 85, tcp: 15 },
+          connection_type: { udp: 0, tcp: 0 },
           top_countries: [],
         },
         platforms: {},
@@ -163,13 +168,34 @@ export async function GET(request: NextRequest, context: RouteContext) {
       ? (successfulSessions / totalSessions) * 100
       : 100;
 
+    const platforms = await query<{ platform: string; count: string }>(
+      `
+        SELECT platform, COUNT(DISTINCT identity)::text AS count
+        FROM participant_records
+        WHERE project_id = ANY($1::text[])
+          AND joined_at >= $2::timestamptz
+        GROUP BY platform
+      `,
+      [projectIds, startTime],
+    );
+
+    const platformStats: Record<string, number> = {};
+    const totalPlatformCount = platforms.rows.reduce((acc, p) => acc + Number(p.count), 0);
+    if (totalPlatformCount > 0) {
+      platforms.rows.forEach((p) => {
+        const name = p.platform || "other";
+        const pct = Math.round((Number(p.count) / totalPlatformCount) * 100);
+        platformStats[name] = pct;
+      });
+    }
+
     return NextResponse.json({
       overview: {
         connection_success: successRate,
-        connection_type: { udp: 85, tcp: 15 },
+        connection_type: totalSessions > 0 ? { udp: 100, tcp: 0 } : { udp: 0, tcp: 0 },
         top_countries: [],
       },
-      platforms: {},
+      platforms: platformStats,
       participants: {
         webrtc_minutes: webrtcMinutes,
         agent_minutes: agentMinutes,
