@@ -444,38 +444,93 @@ model Room {
 }
 
 model IngressRecord {
-  id        String   @id
-  name      String
-  inputType String   @map("input_type")
-  roomName  String?  @map("room_name")
-  streamKey String?  @map("stream_key")
-  url       String?
-  isEnabled Boolean  @default(true) @map("is_enabled")
-  createdAt DateTime @default(now()) @map("created_at") @db.Timestamp(6)
-  updatedAt DateTime @default(now()) @map("updated_at") @db.Timestamp(6)
-  projectId String?  @map("project_id")
-  project   Project? @relation(fields: [projectId], references: [id])
+  id                    String    @id
+  name                  String
+  inputType             String    @map("input_type")
+  roomName              String?   @map("room_name")
+  streamKey             String?   @map("stream_key")
+  url                   String?
+  isEnabled             Boolean   @default(true) @map("is_enabled")
+  createdAt             DateTime  @default(now()) @map("created_at") @db.Timestamp(6)
+  updatedAt             DateTime  @default(now()) @map("updated_at") @db.Timestamp(6)
+  projectId             String?   @map("project_id")
+
+  // LiveKit Ingress tracking fields
+  participantIdentity   String?   @map("participant_identity")
+  participantName       String?   @map("participant_name")
+  resourceId            String?   @map("resource_id")
+  roomId                String?   @map("room_id")
+  reusable              Boolean   @default(false)
+  status                String    @default("endpoint_inactive")
+  startedAt             DateTime? @map("started_at") @db.Timestamp(6)
+  endedAt               DateTime? @map("ended_at") @db.Timestamp(6)
+  error                 String?
+  audioCodec            String?   @map("audio_codec")
+  videoCodec            String?   @map("video_codec")
+  audioBitrate          Int?      @map("audio_bitrate")
+  videoBitrate          Int?      @map("video_bitrate")
+  videoResolution       String?   @map("video_resolution")
+  trackCount            Int       @default(0) @map("track_count")
+  trackSids             String?   @map("track_sids")
+  userId                String?   @map("user_id")
+
+  project               Project?  @relation(fields: [projectId], references: [id])
 
   @@index([roomName], map: "idx_ingress_room")
   @@index([projectId], map: "idx_ingress_project")
+  @@index([status], map: "idx_ingress_status")
+  @@index([participantIdentity], map: "idx_ingress_participant_identity")
+  @@index([resourceId], map: "idx_ingress_resource_id")
+  @@index([userId], map: "idx_ingress_user_id")
+  @@index([startedAt], map: "idx_ingress_started_at")
   @@map("ingress")
 }
 
 model EgressRecord {
-  id         String   @id
-  name       String
-  egressType String   @map("egress_type")
-  roomName   String?  @map("room_name")
-  outputType String?  @map("output_type")
-  outputUrl  String?  @map("output_url")
-  isActive   Boolean  @default(false) @map("is_active")
-  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamp(6)
-  updatedAt  DateTime @default(now()) @map("updated_at") @db.Timestamp(6)
-  projectId  String?  @map("project_id")
-  project    Project? @relation(fields: [projectId], references: [id])
+  id                    String    @id
+  name                  String
+  egressType            String    @map("egress_type")
+  roomName              String?   @map("room_name")
+  outputType            String?   @map("output_type")
+  outputUrl             String?   @map("output_url")
+  isActive              Boolean   @default(false) @map("is_active")
+  createdAt             DateTime  @default(now()) @map("created_at") @db.Timestamp(6)
+  updatedAt             DateTime  @default(now()) @map("updated_at") @db.Timestamp(6)
+  projectId             String?   @map("project_id")
+
+  // LiveKit Egress tracking fields
+  egressId              String?   @unique @map("egress_id")
+  roomId                String?   @map("room_id")
+  sourceType            String    @default("room_composite") @map("source_type")
+  statusDetail          String?   @map("status_detail")
+  startedAt             DateTime? @map("started_at") @db.Timestamp(6)
+  endedAt               DateTime? @map("ended_at") @db.Timestamp(6)
+  errorCode             String?   @map("error_code")
+  errorMessage          String?   @map("error_message")
+  fileResults           String?   @map("file_results")
+  streamResults         String?   @map("stream_results")
+  segmentResults        String?   @map("segment_results")
+  imageResults          String?   @map("image_results")
+  layout                String?
+  audioOnly             Boolean   @default(false) @map("audio_only")
+  videoOnly             Boolean   @default(false) @map("video_only")
+  participantIdentity   String?   @map("participant_identity")
+  trackId               String?   @map("track_id")
+  webUrl                String?   @map("web_url")
+  userId                String?   @map("user_id")
+
+  project               Project?  @relation(fields: [projectId], references: [id])
 
   @@index([roomName], map: "idx_egress_room")
   @@index([projectId], map: "idx_egress_project")
+  @@index([egressId], map: "idx_egress_egress_id")
+  @@index([roomId], map: "idx_egress_room_id")
+  @@index([sourceType], map: "idx_egress_source_type")
+  @@index([participantIdentity], map: "idx_egress_participant_identity")
+  @@index([trackId], map: "idx_egress_track_id")
+  @@index([userId], map: "idx_egress_user_id")
+  @@index([startedAt], map: "idx_egress_started_at")
+  @@index([statusDetail], map: "idx_egress_status_detail")
   @@map("egress")
 }
 
@@ -564,21 +619,35 @@ model AuditLog {
 }
 
 model WebhookEvent {
-  id               String            @id @db.VarChar(36)
-  projectId        String?           @map("project_id")
-  eventType        String            @map("event_type") @db.VarChar(100)
-  payload          String
-  processed        Boolean           @default(false)
-  deliveryAttempts Int               @default(0) @map("delivery_attempts")
-  lastError        String?           @map("last_error")
-  createdAt        DateTime          @default(now()) @map("created_at") @db.Timestamp(6)
-  deliveries       WebhookDelivery[]
-  project          Project?          @relation(fields: [projectId], references: [id])
+  id                  String            @id @db.VarChar(36)
+  projectId           String?           @map("project_id")
+  eventType           String            @map("event_type") @db.VarChar(100)
+  payload             String
+  processed           Boolean           @default(false)
+  deliveryAttempts    Int               @default(0) @map("delivery_attempts")
+  lastError           String?           @map("last_error")
+  createdAt           DateTime          @default(now()) @map("created_at") @db.Timestamp(6)
+
+  // LiveKit tracking fields
+  sessionId           String?           @map("session_id")
+  roomName            String?           @map("room_name")
+  participantIdentity String?           @map("participant_identity")
+  egressId            String?           @map("egress_id")
+  ingressId           String?           @map("ingress_id")
+  callId              String?           @map("call_id")
+  sipCallId           String?           @map("sip_call_id")
+
+  deliveries          WebhookDelivery[]
+  project             Project?          @relation(fields: [projectId], references: [id])
 
   @@index([createdAt], map: "idx_webhook_events_created_at")
   @@index([processed], map: "idx_webhook_events_processed")
   @@index([eventType], map: "idx_webhook_events_event_type")
   @@index([projectId], map: "idx_webhook_events_project_id")
+  @@index([sessionId], map: "idx_webhook_events_session_id")
+  @@index([roomName], map: "idx_webhook_events_room_name")
+  @@index([egressId], map: "idx_webhook_events_egress_id")
+  @@index([ingressId], map: "idx_webhook_events_ingress_id")
   @@map("webhook_events")
 }
 
@@ -630,6 +699,18 @@ model CallLog {
   projectId           String?   @map("project_id")
   metadata            String?
   createdAt           DateTime? @default(now()) @map("created_at") @db.Timestamp(6)
+
+  // Extended SIP tracking fields
+  sipCallId           String?   @map("sip_call_id")
+  roomSid             String?   @map("room_sid")
+  fromSipUri          String?   @map("from_sip_uri")
+  toSipUri            String?   @map("to_sip_uri")
+  hangupCause         String?   @map("hangup_cause")
+  hangupSource        String?   @map("hangup_source")
+  recordingUrl        String?   @map("recording_url")
+  recordingDuration   Int?      @map("recording_duration")
+  userId              String?   @map("user_id")
+
   project             Project?  @relation(fields: [projectId], references: [id])
 
   @@index([callId], map: "idx_call_logs_call_id")
@@ -637,5 +718,10 @@ model CallLog {
   @@index([startedAt], map: "idx_call_logs_started_at")
   @@index([trunkId], map: "idx_call_logs_trunk_id")
   @@index([projectId], map: "idx_call_logs_project_id")
+  @@index([sipCallId], map: "idx_call_logs_sip_call_id")
+  @@index([participantIdentity], map: "idx_call_logs_participant_identity")
+  @@index([roomSid], map: "idx_call_logs_room_sid")
+  @@index([userId], map: "idx_call_logs_user_id")
+  @@index([status], map: "idx_call_logs_status")
   @@map("call_logs")
 }

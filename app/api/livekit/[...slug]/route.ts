@@ -448,8 +448,8 @@ export async function GET(request: NextRequest, context: RouteContext) {
       // Filter to project scope
       const scoped = allIngresses.filter(
         (i) =>
-          i.roomName.startsWith(prefix) ||
-          i.participantIdentity.startsWith(prefix),
+          i.roomName?.startsWith(prefix) ||
+          i.participantIdentity?.startsWith(prefix),
       );
 
       return NextResponse.json(scoped.map((i) => mapIngress(i, projectId)));
@@ -462,8 +462,21 @@ export async function GET(request: NextRequest, context: RouteContext) {
         room_name: string | null;
         stream_key: string | null;
         url: string | null;
+        participant_identity: string | null;
+        participant_name: string | null;
+        resource_id: string | null;
+        room_id: string | null;
+        status: string;
+        reusable: boolean;
+        started_at: Date | null;
+        ended_at: Date | null;
+        error: string | null;
+        track_count: number;
+        created_at: Date;
       }>(
-        `SELECT id, name, input_type, room_name, stream_key, url
+        `SELECT id, name, input_type, room_name, stream_key, url,
+                participant_identity, participant_name, resource_id, room_id,
+                status, reusable, started_at, ended_at, error, track_count, created_at
          FROM ingress WHERE project_id = $1 ORDER BY created_at DESC`,
         [projectId],
       );
@@ -473,10 +486,20 @@ export async function GET(request: NextRequest, context: RouteContext) {
           name: row.name,
           input_type: Number(row.input_type),
           ingress_type: row.input_type === "1" ? "whip" : row.input_type === "2" ? "url" : "rtmp",
-          status: "inactive",
+          status: row.status || "inactive",
           room_name: unscopeName(row.room_name || "", projectId),
           stream_key: row.stream_key,
           url: row.url,
+          participant_identity: unscopeName(row.participant_identity || "", projectId),
+          participant_name: row.participant_name,
+          resource_id: row.resource_id,
+          room_id: row.room_id,
+          reusable: row.reusable,
+          started_at: row.started_at ? new Date(row.started_at).getTime() : null,
+          ended_at: row.ended_at ? new Date(row.ended_at).getTime() : null,
+          error: row.error,
+          track_count: row.track_count,
+          created_at: new Date(row.created_at).getTime(),
         })),
       );
     }
@@ -504,56 +527,103 @@ export async function GET(request: NextRequest, context: RouteContext) {
           egressScopeState.byEgressId.get(e.egressId) === projectId,
       );
 
-      return NextResponse.json(
-        scoped.map((e) => {
-          const mapped = mapEgress(e, projectId);
-          // Determine egress type from LiveKit response
-          let egressType = "room_composite";
-          const raw = e as unknown as Record<string, unknown>;
-          if (raw.web) egressType = "web";
-          else if (raw.track) egressType = "track";
-          else if (raw.trackComposite) egressType = "track_composite";
-          else if (raw.participant) egressType = "participant";
+      // If LiveKit returns data, use it; otherwise fall back to DB
+      if (scoped.length > 0) {
+        return NextResponse.json(
+          scoped.map((e) => {
+            const mapped = mapEgress(e, projectId);
+            // Determine egress type from LiveKit response
+            let egressType = "room_composite";
+            const raw = e as unknown as Record<string, unknown>;
+            if (raw.web) egressType = "web";
+            else if (raw.track) egressType = "track";
+            else if (raw.trackComposite) egressType = "track_composite";
+            else if (raw.participant) egressType = "participant";
 
-          // Extract file URL from file results
-          let fileUrl: string | null = null;
-          const fileResults = raw.fileResults as { filename?: string } | undefined;
-          if (fileResults?.filename) fileUrl = fileResults.filename;
+            // Extract results
+            const fileResults = raw.fileResults as Array<{ filename?: string; location?: string; duration?: number; size?: number }> | undefined;
+            const streamResults = raw.streamResults as Array<{ url?: string; duration?: number; status?: string }> | undefined;
+            const segmentResults = raw.segmentResults as Array<{ playlistName?: string; duration?: number; size?: number }> | undefined;
+            const imageResults = raw.imageResults as Array<{ filename?: string; location?: string; capturedAt?: number }> | undefined;
 
-          return {
-            ...mapped,
-            type: egressType,
-            file_url: fileUrl,
-            url: raw.web ? String((raw.web as Record<string, unknown>).url || "") : null,
-          };
-        }),
-      );
+            // Get primary file URL
+            let fileUrl: string | null = null;
+            if (fileResults?.[0]?.location) fileUrl = fileResults[0].location;
+            else if (fileResults?.[0]?.filename) fileUrl = fileResults[0].filename;
+
+            // Get web URL
+            const webUrl = raw.web ? String((raw.web as Record<string, unknown>).url || "") : null;
+
+            return {
+              ...mapped,
+              type: egressType,
+              source_type: egressType,
+              file_url: fileUrl,
+              url: webUrl,
+              file_results: fileResults || null,
+              stream_results: streamResults || null,
+              segment_results: segmentResults || null,
+              image_results: imageResults || null,
+            };
+          }),
+        );
+      }
     } catch {
-      // Fallback to DB if LiveKit SDK fails
-      const rows = await query<{
-        id: string;
-        room_name: string | null;
-        egress_type: string;
-        output_type: string | null;
-        output_url: string | null;
-        is_active: boolean;
-        created_at: string | Date;
-      }>(
-        `SELECT id, room_name, egress_type, output_type, output_url, is_active, created_at
-         FROM egress WHERE project_id = $1 ORDER BY created_at DESC`,
-        [projectId],
-      );
-      return NextResponse.json(
-        rows.rows.map((row) => ({
-          egress_id: row.id,
-          room_name: unscopeName(row.room_name || "", projectId),
-          status: row.is_active ? "active" : "complete",
-          type: row.egress_type || "room_composite",
-          file_url: row.output_url,
-          started_at: new Date(row.created_at).getTime(),
-        })),
-      );
+      // LiveKit SDK failed, will fall through to DB fallback below
     }
+
+    // Fallback to DB when LiveKit returns empty or fails
+    const rows = await query<{
+      id: string;
+      egress_id: string | null;
+      room_name: string | null;
+      egress_type: string;
+      source_type: string;
+      output_type: string | null;
+      output_url: string | null;
+      is_active: boolean;
+      status_detail: string | null;
+      started_at: Date | null;
+      ended_at: Date | null;
+      error_message: string | null;
+      error_code: string | null;
+      file_results: string | null;
+      stream_results: string | null;
+      segment_results: string | null;
+      image_results: string | null;
+      participant_identity: string | null;
+      track_id: string | null;
+      web_url: string | null;
+      created_at: Date;
+    }>(
+      `SELECT id, egress_id, room_name, egress_type, source_type, output_type, output_url,
+              is_active, status_detail, started_at, ended_at, error_message, error_code,
+              file_results, stream_results, segment_results, image_results,
+              participant_identity, track_id, web_url, created_at
+       FROM egress WHERE project_id = $1 ORDER BY created_at DESC`,
+      [projectId],
+    );
+    return NextResponse.json(
+      rows.rows.map((row) => ({
+        egress_id: row.egress_id || row.id,
+        room_name: unscopeName(row.room_name || "", projectId),
+        status: row.status_detail || (row.is_active ? "EGRESS_ACTIVE" : "EGRESS_COMPLETE"),
+        type: row.source_type || row.egress_type || "room_composite",
+        source_type: row.source_type || row.egress_type || "room_composite",
+        file_url: row.output_url,
+        started_at: row.started_at ? new Date(row.started_at).getTime() : new Date(row.created_at).getTime(),
+        ended_at: row.ended_at ? new Date(row.ended_at).getTime() : null,
+        error: row.error_message,
+        error_code: row.error_code,
+        file_results: row.file_results ? JSON.parse(row.file_results) : null,
+        stream_results: row.stream_results ? JSON.parse(row.stream_results) : null,
+        segment_results: row.segment_results ? JSON.parse(row.segment_results) : null,
+        image_results: row.image_results ? JSON.parse(row.image_results) : null,
+        participant_identity: row.participant_identity,
+        track_id: row.track_id,
+        web_url: row.web_url,
+      })),
+    );
   }
 
   return NextResponse.json({ error: "Not Found" }, { status: 404 });
@@ -742,7 +812,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
   }
 
   if (slug.length === 1 && slug[0] === "ingress") {
-    const projectId = await resolveScopedProject(claims, String(payload.project_id || ""));
+    const projectId = await resolveScopedProject(claims, String(payload.project_id || request.nextUrl.searchParams.get("project_id") || ""));
     if (!projectId) {
       return NextResponse.json({ error: "project_id is required" }, { status: 400 });
     }
@@ -767,13 +837,30 @@ export async function POST(request: NextRequest, context: RouteContext) {
       participantName,
     });
 
+    // Insert with ALL new fields
     await query(
       `
-        INSERT INTO ingress (id, name, input_type, room_name, stream_key, url, is_enabled, created_at, updated_at)
-        VALUES ($1, $2, $3, $4, $5, $6, true, NOW(), NOW())
+        INSERT INTO ingress (
+          id, name, input_type, room_name, stream_key, url, is_enabled,
+          participant_identity, participant_name, reusable, status,
+          created_at, updated_at, project_id
+        )
+        VALUES ($1, $2, $3, $4, $5, $6, true, $7, $8, $9, $10, NOW(), NOW(), $11)
         ON CONFLICT (id) DO NOTHING
       `,
-      [randomUUID(), name, String(inputType), roomName, ingress.streamKey, ingress.url],
+      [
+        ingress.ingressId || randomUUID(),
+        name,
+        String(inputType),
+        roomName,
+        ingress.streamKey,
+        ingress.url,
+        userIdentity,
+        participantName,
+        ingress.reusable || false,
+        "endpoint_buffering",
+        projectId
+      ],
     );
 
     return NextResponse.json(
@@ -797,7 +884,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
   }
 
   if (slug.length === 2 && slug[0] === "ingress" && slug[1] === "url") {
-    const projectId = await resolveScopedProject(claims, String(payload.project_id || ""));
+    const projectId = await resolveScopedProject(claims, String(payload.project_id || request.nextUrl.searchParams.get("project_id") || ""));
     if (!projectId) {
       return NextResponse.json({ error: "project_id is required" }, { status: 400 });
     }
@@ -823,13 +910,29 @@ export async function POST(request: NextRequest, context: RouteContext) {
       participantName,
     });
 
+    // Insert with ALL new fields
     await query(
       `
-        INSERT INTO ingress (id, name, input_type, room_name, stream_key, url, is_enabled, created_at, updated_at)
-        VALUES ($1, $2, 'url', $3, $4, $5, true, NOW(), NOW())
+        INSERT INTO ingress (
+          id, name, input_type, room_name, stream_key, url, is_enabled,
+          participant_identity, participant_name, reusable, status,
+          created_at, updated_at, project_id
+        )
+        VALUES ($1, $2, 'url', $3, $4, $5, true, $6, $7, $8, $9, NOW(), NOW(), $10)
         ON CONFLICT (id) DO NOTHING
       `,
-      [randomUUID(), name, scopedRoomName, ingress.streamKey, ingress.url],
+      [
+        ingress.ingressId || randomUUID(),
+        name,
+        scopedRoomName,
+        ingress.streamKey,
+        ingress.url,
+        participantIdentityRaw,
+        participantName,
+        ingress.reusable || false,
+        "endpoint_buffering",
+        projectId
+      ],
     );
 
     return NextResponse.json(

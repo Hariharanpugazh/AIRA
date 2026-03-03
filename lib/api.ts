@@ -870,6 +870,16 @@ export interface CallLog {
     trunk_id?: string;
     room_name?: string;
     participant_identity?: string;
+    project_id?: string;
+    // Extended SIP tracking fields
+    sip_call_id?: string;
+    room_sid?: string;
+    from_sip_uri?: string;
+    to_sip_uri?: string;
+    hangup_cause?: string;
+    hangup_source?: string;
+    recording_url?: string;
+    recording_duration?: number;
 }
 
 interface BackendSipTrunk {
@@ -1105,13 +1115,45 @@ export interface Egress {
     status: string;
     room_name: string;
     file_url?: string;
-    started_at: string;
-    ended_at?: string;
+    started_at: string | number;
+    ended_at?: string | number;
     room_id?: string;
     project_id?: string;
     type?: string;
+    source_type?: string;
     url?: string;
+    web_url?: string;
     error?: string;
+    error_code?: string;
+    error_message?: string;
+    // Output results
+    file_results?: Array<{
+        filename?: string;
+        location?: string;
+        duration?: number;
+        size?: number;
+    }>;
+    stream_results?: Array<{
+        url?: string;
+        duration?: number;
+        status?: string;
+    }>;
+    segment_results?: Array<{
+        playlistName?: string;
+        duration?: number;
+        size?: number;
+    }>;
+    image_results?: Array<{
+        filename?: string;
+        location?: string;
+        capturedAt?: number;
+    }>;
+    // Source tracking
+    participant_identity?: string;
+    track_id?: string;
+    audio_only?: boolean;
+    video_only?: boolean;
+    layout?: string;
 }
 
 export async function getEgresses(projectId?: string): Promise<Egress[]> {
@@ -1205,7 +1247,26 @@ export interface Ingress {
     stream_key: string;
     url: string;
     ingress_type: string;
+    input_type?: number;
     status: string;
+    room_name?: string;
+    participant_identity?: string;
+    participant_name?: string;
+    resource_id?: string;
+    room_id?: string;
+    reusable?: boolean;
+    started_at?: number;
+    ended_at?: number;
+    error?: string;
+    track_count?: number;
+    track_sids?: string[];
+    audio_codec?: string;
+    video_codec?: string;
+    audio_bitrate?: number;
+    video_bitrate?: number;
+    video_resolution?: string;
+    project_id?: string;
+    created_at?: number;
 }
 
 export async function getIngresses(projectId?: string): Promise<Ingress[]> {

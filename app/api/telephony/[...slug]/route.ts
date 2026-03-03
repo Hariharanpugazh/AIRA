@@ -352,6 +352,10 @@ export async function GET(request: NextRequest, context: RouteContext) {
       ),
     );
 
+    // Sync call logs with room states first
+    const { syncCallLogs } = await import("@/lib/server/resource-sync");
+    await syncCallLogs();
+
     const rows = await query<{
       id: string;
       call_id: string;
@@ -367,11 +371,16 @@ export async function GET(request: NextRequest, context: RouteContext) {
       participant_identity: string | null;
       project_id: string | null;
       metadata: string | null;
+      sip_call_id: string | null;
+      room_sid: string | null;
+      hangup_cause: string | null;
+      recording_url: string | null;
     }>(
       `
         SELECT
           id, call_id, from_number, to_number, direction, started_at, ended_at, duration_seconds,
-          status, trunk_id, room_name, participant_identity, project_id, metadata
+          status, trunk_id, room_name, participant_identity, project_id, metadata,
+          sip_call_id, room_sid, hangup_cause, recording_url
         FROM call_logs
         WHERE metadata LIKE $1
           ${projectScope ? "AND project_id = $2" : ""}
@@ -383,7 +392,13 @@ export async function GET(request: NextRequest, context: RouteContext) {
         : [`%\"owner_user_id\":\"${claims.sub}\"%`, limit],
     );
 
-    return NextResponse.json(rows.rows.map(callLogResponse));
+    return NextResponse.json(rows.rows.map((row) => ({
+      ...callLogResponse(row),
+      sip_call_id: row.sip_call_id,
+      room_sid: row.room_sid,
+      hangup_cause: row.hangup_cause,
+      recording_url: row.recording_url,
+    })));
   }
 
   return NextResponse.json({ error: "Not Found" }, { status: 404 });

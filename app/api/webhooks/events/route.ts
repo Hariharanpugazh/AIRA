@@ -16,16 +16,24 @@ export async function GET(request: NextRequest) {
 
   const rows = await query<{
     id: string;
+    project_id: string | null;
     event_type: string;
     payload: string;
     processed: boolean;
     created_at: string | Date;
     delivery_attempts: number;
     last_error: string | null;
+    room_name: string | null;
+    session_id: string | null;
+    participant_identity: string | null;
+    egress_id: string | null;
+    ingress_id: string | null;
   }>(
     `
       SELECT
-        id, event_type, payload, processed, created_at, delivery_attempts, last_error
+        id, project_id, event_type, payload, processed, created_at,
+        delivery_attempts, last_error, room_name, session_id,
+        participant_identity, egress_id, ingress_id
       FROM webhook_events
       ORDER BY created_at DESC
       LIMIT $1
@@ -35,6 +43,7 @@ export async function GET(request: NextRequest) {
 
   const events = rows.rows.map((row) => ({
     id: row.id,
+    project_id: row.project_id,
     event_type: row.event_type,
     payload: (() => {
       try {
@@ -47,6 +56,11 @@ export async function GET(request: NextRequest) {
     created_at: new Date(row.created_at).toISOString(),
     delivery_attempts: row.delivery_attempts,
     last_error: row.last_error,
+    room_name: row.room_name,
+    session_id: row.session_id,
+    participant_identity: row.participant_identity,
+    egress_id: row.egress_id,
+    ingress_id: row.ingress_id,
   }));
 
   return NextResponse.json({
@@ -54,4 +68,3 @@ export async function GET(request: NextRequest) {
     count: events.length,
   });
 }
-
