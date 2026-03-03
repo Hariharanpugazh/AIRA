@@ -6,7 +6,7 @@ import Header from "../../components/Header";
 import { Card } from "../../../components/ui/Card";
 import { Button } from "../../../components/ui/Button";
 import { Modal } from "../../../components/ui/Modal";
-import { AiraLoader } from "../../../components/ui/AiraLoader";
+import { DelayedLoader } from "../../../components/ui/DelayedLoader";
 import { cn } from "../../../lib/utils";
 import {
   Upload, Video, Radio, Link2, Plus, Search, X, Check, Copy,
@@ -149,7 +149,7 @@ export default function IngressesPage({ projectId }: IngressesPageProps) {
 
   return (
     <>
-      {(loading || creating) && <AiraLoader />}
+      {(loading || creating) && <DelayedLoader />}
       <Header
         projectName={projectName}
         pageName="Ingress"

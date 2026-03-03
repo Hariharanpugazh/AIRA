@@ -24,7 +24,7 @@ import {
 } from "lucide-react";
 import { createProject, logout, getProjects } from "../../lib/api";
 import { useAuth } from "../../contexts/AuthContext";
-import { AiraLoader } from "../../components/ui/AiraLoader";
+import { DelayedLoader } from "../../components/ui/DelayedLoader";
 import { useRouter } from "next/navigation";
 import { clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
@@ -261,7 +261,7 @@ export default function LiveKitStyleSidebar({ user: initialUser }: SidebarProps)
 
   return (
     <>
-      {isLoggingOut && <AiraLoader />}
+      {isLoggingOut && <DelayedLoader />}
       <aside className="h-screen flex flex-col bg-background sticky top-0 font-sans text-foreground transition-all duration-300 ease-in-out w-64">
         {/* Header */}
         <div className="px-6 py-8 flex items-center">

@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 // DashboardLayout removed
 import Header from "../../components/Header";
 import { Button } from "../../../components/ui/Button";
-import { AiraLoader } from "../../../components/ui/AiraLoader";
+import { DelayedLoader } from "../../../components/ui/DelayedLoader";
 import {
   ChevronLeft,
   ChevronRight,
@@ -30,7 +30,7 @@ export default function SandboxPage({ projectId: _projectId }: SandboxPageProps)
 
   return (
     <>
-      {loading && <AiraLoader />}
+      {loading && <DelayedLoader />}
       <Header
         projectName={projectName}
         pageName="Sandbox"

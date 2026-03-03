@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
 import { ChevronDown, Brain, Mic, Volume2 } from "lucide-react";
 import { getAgentById, updateAgent, Agent, getCurrentProjectId } from "../../../../../lib/api";
-import { AiraLoader } from "../../../../../components/ui/AiraLoader";
+import { DelayedLoader } from "../../../../../components/ui/DelayedLoader";
 import { Button } from "../../../../../components/ui/Button";
 
 export default function ModelsPage() {
@@ -58,11 +58,11 @@ export default function ModelsPage() {
         }
     };
 
-    if (loading) return <div className="p-10 flex justify-center"><AiraLoader /></div>;
+    if (loading) return <div className="p-10 flex justify-center"><DelayedLoader /></div>;
 
     return (
         <div className="p-10 max-w-4xl space-y-10 animate-in fade-in duration-500">
-            {saving && <AiraLoader />}
+            {saving && <DelayedLoader />}
 
             <div className="flex justify-end sticky top-0 z-10 py-2 bg-surface/80 backdrop-blur-sm -mt-2">
                 <Button onClick={handleSave} isLoading={saving} size="sm" className="px-6 font-bold uppercase tracking-wider">

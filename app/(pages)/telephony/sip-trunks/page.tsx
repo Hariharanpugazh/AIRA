@@ -12,7 +12,7 @@ import { Card } from "../../../../components/ui/Card";
 import { Button } from "../../../../components/ui/Button";
 import { Modal } from "../../../../components/ui/Modal";
 import { Input } from "../../../../components/ui/Input";
-import { AiraLoader } from "../../../../components/ui/AiraLoader";
+import { DelayedLoader } from "../../../../components/ui/DelayedLoader";
 import { cn } from "../../../../lib/utils";
 import {
   getAccessToken, getSipTrunks, createSipTrunk, deleteSipTrunk, updateSipTrunk, SipTrunk,
@@ -211,7 +211,7 @@ export default function SipTrunksPage({ projectId }: SipTrunksPageProps) {
 
   return (
     <>
-      {(loading || saving) && <AiraLoader />}
+      {(loading || saving) && <DelayedLoader />}
       <Header
         projectName={projectName}
         sectionName="Telephony"

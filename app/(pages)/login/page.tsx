@@ -6,7 +6,7 @@ import { Card } from "../../../components/ui/Card";
 import { Button } from "../../../components/ui/Button";
 import { login, getAccessToken, getMe } from "../../../lib/api";
 
-import { AiraLoader } from "../../../components/ui/AiraLoader";
+import { DelayedLoader } from "../../../components/ui/DelayedLoader";
 
 function Logo() {
   return (
@@ -58,7 +58,7 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen w-full flex items-center justify-center p-4 relative overflow-hidden">
-      {loading && <AiraLoader />}
+      {loading && <DelayedLoader />}
       <div className="absolute inset-0 bg-background z-0" />
       <div className="absolute top-[-10%] right-[-5%] w-[400px] h-[400px] bg-primary/20 rounded-full blur-[100px]" />
       <div className="absolute bottom-[-10%] left-[-5%] w-[400px] h-[400px] bg-purple-500/20 rounded-full blur-[100px]" />
