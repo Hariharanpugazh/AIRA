@@ -11,7 +11,7 @@ import { ChevronRightIcon } from "../../components/icons";
 import { getAccessToken, getProjects, getAnalyticsDashboard, getAnalyticsTimeseries, getAnalyticsSummary, getRooms, Project, DashboardData, AnalyticsDataPoint } from "../../../lib/api";
 import { AnalyticsCard } from "../../../components/AnalyticsCard";
 import { StatsLineChart, DonutChart } from "../../../components/Charts";
-import { AiraLoader } from "../../../components/ui/AiraLoader";
+import { DelayedLoader } from "../../../components/ui/DelayedLoader";
 import { extractProjectIdFromRoom } from "../../../lib/utils";
 
 interface DashboardPageProps {
@@ -131,7 +131,7 @@ export default function DashboardPage({ projectId }: DashboardPageProps) {
 
   return (
     <>
-      {loading && <AiraLoader />}
+      {loading && <DelayedLoader />}
       <Header
         projectName={currentProject?.name || "Project"}
         pageName="Overview"

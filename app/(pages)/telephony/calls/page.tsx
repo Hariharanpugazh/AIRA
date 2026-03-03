@@ -8,7 +8,7 @@ import { getAccessToken, getSipTrunks, SipTrunk, getCallLogs, createOutboundCall
 import { Phone, PhoneOutgoing, Clock, AlertTriangle, Activity, Search, Filter, ChevronDown, ChevronUp, X, Copy, Check, ArrowUpRight, ArrowDownLeft, PhoneOff, BarChart3, Zap } from "lucide-react";
 import { Button } from "../../../../components/ui/Button";
 import { Modal } from "../../../../components/ui/Modal";
-import { AiraLoader } from "../../../../components/ui/AiraLoader";
+import { DelayedLoader } from "../../../../components/ui/DelayedLoader";
 import { cn } from "../../../../lib/utils";
 
 interface CallsPageProps {
@@ -314,7 +314,7 @@ export default function CallsPage({ projectId }: CallsPageProps) {
 
   return (
     <>
-      {(loading || calling) && <AiraLoader />}
+      {(loading || calling) && <DelayedLoader />}
       <Header
         projectName={projectName}
         sectionName="Telephony"

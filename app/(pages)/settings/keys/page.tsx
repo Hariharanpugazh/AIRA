@@ -5,7 +5,7 @@ import Header from "../../../components/Header";
 import { Button } from "../../../../components/ui/Button";
 import { Modal } from "../../../../components/ui/Modal";
 import { Card } from "../../../../components/ui/Card";
-import { AiraLoader } from "../../../../components/ui/AiraLoader";
+import { DelayedLoader } from "../../../../components/ui/DelayedLoader";
 import { Copy, Check, Info, ExternalLink } from "lucide-react";
 import { getLiveKitEnvConfig, type LiveKitEnvConfig } from "../../../../lib/api";
 
@@ -67,7 +67,7 @@ export default function ApiKeysPage({ projectId }: ApiKeysPageProps) {
 
   return (
     <>
-      {isLoading && <AiraLoader />}
+      {isLoading && <DelayedLoader />}
       <Header
         projectName={projectName}
         pageName="API Keys"

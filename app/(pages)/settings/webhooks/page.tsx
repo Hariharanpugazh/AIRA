@@ -5,7 +5,7 @@ import Header from "../../../components/Header";
 import { Button } from "../../../../components/ui/Button";
 import { Modal } from "../../../../components/ui/Modal";
 import { Card } from "../../../../components/ui/Card";
-import { AiraLoader } from "../../../../components/ui/AiraLoader";
+import { DelayedLoader } from "../../../../components/ui/DelayedLoader";
 import { Globe, Trash2, Copy, Check, ExternalLink } from "lucide-react";
 import { Webhook, createWebhook, deleteWebhook, getWebhooks } from "../../../../lib/api";
 
@@ -81,7 +81,7 @@ export default function WebhooksPage({ projectId }: WebhooksPageProps) {
 
   return (
     <>
-      {isLoading && <AiraLoader />}
+      {isLoading && <DelayedLoader />}
       <Header
         projectName={projectName}
         pageName="Webhooks"

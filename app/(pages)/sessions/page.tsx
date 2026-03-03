@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Header from "../../components/Header";
 import { Card } from "../../../components/ui/Card";
 import { Button } from "../../../components/ui/Button";
-import { AiraLoader } from "../../../components/ui/AiraLoader";
+import { DelayedLoader } from "../../../components/ui/DelayedLoader";
 import {
   Search,
   X,
@@ -192,7 +192,7 @@ export default function SessionsPage({ projectId }: SessionsPageProps) {
 
   return (
     <>
-      {loading && <AiraLoader />}
+      {loading && <DelayedLoader />}
       <Header
         projectName={currentProject?.name || "Project"}
         pageName="Sessions"

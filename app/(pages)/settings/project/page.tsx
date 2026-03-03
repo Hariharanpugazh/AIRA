@@ -4,7 +4,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import Header from "../../../components/Header";
 import { Button } from "../../../../components/ui/Button";
 import { Card } from "../../../../components/ui/Card";
-import { AiraLoader } from "../../../../components/ui/AiraLoader";
+import { DelayedLoader } from "../../../../components/ui/DelayedLoader";
 import { Save, Trash2, ExternalLink, Copy, Check } from "lucide-react";
 import {
   deleteProject,
@@ -125,7 +125,7 @@ export default function ProjectSettingsPage({ projectId }: ProjectSettingsPagePr
 
   return (
     <>
-      {(loading || deleting) && <AiraLoader />}
+      {(loading || deleting) && <DelayedLoader />}
       <Header
         projectName={name || "Project"}
         pageName="Project"

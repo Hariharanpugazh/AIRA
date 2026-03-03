@@ -15,7 +15,7 @@ import {
   getAccessToken, getDispatchRules, createDispatchRule, deleteDispatchRule,
   getSipTrunks, getAgents, getProjects, DispatchRule, Agent, SipTrunk, Project,
 } from "../../../../lib/api";
-import { AiraLoader } from "../../../../components/ui/AiraLoader";
+import { DelayedLoader } from "../../../../components/ui/DelayedLoader";
 import { Modal } from "../../../../components/ui/Modal";
 import { cn } from "../../../../lib/utils";
 
@@ -177,7 +177,7 @@ export default function DispatchRulesPage({ projectId }: DispatchRulesPageProps)
 
   return (
     <>
-      {loading && <AiraLoader />}
+      {loading && <DelayedLoader />}
       <Header
         projectName={projectName}
         sectionName="Telephony"
